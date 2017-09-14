@@ -944,12 +944,16 @@ def _check_change_has_proper_changeid(_project, commit):
   allowed_tags = ['Signed-off-by']
 
   end = desc[m.end():].strip().splitlines()
-  if end and end[-1].startswith('(cherry picked from commit'):
+  cherry_pick_marker = 'cherry picked from commit'
+
+  if end and cherry_pick_marker in end[-1]:
     # Cherry picked patches allow more tags in the last paragraph.
-    allowed_tags += ['Reviewed-on', 'Reviewed-by', 'Commit-Ready', 'Tested-by']
+    allowed_tags += ['Commit-Queue', 'Commit-Ready', 'Reviewed-by',
+                     'Reviewed-on', 'Tested-by']
     end = end[:-1]
 
-  tag_search = '^(%s): ' % '|'.join(allowed_tags)
+  # Note that descriptions could have multiple cherry pick markers.
+  tag_search = r'^(%s:|\(%s) ' % (':|'.join(allowed_tags), cherry_pick_marker)
 
   if [x for x in end if not re.search(tag_search, x)]:
     return HookFailure('Only "%s:" tag(s) may follow the Change-Id.' %
