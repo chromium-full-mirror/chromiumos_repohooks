@@ -1255,11 +1255,19 @@ def _kernel_configcheck(_project, commit):
 
 def _run_json_check(_project, commit):
   """Checks that all JSON files are syntactically valid."""
-  for f in _filter_files(_get_affected_files(commit), [r'.*\.json']):
+  ret = []
+
+  files = _filter_files(_get_affected_files(commit, relative=True),
+                        [r'.*\.json$'])
+  for f in files:
+    data = _get_file_content(f, commit)
     try:
-      json.load(open(f))
-    except Exception, e:
-      return HookFailure('Invalid JSON in %s: %s' % (f, e))
+      json.loads(data)
+    except Exception as e:
+      ret.append('%s: Invalid JSON: %s' % (f, e))
+
+  if ret:
+    return HookFailure('\n'.join(ret))
 
 
 def _check_manifests(_project, commit):
