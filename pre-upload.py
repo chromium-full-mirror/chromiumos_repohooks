@@ -1384,7 +1384,7 @@ def _run_project_hook_script(script, project, commit):
 def _check_project_prefix(_project, commit):
   """Require the commit message have a project specific prefix as needed."""
 
-  files = _get_affected_files(commit, relative=True)
+  files = _get_affected_files(commit, include_deletes=True, relative=True)
   prefix = os.path.commonprefix(files)
   prefix = os.path.dirname(prefix)
 
