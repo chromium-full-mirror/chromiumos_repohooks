@@ -26,10 +26,17 @@ import StringIO
 from errors import (VerifyException, HookFailure, PrintErrorForProject,
                     PrintErrorsForCommit)
 
-# If repo imports us, the __name__ will be __builtin__, and the wrapper will
-# be in $CHROMEOS_CHECKOUT/.repo/repo/main.py, so we need to go two directories
-# up. The same logic also happens to work if we're executed directly.
-if __name__ in ('__builtin__', '__main__'):
+# If repo imports us, the __name__ will be __builtin__, and the cwd will be in
+# the top level of the checkout (i.e. $CHROMEOS_CHECKOUT).  chromite will be in
+# that directory, so add it to our path.  This works whether we're running the
+# repo in $CHROMEOS_CHECKOUT/.repo/repo/ or a custom version in a completely
+# different tree.
+if __name__ == '__builtin__':
+  sys.path.insert(0, os.getcwd())
+
+# If we're run directly, we'll find chromite relative to the repohooks dir in
+# $CHROMEOS_CHECKOUT/src/repohooks, so go up two dirs.
+if __name__ == '__main__':
   sys.path.insert(0, os.path.join(os.path.dirname(sys.argv[0]), '..', '..'))
 
 from chromite.lib import commandline
