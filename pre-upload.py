@@ -457,7 +457,7 @@ def _check_no_long_lines(_project, commit, options=()):
   MAX_LEN = 80
   SKIP_REGEXP = re.compile('|'.join([
       r'https?://',
-      r'^#\s*(define|include|import|pragma|if|endif)\b']))
+      r'^#\s*(define|include|import|pragma|if|ifndef|endif)\b']))
 
   included, excluded = _parse_common_inclusion_options(options)
   files = _filter_files(_get_affected_files(commit),
