@@ -1538,7 +1538,6 @@ _COMMON_HOOKS = [
 # A dictionary of project-specific hooks(callbacks), indexed by project name.
 # dict[project] = [callback1, callback2]
 _PROJECT_SPECIFIC_HOOKS = {
-    "chromiumos/platform2": [_check_project_prefix],
     "chromiumos/third_party/kernel": [_kernel_configcheck],
     "chromiumos/third_party/kernel-next": [_kernel_configcheck],
 }
@@ -1562,6 +1561,7 @@ _HOOK_FLAGS = {
     'test_field_check': _check_change_has_test_field,
     'manifest_check': _check_manifests,
     'contribution_check': _check_change_is_contribution,
+    'project_prefix_check': _check_project_prefix,
 }
 
 
