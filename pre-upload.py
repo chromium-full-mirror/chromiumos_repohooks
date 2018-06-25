@@ -889,7 +889,13 @@ def _check_ebuild_virtual_pv(project, commit):
 
   is_variant = lambda x: x.startswith('overlay-variant-')
   is_board = lambda x: x.startswith('overlay-')
+  is_baseboard = lambda x: x.startswith('baseboard-')
+  is_chipset = lambda x: x.startswith('chipset-')
+  is_project = lambda x: x.startswith('project-')
   is_private = lambda x: x.endswith('-private')
+
+  is_special_overlay = lambda x: (is_board(x) or is_chipset(x) or
+                                  is_baseboard(x) or is_project(x))
 
   get_pv = re.compile(r'(.*?)virtual/([^/]+)/\2-([^/]*)\.ebuild$')
 
@@ -902,7 +908,7 @@ def _check_ebuild_virtual_pv(project, commit):
     m = get_pv.match(ebuild)
     if m:
       overlay = m.group(1)
-      if not overlay or not is_board(overlay):
+      if not overlay or not is_special_overlay(overlay):
         overlay = project_base
 
       pv = m.group(3).split('-', 1)[0]
@@ -911,10 +917,17 @@ def _check_ebuild_virtual_pv(project, commit):
       # versioning structure, e.g. if one has a board inheriting a board.
       if float(pv) >= 4:
         want_pv = pv
-      elif is_private(overlay):
-        want_pv = '3.5' if is_variant(overlay) else '3'
       elif is_board(overlay):
-        want_pv = '2.5' if is_variant(overlay) else '2'
+        if is_private(overlay):
+          want_pv = '3.5' if is_variant(overlay) else '3'
+        elif is_board(overlay):
+          want_pv = '2.5' if is_variant(overlay) else '2'
+      elif is_baseboard(overlay):
+        want_pv = '1.9'
+      elif is_chipset(overlay):
+        want_pv = '1.8'
+      elif is_project(overlay):
+        want_pv = '1.7' if is_private(overlay) else '1.5'
       else:
         want_pv = '1'
 
