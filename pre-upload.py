@@ -858,9 +858,13 @@ def _check_ebuild_licenses(_project, commit):
     if ebuild.split('/')[-3] == 'virtual':
       continue
 
+    # e.g. path/to/overlay/category/package/package.ebuild -> path/to/overlay
+    overlay_path = os.sep.join(ebuild.split(os.sep)[:-3])
+
     try:
       ebuild_content = _get_file_content(ebuild, commit)
-      license_types = licenses_lib.GetLicenseTypesFromEbuild(ebuild_content)
+      license_types = licenses_lib.GetLicenseTypesFromEbuild(ebuild_content,
+                                                             overlay_path)
     except ValueError as e:
       return HookFailure(e.message, [ebuild])
 
@@ -868,7 +872,8 @@ def _check_ebuild_licenses(_project, commit):
     for license_type in [x for x in license_types
                          if x not in LICENSES_IGNORE and not x.endswith('?')]:
       try:
-        licenses_lib.Licensing.FindLicenseType(license_type)
+        licenses_lib.Licensing.FindLicenseType(license_type,
+                                               overlay_path=overlay_path)
       except AssertionError as e:
         return HookFailure(e.message, [ebuild])
 
