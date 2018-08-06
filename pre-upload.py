@@ -1441,6 +1441,27 @@ def _check_project_prefix(_project, commit):
                        % (project_name, project_name))
 
 
+def _check_filepath_chartype(_project, commit):
+  """Checks that FilePath::CharType stuff is not used."""
+
+  FILEPATH_REGEXP = re.compile('|'.join(
+      [r'(?:base::)?FilePath::(?:Char|String|StringPiece)Type',
+       r'FILE_PATH_LITERAL']))
+  files = _filter_files(_get_affected_files(commit, relative=True),
+                        [r'.*\.(cc|h)$'])
+
+  errors = []
+  for afile in files:
+    for line_num, line in _get_file_diff(afile, commit):
+      m = re.search(FILEPATH_REGEXP, line)
+      if m:
+        errors.append('%s, line %s has %s' % (afile, line_num, m.group(0)))
+
+  if errors:
+    msg = 'Please assume FilePath::CharType is char (crbug.com/870621):'
+    return HookFailure(msg, errors)
+
+
 def _check_exec_files(_project, commit):
   """Make +x bits on files."""
   # List of files that should never be +x.
@@ -1575,6 +1596,7 @@ _HOOK_FLAGS = {
     'manifest_check': _check_manifests,
     'contribution_check': _check_change_is_contribution,
     'project_prefix_check': _check_project_prefix,
+    'filepath_chartype_check': _check_filepath_chartype,
 }
 
 

@@ -189,6 +189,40 @@ class CheckProjectPrefix(cros_test_lib.MockTempDirTestCase):
         pre_upload._check_project_prefix(ProjectNamed('PROJECT'), 'COMMIT'))
 
 
+class CheckFilePathCharTypeTest(cros_test_lib.MockTestCase):
+  """Tests for _check_filepath_chartype."""
+
+  def setUp(self):
+    self.diff_mock = self.PatchObject(pre_upload, '_get_file_diff')
+
+  def testCheck(self):
+    self.PatchObject(pre_upload, '_get_affected_files', return_value=['x.cc'])
+    self.diff_mock.return_value = [
+        (1, 'base::FilePath'),                   # OK
+        (2, 'base::FilePath::CharType'),         # NG
+        (3, 'base::FilePath::StringType'),       # NG
+        (4, 'base::FilePath::StringPieceType'),  # NG
+        (5, 'FilePath::CharType'),               # NG
+        (6, 'FilePath::StringType'),             # NG
+        (7, 'FilePath::StringPieceType'),        # NG
+        (8, 'FILE_PATH_LITERAL'),                # NG
+    ]
+    failure = pre_upload._check_filepath_chartype(ProjectNamed('PROJECT'),
+                                                  'COMMIT')
+    self.assertTrue(failure)
+    self.assertEquals(
+        'Please assume FilePath::CharType is char (crbug.com/870621):',
+        failure.msg)
+    self.assertEquals(['x.cc, line 2 has base::FilePath::CharType',
+                       'x.cc, line 3 has base::FilePath::StringType',
+                       'x.cc, line 4 has base::FilePath::StringPieceType',
+                       'x.cc, line 5 has FilePath::CharType',
+                       'x.cc, line 6 has FilePath::StringType',
+                       'x.cc, line 7 has FilePath::StringPieceType',
+                       'x.cc, line 8 has FILE_PATH_LITERAL'],
+                      failure.items)
+
+
 class CheckKernelConfig(cros_test_lib.MockTestCase):
   """Tests for _kernel_configcheck."""
 
