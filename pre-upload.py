@@ -1446,6 +1446,8 @@ def _check_filepath_chartype(_project, commit):
 
   FILEPATH_REGEXP = re.compile('|'.join(
       [r'(?:base::)?FilePath::(?:Char|String|StringPiece)Type',
+       r'(?:base::)?FilePath::FromUTF8Unsafe',
+       r'AsUTF8Unsafe',
        r'FILE_PATH_LITERAL']))
   files = _filter_files(_get_affected_files(commit, relative=True),
                         [r'.*\.(cc|h)$'])

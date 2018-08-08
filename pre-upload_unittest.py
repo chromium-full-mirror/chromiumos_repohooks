@@ -202,10 +202,13 @@ class CheckFilePathCharTypeTest(cros_test_lib.MockTestCase):
         (2, 'base::FilePath::CharType'),         # NG
         (3, 'base::FilePath::StringType'),       # NG
         (4, 'base::FilePath::StringPieceType'),  # NG
-        (5, 'FilePath::CharType'),               # NG
-        (6, 'FilePath::StringType'),             # NG
-        (7, 'FilePath::StringPieceType'),        # NG
-        (8, 'FILE_PATH_LITERAL'),                # NG
+        (5, 'base::FilePath::FromUTF8Unsafe'),   # NG
+        (6, 'FilePath::CharType'),               # NG
+        (7, 'FilePath::StringType'),             # NG
+        (8, 'FilePath::StringPieceType'),        # NG
+        (9, 'FilePath::FromUTF8Unsafe'),         # NG
+        (10, 'AsUTF8Unsafe'),                    # NG
+        (11, 'FILE_PATH_LITERAL'),               # NG
     ]
     failure = pre_upload._check_filepath_chartype(ProjectNamed('PROJECT'),
                                                   'COMMIT')
@@ -216,10 +219,13 @@ class CheckFilePathCharTypeTest(cros_test_lib.MockTestCase):
     self.assertEquals(['x.cc, line 2 has base::FilePath::CharType',
                        'x.cc, line 3 has base::FilePath::StringType',
                        'x.cc, line 4 has base::FilePath::StringPieceType',
-                       'x.cc, line 5 has FilePath::CharType',
-                       'x.cc, line 6 has FilePath::StringType',
-                       'x.cc, line 7 has FilePath::StringPieceType',
-                       'x.cc, line 8 has FILE_PATH_LITERAL'],
+                       'x.cc, line 5 has base::FilePath::FromUTF8Unsafe',
+                       'x.cc, line 6 has FilePath::CharType',
+                       'x.cc, line 7 has FilePath::StringType',
+                       'x.cc, line 8 has FilePath::StringPieceType',
+                       'x.cc, line 9 has FilePath::FromUTF8Unsafe',
+                       'x.cc, line 10 has AsUTF8Unsafe',
+                       'x.cc, line 11 has FILE_PATH_LITERAL'],
                       failure.items)
 
 
