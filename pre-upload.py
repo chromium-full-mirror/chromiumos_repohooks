@@ -1752,7 +1752,15 @@ def _run_project_hooks(project_name, proj_dir=None,
           file=sys.stderr)
     remote = None
   else:
-    remote, _branch = remote_branch.split('/', 1)
+    branch_items = remote_branch.split('/', 1)
+    if len(branch_items) != 2:
+      PrintErrorForProject(
+          project_name,
+          HookFailure(
+              'Cannot get remote and branch name (%s)' % remote_branch))
+      os.chdir(pwd)
+      return True
+    remote, _branch = branch_items
 
   project = Project(name=project_name, dir=proj_dir, remote=remote)
 
