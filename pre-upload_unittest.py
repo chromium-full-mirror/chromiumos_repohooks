@@ -754,6 +754,19 @@ class CheckCrosLicenseCopyrightHeader(cros_test_lib.MockTestCase):
       self.content_mock.return_value = header
       self.assertNotEqual(None, pre_upload._check_cros_license('proj', 'sha1'))
 
+  def testNoLeadingSpace(self):
+    """Allow headers without leading space (e.g., not a source comment)"""
+    HEADERS = (
+        ('Copyright 2018 The Chromium OS Authors. All rights reserved.\n'
+         'Use of this source code is governed by a BSD-style license that '
+         'can be\n'
+         'found in the LICENSE file.\n'),
+    )
+    self.file_mock.return_value = ['file']
+    for header in HEADERS:
+      self.content_mock.return_value = header
+      self.assertEqual(None, pre_upload._check_cros_license('proj', 'sha1'))
+
   def testIgnoreExcludedPaths(self):
     """Ignores excluded paths for license checks."""
     self.file_mock.return_value = ['foo/OWNERS']

@@ -1053,18 +1053,18 @@ def _check_cros_license(_project, commit, options=()):
   """
   # For older years, be a bit more flexible as our policy says leave them be.
   LICENSE_HEADER = (
-      r'.* Copyright( \(c\))? 20[-0-9]{2,7} The Chromium OS Authors\. '
+      r'.*Copyright( \(c\))? 20[-0-9]{2,7} The Chromium OS Authors\. '
       r'All rights reserved\.' r'\n'
-      r'.* Use of this source code is governed by a BSD-style license that can '
+      r'.*Use of this source code is governed by a BSD-style license that can '
       r'be\n'
-      r'.* found in the LICENSE file\.'
+      r'.*found in the LICENSE file\.'
       r'\n'
   )
   license_re = re.compile(LICENSE_HEADER, re.MULTILINE)
 
   # For newer years, be stricter.
   COPYRIGHT_LINE = (
-      r'.* Copyright \(c\) 20(1[5-9]|[2-9][0-9]) The Chromium OS Authors\. '
+      r'.*Copyright \(c\) 20(1[5-9]|[2-9][0-9]) The Chromium OS Authors\. '
       r'All rights reserved\.' r'\n'
   )
   copyright_re = re.compile(COPYRIGHT_LINE)
