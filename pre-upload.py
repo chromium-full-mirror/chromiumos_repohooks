@@ -1293,6 +1293,19 @@ def _run_checkpatch(_project, commit, options=()):
     return HookFailure('checkpatch.pl errors/warnings\n\n' + cmd_result.output)
 
 
+def _run_kerneldoc(_project, commit, options=()):
+  """Runs kernel-doc validator on the given project"""
+  included, excluded = _parse_common_inclusion_options(options)
+  files = _filter_files(_get_affected_files(commit, relative=True),
+                        included, excluded)
+  if files:
+    hooks_dir = _get_hooks_dir()
+    cmd = ['%s/kernel-doc' % hooks_dir, '-none'] + files
+    output = _run_command(cmd=cmd, combine_stdout_stderr=True)
+    if output:
+      return HookFailure('kernel-doc errors/warnings:', output.splitlines())
+
+
 def _kernel_configcheck(_project, commit):
   """Makes sure kernel config changes are not mixed with code changes"""
   files = _get_affected_files(commit)
@@ -1620,6 +1633,7 @@ _HOOK_FLAGS = {
     'cargo_fmt_check': _check_cargo_fmt,
     'clang_format_check': _check_clang_format,
     'checkpatch_check': _run_checkpatch,
+    'kerneldoc_check': _run_kerneldoc,
     'stray_whitespace_check': _check_no_stray_whitespace,
     'json_check': _run_json_check,
     'long_line_check': _check_no_long_lines,
