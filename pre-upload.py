@@ -1254,7 +1254,7 @@ def _check_clang_format(_project, commit, options=()):
     options.append('--commit=HEAD')
   else:
     options.extend(['--commit', commit])
-  cmd = ['%s/clang-format.py' % hooks_dir] + options
+  cmd = [os.path.join(hooks_dir, 'clang-format.py')] + options
   cmd_result = cros_build_lib.RunCommand(cmd=cmd,
                                          print_cmd=False,
                                          input=_get_patch(commit),
@@ -1282,7 +1282,7 @@ def _run_checkpatch(_project, commit, options=()):
   # Upstream does not want those lines (since they do not use Gerrit), but
   # we always do, so disable the check globally.
   options.append('--ignore=GERRIT_CHANGE_ID')
-  cmd = ['%s/checkpatch.pl' % hooks_dir] + options + ['-']
+  cmd = [os.path.join(hooks_dir, 'checkpatch.pl')] + options + ['-']
   cmd_result = cros_build_lib.RunCommand(cmd=cmd,
                                          print_cmd=False,
                                          input=_get_patch(commit),
@@ -1300,10 +1300,11 @@ def _run_kerneldoc(_project, commit, options=()):
                         included, excluded)
   if files:
     hooks_dir = _get_hooks_dir()
-    cmd = ['%s/kernel-doc' % hooks_dir, '-none'] + files
+    cmd = [os.path.join(hooks_dir, 'kernel-doc'), '-none'] + files
     output = _run_command(cmd=cmd, combine_stdout_stderr=True)
     if output:
-      return HookFailure('kernel-doc errors/warnings:', output.splitlines())
+      return HookFailure('kernel-doc errors/warnings:',
+                         items=output.splitlines())
 
 
 def _kernel_configcheck(_project, commit):
