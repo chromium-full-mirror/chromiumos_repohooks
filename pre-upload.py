@@ -1219,36 +1219,6 @@ def _check_layout_conf(_project, commit):
 # Project-specific hooks
 
 
-def _check_cargo_fmt(_project, _commit, options=()):
-  """Runs cargo fmt on the given project.
-
-  If specified, options is a list of directories to run cargo fmt in
-  (rather than at the root of the project).
-  """
-  pwd = os.getcwd()
-  cmd = ['cargo', 'fmt', '--all', '--', '--check']
-  errors = ''
-
-  # Check from the root of the project if no options were specified.
-  if not options:
-    options = ('.')
-
-  for path in options:
-    os.chdir(os.path.join(pwd, path))
-    cmd_result = cros_build_lib.RunCommand(cmd=cmd,
-                                           print_cmd=False,
-                                           stdout_to_pipe=True,
-                                           combine_stdout_stderr=True,
-                                           error_code_ok=True)
-    if cmd_result.returncode:
-      errors += cmd_result.output + '\n'
-
-  os.chdir(pwd)
-
-  if errors:
-    return HookFailure('cargo fmt errors\n\n' + errors)
-
-
 def _check_clang_format(_project, commit, options=()):
   """Runs clang-format on the given project"""
   hooks_dir = _get_hooks_dir()
@@ -1635,7 +1605,6 @@ _PROJECT_SPECIFIC_HOOKS = {
 # A dictionary of flags (keys) that can appear in the config file, and the hook
 # that the flag controls (value).
 _HOOK_FLAGS = {
-    'cargo_fmt_check': _check_cargo_fmt,
     'clang_format_check': _check_clang_format,
     'checkpatch_check': _run_checkpatch,
     'kerneldoc_check': _run_kerneldoc,
