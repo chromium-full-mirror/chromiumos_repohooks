@@ -1541,6 +1541,8 @@ def _check_exec_files(_project, commit):
       '*.css',
       '*.ebuild',
       '*.eclass',
+      '*.gn',
+      '*.gni',
       '*.gyp',
       '*.gypi',
       '*.htm',
