@@ -83,6 +83,9 @@ COMMON_EXCLUDED_PATHS = [
 
     # Ignore license files as the content is often taken verbatim.
     r".*/licenses/.*",
+
+    # Exclude generated python protobuf files.
+    r".*_pb2\.py$",
 ]
 
 LICENSE_EXCLUDED_PATHS = [
