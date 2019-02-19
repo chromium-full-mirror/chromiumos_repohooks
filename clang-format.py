@@ -27,7 +27,7 @@ from chromite.lib import cros_build_lib
 # that have formatting errors are printed with this prefix.
 DIFF_MARKER_PREFIX = '+++ b/'
 
-BUILDTOOLS_PATH = os.path.join(constants.SOURCE_ROOT, 'chromium', 'src',
+BUILDTOOLS_PATH = os.path.join(constants.SOURCE_ROOT, 'src', 'chromium', 'src',
                                'buildtools')
 
 
