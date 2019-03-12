@@ -1260,7 +1260,6 @@ def _check_clang_format(_project, commit, options=()):
   cmd = [os.path.join(hooks_dir, 'clang-format.py')] + options
   cmd_result = cros_build_lib.RunCommand(cmd=cmd,
                                          print_cmd=False,
-                                         input=_get_patch(commit),
                                          stdout_to_pipe=True,
                                          combine_stdout_stderr=True,
                                          error_code_ok=True)
