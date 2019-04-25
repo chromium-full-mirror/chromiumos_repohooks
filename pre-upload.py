@@ -89,7 +89,7 @@ COMMON_EXCLUDED_PATHS = [
 ]
 
 LICENSE_EXCLUDED_PATHS = [
-    r".*/OWNERS$",
+    r"^(.*/)?OWNERS$",
 ]
 
 _CONFIG_FILE = 'PRESUBMIT.cfg'
