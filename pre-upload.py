@@ -11,7 +11,8 @@ You can add new checks by adding a functions to the HOOKS constants.
 
 from __future__ import print_function
 
-import argparse
+# TODO(crbug.com/960636): Remove pylint disable after linter is fixed.
+import argparse # pylint: disable=import-error
 import collections
 import ConfigParser
 import fnmatch
@@ -1216,6 +1217,41 @@ def _check_layout_conf(_project, commit):
     return HookFailure(lines)
 
 
+def _check_no_new_gyp(_project, commit):
+  """Verifies no project starts to use GYP."""
+  whitelist = [
+      'aosp/platform/system/update_engine',
+      'chromeos/ap',
+      'chromeos/ap-daemons',
+      'chromeos/platform/actions',
+      'chromeos/platform/arc-oemcrypto',
+      'chromeos/platform/drivefs',
+      'chromeos/platform/drivefs-google3',
+      'chromeos/platform/experimental-touch-fw',
+      'chromeos/platform/gdisp',
+      'chromeos/platform/nest-nn',
+      'chromeos/platform/whisper',
+      'chromeos/thermald',
+      'chromeos/vendor/fibocom-firmware',
+      'chromiumos/platform/cfm-device-monitor',
+      'chromiumos/platform/google-breakpad',
+      'chromiumos/platform2',
+      'chromiumos/third_party/atrusctl',
+      'chromiumos/third_party/virtual-usb-printer',
+      'weave/libweave',
+  ]
+  if _project.name in whitelist:
+    return None
+
+  gypfiles = _filter_files(
+      _get_affected_files(commit, include_symlinks=True, relative=True),
+      [r'\.gyp$'])
+
+  if gypfiles:
+    return HookFailure('GYP is deprecated and not allowed in a new project:',
+                       gypfiles)
+
+
 # Project-specific hooks
 
 
@@ -1587,6 +1623,7 @@ _COMMON_HOOKS = [
     _check_gofmt,
     _check_layout_conf,
     _check_no_long_lines,
+    _check_no_new_gyp,
     _check_no_stray_whitespace,
     _check_no_tabs,
     _check_portage_make_use_var,
