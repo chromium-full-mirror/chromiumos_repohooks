@@ -1052,13 +1052,13 @@ class CheckCommitMessageCqDepend(CommitMessageTestCase):
     return pre_upload._check_change_has_valid_cq_depend(project, commit)
 
   def testNormal(self):
-    """Accept valid CQ-DEPENDs line."""
-    self.assertMessageAccepted('\nCQ-DEPEND=CL:1234\n')
+    """Accept valid Cq-Depends line."""
+    self.assertMessageAccepted('\nCq-Depend: chromium:1234\n')
 
   def testInvalid(self):
-    """Reject invalid CQ-DEPENDs line."""
-    self.assertMessageRejected('\nCQ-DEPEND=CL=1234\n')
-    self.assertMessageRejected('\nCQ-DEPEND=None\n')
+    """Reject invalid Cq-Depends line."""
+    self.assertMessageRejected('\nCq-Depend=chromium=1234\n')
+    self.assertMessageRejected('\nCq-Depend: None\n')
 
 
 class CheckCommitMessageContribution(CommitMessageTestCase):

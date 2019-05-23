@@ -559,9 +559,9 @@ def _check_change_has_test_field(_project, commit):
 
 
 def _check_change_has_valid_cq_depend(_project, commit):
-  """Check for a correctly formatted CQ-DEPEND field in the commit message."""
-  msg = 'Changelist has invalid CQ-DEPEND target.'
-  example = 'Example: CQ-DEPEND=CL:1234, CL:2345'
+  """Check for a correctly formatted Cq-Depend field in the commit message."""
+  msg = 'Changelist has invalid Cq-Depend target.'
+  example = 'Example: Cq-Depend: chromium:1234, chrome-internal:2345'
   try:
     patch.GetPaladinDeps(_get_commit_desc(commit))
   except ValueError as ex:
