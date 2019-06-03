@@ -100,7 +100,6 @@ _CONFIG_FILE = 'PRESUBMIT.cfg'
 # excluded from presubmit checks. Lines beginning with '#' are ignored.
 _IGNORE_FILE = '.presubmitignore'
 
-
 # Exceptions
 
 
@@ -560,12 +559,21 @@ def _check_change_has_test_field(_project, commit):
 
 def _check_change_has_valid_cq_depend(_project, commit):
   """Check for a correctly formatted Cq-Depend field in the commit message."""
+  desc = _get_commit_desc(commit)
   msg = 'Changelist has invalid Cq-Depend target.'
   example = 'Example: Cq-Depend: chromium:1234, chrome-internal:2345'
   try:
-    patch.GetPaladinDeps(_get_commit_desc(commit))
+    patch.GetPaladinDeps(desc)
   except ValueError as ex:
     return HookFailure(msg, [example, str(ex)])
+  # Check that Cq-Depend is in the same paragraph as Change-Id.
+  msg = 'Cq-Depend (or CQ-DEPEND) is not in the same paragraph as Change-Id.'
+  paragraphs = desc.split('\n\n')
+  for paragraph in paragraphs:
+    if (re.search(r'^Cq-Depend:', paragraph, re.M) or
+        re.search(r'^CQ-DEPEND=', paragraph, re.M)) \
+        and not re.search('^Change-Id:', paragraph, re.M):
+      return HookFailure(msg)
 
 
 def _check_change_is_contribution(_project, commit):

@@ -1053,12 +1053,13 @@ class CheckCommitMessageCqDepend(CommitMessageTestCase):
 
   def testNormal(self):
     """Accept valid Cq-Depends line."""
-    self.assertMessageAccepted('\nCq-Depend: chromium:1234\n')
+    self.assertMessageAccepted('\nCq-Depend: chromium:1234\nChange-Id: I123')
 
   def testInvalid(self):
     """Reject invalid Cq-Depends line."""
     self.assertMessageRejected('\nCq-Depend=chromium=1234\n')
     self.assertMessageRejected('\nCq-Depend: None\n')
+    self.assertMessageRejected('\nCq-Depend: chromium:1234\n\nChange-Id: I123')
 
 
 class CheckCommitMessageContribution(CommitMessageTestCase):
