@@ -1227,24 +1227,15 @@ def _check_layout_conf(_project, commit):
 def _check_no_new_gyp(_project, commit):
   """Verifies no project starts to use GYP."""
   whitelist = [
-      'aosp/platform/system/update_engine',
       'chromeos/ap',
       'chromeos/ap-daemons',
+      'chromeos/ap/security',
+      'chromeos/ap/wireless',
       'chromeos/platform/actions',
-      'chromeos/platform/arc-oemcrypto',
-      'chromeos/platform/drivefs',
       'chromeos/platform/drivefs-google3',
       'chromeos/platform/experimental-touch-fw',
-      'chromeos/platform/gdisp',
-      'chromeos/platform/nest-nn',
-      'chromeos/platform/whisper',
       'chromeos/thermald',
-      'chromeos/vendor/fibocom-firmware',
-      'chromiumos/platform/cfm-device-monitor',
-      'chromiumos/platform/google-breakpad',
       'chromiumos/platform2',
-      'chromiumos/third_party/atrusctl',
-      'chromiumos/third_party/virtual-usb-printer',
       'weave/libweave',
   ]
   if _project.name in whitelist:
