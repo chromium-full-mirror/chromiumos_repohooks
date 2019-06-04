@@ -11,8 +11,7 @@ You can add new checks by adding a functions to the HOOKS constants.
 
 from __future__ import print_function
 
-# TODO(crbug.com/960636): Remove pylint disable after linter is fixed.
-import argparse # pylint: disable=import-error
+import argparse
 import collections
 import ConfigParser
 import fnmatch
