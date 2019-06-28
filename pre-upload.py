@@ -60,7 +60,7 @@ COMMON_INCLUDED_PATHS = [
     r"(^|.*[\\\/])[^.]+$",
     # Other
     r".*\.java$", r".*\.mk$", r".*\.am$",
-    r".*\.policy$", r".*\.conf$",
+    r".*\.policy$", r".*\.conf$", r".*\.go$",
 ]
 
 
@@ -455,6 +455,11 @@ def _parse_common_inclusion_options(options):
 
 def _check_no_long_lines(_project, commit, options=()):
   """Checks there are no lines longer than MAX_LEN in any of the text files."""
+  LONG_LINE_OK_PATHS = [
+      # Go has no line length limit.
+      # https://golang.org/doc/effective_go.html#formatting
+      r".*\.go$",
+  ]
 
   MAX_LEN = 80
   SKIP_REGEXP = re.compile('|'.join([
@@ -464,7 +469,7 @@ def _check_no_long_lines(_project, commit, options=()):
   included, excluded = _parse_common_inclusion_options(options)
   files = _filter_files(_get_affected_files(commit),
                         included + COMMON_INCLUDED_PATHS,
-                        excluded + COMMON_EXCLUDED_PATHS)
+                        excluded + COMMON_EXCLUDED_PATHS + LONG_LINE_OK_PATHS)
 
   errors = []
   for afile in files:
@@ -500,8 +505,9 @@ def _check_no_tabs(_project, commit, options=()):
   TAB_OK_PATHS = [
       r".*\.ebuild$",
       r".*\.eclass$",
+      r".*\.go$",
       r".*/[M|m]akefile$",
-      r".*\.mk$"
+      r".*\.mk$",
   ]
 
   included, excluded = _parse_common_inclusion_options(options)

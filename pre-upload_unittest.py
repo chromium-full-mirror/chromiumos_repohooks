@@ -767,6 +767,12 @@ class CheckCrosLicenseCopyrightHeader(cros_test_lib.MockTestCase):
       self.content_mock.return_value = header
       self.assertEqual(None, pre_upload._check_cros_license('proj', 'sha1'))
 
+  def testNoExcludedGolang(self):
+    """Don't exclude .go files for license checks."""
+    self.file_mock.return_value = ['foo/main.go']
+    self.content_mock.return_value = ('package main\nfunc main() {}')
+    self.assertNotEqual(None, pre_upload._check_cros_license('proj', 'sha1'))
+
   def testIgnoreExcludedPaths(self):
     """Ignores excluded paths for license checks."""
     self.file_mock.return_value = ['foo/OWNERS']
