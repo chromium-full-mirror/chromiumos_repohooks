@@ -14,6 +14,7 @@ from __future__ import print_function
 import argparse
 import collections
 import ConfigParser
+import datetime
 import fnmatch
 import functools
 import json
@@ -1070,8 +1071,8 @@ def _check_cros_license(_project, commit, options=()):
   """
   # For older years, be a bit more flexible as our policy says leave them be.
   LICENSE_HEADER = (
-      r'.*Copyright( \(c\))? 20[-0-9]{2,7} The Chromium OS Authors\. '
-      r'All rights reserved\.' r'\n'
+      r'.*Copyright(?: \(c\))? (20[0-9]{2})(?:-20[0-9]{2})? The Chromium OS '
+      r'Authors\. All rights reserved\.\n'
       r'.*Use of this source code is governed by a BSD-style license that can '
       r'be\n'
       r'.*found in the LICENSE file\.'
@@ -1080,42 +1081,58 @@ def _check_cros_license(_project, commit, options=()):
   license_re = re.compile(LICENSE_HEADER, re.MULTILINE)
 
   # For newer years, be stricter.
-  COPYRIGHT_LINE = (
+  BAD_COPYRIGHT_LINE = (
       r'.*Copyright \(c\) 20(1[5-9]|[2-9][0-9]) The Chromium OS Authors\. '
       r'All rights reserved\.' r'\n'
   )
-  copyright_re = re.compile(COPYRIGHT_LINE)
+  bad_copyright_re = re.compile(BAD_COPYRIGHT_LINE)
 
   included, excluded = _parse_common_inclusion_options(options)
 
   bad_files = []
   bad_copyright_files = []
+  bad_year_files = []
+
   files = _filter_files(
       _get_affected_files(commit, relative=True),
       included + COMMON_INCLUDED_PATHS,
       excluded + COMMON_EXCLUDED_PATHS + LICENSE_EXCLUDED_PATHS)
+  existing_files = set(_get_affected_files(commit, relative=True,
+                                           include_adds=False))
 
+  current_year = str(datetime.datetime.now().year)
   for f in files:
     contents = _get_file_content(f, commit)
     if not contents:
       # Ignore empty files.
       continue
 
-    if not license_re.search(contents):
+    m = license_re.search(contents)
+    if not m:
       bad_files.append(f)
-    elif copyright_re.search(contents):
+    elif bad_copyright_re.search(contents):
       bad_copyright_files.append(f)
 
+    if m and f not in existing_files:
+      year = m.group(1)
+      if year != current_year:
+        bad_year_files.append(f)
+
+  errors = []
   if bad_files:
     msg = '%s:\n%s\n%s' % (
         'License must match', license_re.pattern,
         'Found a bad header in these files:')
-    return HookFailure(msg, bad_files)
-
+    errors.append(HookFailure(msg, bad_files))
   if bad_copyright_files:
     msg = 'Do not use (c) in copyright headers in new files:'
-    return HookFailure(msg, bad_copyright_files)
+    errors.append(HookFailure(msg, bad_copyright_files))
+  if bad_year_files:
+    msg = 'Use current year (%s) in copyright headers in new files:' % (
+        current_year)
+    errors.append(HookFailure(msg, bad_year_files))
 
+  return errors
 
 def _check_aosp_license(_project, commit, options=()):
   """Verifies the AOSP license/copyright header.
@@ -1846,7 +1863,10 @@ def _run_project_hooks(project_name, proj_dir=None,
       print(' ' * len(output), end='\r')
       sys.stdout.flush()
       if hook_error:
-        error_list.append(hook_error)
+        if isinstance(hook_error, list):
+          error_list.extend(hook_error)
+        else:
+          error_list.append(hook_error)
         error_found = True
     if error_list:
       PrintErrorsForCommit(project.name, commit, _get_commit_desc(commit),

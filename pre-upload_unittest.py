@@ -8,6 +8,7 @@
 
 from __future__ import print_function
 
+import datetime
 import os
 import sys
 
@@ -727,15 +728,44 @@ class CheckCrosLicenseCopyrightHeader(cros_test_lib.MockTestCase):
          '# Use of this source code is governed by a BSD-style license that'
          ' can be\n'
          '# found in the LICENSE file.\n'),
-        ('// Copyright 2010-13 The Chromium OS Authors. All rights reserved.\n'
-         '// Use of this source code is governed by a BSD-style license that'
+        ('// Copyright 2010-2013 The Chromium OS Authors. All rights reserved.'
+         '\n// Use of this source code is governed by a BSD-style license that'
          ' can be\n'
          '// found in the LICENSE file.\n'),
     )
     self.file_mock.return_value = ['file']
     for header in HEADERS:
       self.content_mock.return_value = header
-      self.assertEqual(None, pre_upload._check_cros_license('proj', 'sha1'))
+      self.assertFalse(pre_upload._check_cros_license('proj', 'sha1'))
+
+  def testNewFileYear(self):
+    """Added files should have the current year in license header."""
+    year = datetime.datetime.now().year
+    HEADERS = (
+        ('// Copyright 2016 The Chromium OS Authors. All rights reserved.\n'
+         '// Use of this source code is governed by a BSD-style license that'
+         ' can be\n'
+         '// found in the LICENSE file.\n'),
+        ('// Copyright %d The Chromium OS Authors. All rights reserved.\n'
+         '// Use of this source code is governed by a BSD-style license that'
+         ' can be\n'
+         '// found in the LICENSE file.\n') % year,
+    )
+    want_error = (True, False)
+    def fake_get_affected_files(_, relative, include_adds=True):
+      _ = relative
+      if include_adds:
+        return ['file']
+      else:
+        return []
+
+    self.file_mock.side_effect = fake_get_affected_files
+    for i, header in enumerate(HEADERS):
+      self.content_mock.return_value = header
+      if want_error[i]:
+        self.assertTrue(pre_upload._check_cros_license('proj', 'sha1'))
+      else:
+        self.assertFalse(pre_upload._check_cros_license('proj', 'sha1'))
 
   def testRejectC(self):
     """Reject the (c) in newer headers."""
@@ -752,7 +782,7 @@ class CheckCrosLicenseCopyrightHeader(cros_test_lib.MockTestCase):
     self.file_mock.return_value = ['file']
     for header in HEADERS:
       self.content_mock.return_value = header
-      self.assertNotEqual(None, pre_upload._check_cros_license('proj', 'sha1'))
+      self.assertTrue(pre_upload._check_cros_license('proj', 'sha1'))
 
   def testNoLeadingSpace(self):
     """Allow headers without leading space (e.g., not a source comment)"""
@@ -765,25 +795,25 @@ class CheckCrosLicenseCopyrightHeader(cros_test_lib.MockTestCase):
     self.file_mock.return_value = ['file']
     for header in HEADERS:
       self.content_mock.return_value = header
-      self.assertEqual(None, pre_upload._check_cros_license('proj', 'sha1'))
+      self.assertFalse(pre_upload._check_cros_license('proj', 'sha1'))
 
   def testNoExcludedGolang(self):
     """Don't exclude .go files for license checks."""
     self.file_mock.return_value = ['foo/main.go']
     self.content_mock.return_value = ('package main\nfunc main() {}')
-    self.assertNotEqual(None, pre_upload._check_cros_license('proj', 'sha1'))
+    self.assertTrue(pre_upload._check_cros_license('proj', 'sha1'))
 
   def testIgnoreExcludedPaths(self):
     """Ignores excluded paths for license checks."""
     self.file_mock.return_value = ['foo/OWNERS']
     self.content_mock.return_value = ('owner@chromium.org')
-    self.assertEqual(None, pre_upload._check_cros_license('proj', 'sha1'))
+    self.assertFalse(pre_upload._check_cros_license('proj', 'sha1'))
 
   def testIgnoreTopLevelExcludedPaths(self):
     """Ignores excluded paths for license checks."""
     self.file_mock.return_value = ['OWNERS']
     self.content_mock.return_value = ('owner@chromium.org')
-    self.assertEqual(None, pre_upload._check_cros_license('proj', 'sha1'))
+    self.assertFalse(pre_upload._check_cros_license('proj', 'sha1'))
 
 class CheckAOSPLicenseCopyrightHeader(cros_test_lib.MockTestCase):
   """Tests for _check_aosp_license."""
