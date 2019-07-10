@@ -77,6 +77,38 @@ class CheckNoLongLinesTest(cros_test_lib.MockTestCase):
                        for line in [3, 4, 8]],
                       failure.items)
 
+  def testCheckTreatsOwnersFilesSpecially(self):
+    affected_files = self.PatchObject(pre_upload, '_get_affected_files')
+
+    mock_files = (
+        ('foo-OWNERS', False),
+        ('OWNERS', True),
+        ('/path/to/OWNERS', True),
+        ('/path/to/OWNERS.foo', True),
+    )
+
+    mock_lines = (
+        (u'x' * 81, False),
+        (u'foo file:' + u'x' * 80, True),
+        (u'include ' + u'x' * 80, True),
+    )
+    assert all(len(line) > 80 for line, _ in mock_lines)
+
+    for file_name, is_owners in mock_files:
+      affected_files.return_value = [file_name]
+      for line, is_ok in mock_lines:
+        self.diff_mock.return_value = [(1, line)]
+        failure = pre_upload._check_no_long_lines(ProjectNamed('PROJECT'),
+                                                  'COMMIT')
+
+        assert_msg = 'file: %r; line: %r' % (file_name, line)
+        if is_owners and is_ok:
+          self.assertFalse(failure, assert_msg)
+        else:
+          self.assertTrue(failure, assert_msg)
+          self.assertIn('Found lines longer than 80 characters', failure.msg,
+                        assert_msg)
+
   def testIncludeOptions(self):
     self.PatchObject(pre_upload,
                      '_get_affected_files',

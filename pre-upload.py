@@ -62,6 +62,7 @@ COMMON_INCLUDED_PATHS = [
     # Other
     r".*\.java$", r".*\.mk$", r".*\.am$",
     r".*\.policy$", r".*\.conf$", r".*\.go$",
+    r"(^OWNERS|/OWNERS)",
 ]
 
 
@@ -463,9 +464,6 @@ def _check_no_long_lines(_project, commit, options=()):
   ]
 
   MAX_LEN = 80
-  SKIP_REGEXP = re.compile('|'.join([
-      r'https?://',
-      r'^#\s*(define|include|import|pragma|if|ifndef|endif)\b']))
 
   included, excluded = _parse_common_inclusion_options(options)
   files = _filter_files(_get_affected_files(commit),
@@ -474,9 +472,23 @@ def _check_no_long_lines(_project, commit, options=()):
 
   errors = []
   for afile in files:
+    skip_regexps = (
+        r'https?://',
+        r'^#\s*(define|include|import|pragma|if|ifndef|endif)\b',
+    )
+
+    if os.path.basename(afile).startswith('OWNERS'):
+      # File paths can get long, and there's no way to break them up into
+      # multiple lines.
+      skip_regexps += (
+          r'^include\b',
+          r'file:',
+      )
+
+    skip_regexps = [re.compile(x) for x in skip_regexps]
     for line_num, line in _get_file_diff(afile, commit):
       # Allow certain lines to exceed the maxlen rule.
-      if len(line) <= MAX_LEN or SKIP_REGEXP.search(line):
+      if len(line) <= MAX_LEN or any(x.search(line) for x in skip_regexps):
         continue
 
       errors.append('%s, line %s, %s chars' % (afile, line_num, len(line)))
