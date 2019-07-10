@@ -634,6 +634,60 @@ def _check_change_has_bug_field(project, commit):
       return HookFailure(msg)
 
 
+def _check_change_no_include_oem(project, commit):
+  """Check that the change does not reference OEMs."""
+  ALLOWLIST = {
+      'chromiumos/platform/ec',
+      # Used by unit tests.
+      'project',
+  }
+  if project.name not in ALLOWLIST:
+    return None
+
+  TAGS = (
+      'Reviewed-on',
+      'Reviewed-by',
+      'Signed-off-by',
+      'Commit-Ready',
+      'Tested-by',
+      'Commit-Queue',
+      'Legacy-Commit-Queue',
+      'Acked-by',
+      'Modified-by',
+      'CC',
+      'Suggested-by',
+      'Reported-by',
+      'Acked-for-chrome-by',
+  )
+
+  # Ignore tags, which could reasonably contain OEM names
+  # (e.g. Reviewed-by: foo@oem.corp-partner.google.com).
+  def tag_filter(x):
+    return not any(x.lower().startswith(h.lower()) for h in TAGS)
+
+  commit_message = ' '.join(
+      filter(tag_filter, _get_commit_desc(commit).splitlines()))
+  commit_message = re.sub(r'[\s_-]+', ' ', commit_message)
+
+  # Exercise caution when expanding these lists. Adding a name
+  # could indicate a new relationship with a company!
+  OEMS = ['hp', 'hewlett packard', 'dell', 'lenovo', 'acer', 'asus', 'samsung']
+  ODMS = [
+      'bitland', 'compal', 'haier', 'huaqin', 'inventec', 'lg', 'pegatron',
+      'pegatron(ems)', 'quanta', 'samsung', 'wistron'
+  ]
+
+  for name_type, name_list in [('OEM', OEMS), ('ODM', ODMS)]:
+    # Construct regex
+    name_re = r'\b(%s)\b' % '|'.join([re.escape(x) for x in name_list])
+    matches = [x[0] for x in re.findall(name_re, commit_message, re.IGNORECASE)]
+    if len(matches):
+      # If there's a match, throw an error.
+      error_msg = ('Changelist description contains the name of an'
+                   ' %s: "%s".' % (name_type, '","'.join(matches)))
+      return HookFailure(error_msg)
+
+
 def _check_for_uprev(project, commit, project_top=None):
   """Check that we're not missing a revbump of an ebuild in the given commit.
 
@@ -1640,8 +1694,8 @@ _PATCH_DESCRIPTION_HOOKS = [
     _check_change_has_proper_changeid,
     _check_commit_message_style,
     _check_change_is_contribution,
+    _check_change_no_include_oem,
 ]
-
 
 # A list of hooks that are not project-specific
 _COMMON_HOOKS = [

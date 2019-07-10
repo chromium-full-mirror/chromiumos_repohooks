@@ -1233,6 +1233,54 @@ class CheckCommitMessageChangeId(CommitMessageTestCase):
     self.assertMessageAccepted('foo\n\nChange-Id: I1234\nSigned-off-by: Hi\n')
 
 
+class CheckCommitMessageNoOEM(CommitMessageTestCase):
+  """Tests for _check_change_no_include_oem."""
+
+  @staticmethod
+  def CheckMessage(project, commit):
+    return pre_upload._check_change_no_include_oem(project, commit)
+
+  def testNormal(self):
+    """Accept a commit message w/o reference to an OEM/ODM."""
+    self.assertMessageAccepted('foo\n')
+
+  def testHasOEM(self):
+    """Catch commit messages referencing OEMs."""
+    self.assertMessageRejected('HP Project\n\n')
+    self.assertMessageRejected('hewlett-packard\n')
+    self.assertMessageRejected('Hewlett\nPackard\n')
+    self.assertMessageRejected('Dell Chromebook\n\n\n')
+    self.assertMessageRejected('product@acer.com\n')
+    self.assertMessageRejected('This is related to Asus\n')
+    self.assertMessageRejected('lenovo machine\n')
+
+  def testHasODM(self):
+    """Catch commit messages referencing ODMs."""
+    self.assertMessageRejected('new samsung laptop\n\n')
+    self.assertMessageRejected('pegatron(ems) project\n')
+    self.assertMessageRejected('new Wistron device\n')
+
+  def testContainsOEM(self):
+    """Check that the check handles word boundaries properly."""
+    self.assertMessageAccepted('oheahpohea')
+    self.assertMessageAccepted('Play an Asus7 guitar chord.\n\n')
+
+  def testTag(self):
+    """Check that the check ignores tags."""
+    self.assertMessageAccepted(
+        'Harmless project\n'
+        'Reviewed-by: partner@asus.corp-partner.google.com\n'
+        'Tested-by: partner@hp.corp-partner.google.com\n'
+        'Signed-off-by: partner@dell.corp-partner.google.com\n'
+        'Commit-Queue: partner@lenovo.corp-partner.google.com\n'
+        'Legacy-Commit-Queue: partner@acer.corp-partner.google.com\n'
+        'CC: partner@acer.corp-partner.google.com\n'
+        'Acked-by: partner@hewlett-packard.corp-partner.google.com\n')
+    self.assertMessageRejected(
+        'Asus project\n'
+        'Reviewed-by: partner@asus.corp-partner.google.com')
+
+
 class CheckCommitMessageStyle(CommitMessageTestCase):
   """Tests for _check_commit_message_style."""
 
