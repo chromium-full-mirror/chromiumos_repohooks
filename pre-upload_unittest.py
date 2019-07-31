@@ -1279,6 +1279,9 @@ class CheckCommitMessageNoOEM(CommitMessageTestCase):
     self.assertMessageRejected(
         'Asus project\n'
         'Reviewed-by: partner@asus.corp-partner.google.com')
+    self.assertMessageRejected(
+        'my project\n'
+        'Bad-tag: partner@asus.corp-partner.google.com')
 
 
 class CheckCommitMessageStyle(CommitMessageTestCase):

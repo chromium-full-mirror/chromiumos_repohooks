@@ -645,7 +645,7 @@ def _check_change_no_include_oem(project, commit):
   if project.name not in ALLOWLIST:
     return None
 
-  TAGS = (
+  TAGS = {
       'Reviewed-on',
       'Reviewed-by',
       'Signed-off-by',
@@ -659,15 +659,14 @@ def _check_change_no_include_oem(project, commit):
       'Suggested-by',
       'Reported-by',
       'Acked-for-chrome-by',
-  )
+  }
 
   # Ignore tags, which could reasonably contain OEM names
   # (e.g. Reviewed-by: foo@oem.corp-partner.google.com).
-  def tag_filter(x):
-    return not any(x.lower().startswith(h.lower()) for h in TAGS)
-
   commit_message = ' '.join(
-      filter(tag_filter, _get_commit_desc(commit).splitlines()))
+      x for x in _get_commit_desc(commit).splitlines()
+      if ':' not in x or x.split(':', 1)[0] not in TAGS)
+
   commit_message = re.sub(r'[\s_-]+', ' ', commit_message)
 
   # Exercise caution when expanding these lists. Adding a name
