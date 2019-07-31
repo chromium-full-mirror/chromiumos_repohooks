@@ -1764,7 +1764,7 @@ def _get_override_hooks(config):
   if not config.has_section(SECTION):
     return set(), set()
 
-  valid_keys = set(_HOOK_FLAGS.iterkeys())
+  valid_keys = set(_HOOK_FLAGS.keys())
   hooks = _HOOK_FLAGS.copy()
 
   enable_flags = []

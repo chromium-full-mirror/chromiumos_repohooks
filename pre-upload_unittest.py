@@ -163,7 +163,7 @@ class CheckTabbedIndentsTest(cros_test_lib.MockTestCase):
     self.assertTrue(failure)
     self.assertEquals('Found a space in indentation (must be all tabs):',
                       failure.msg)
-    self.assertEquals(['x.ebuild, line %d' % line for line in xrange(1, 6)],
+    self.assertEquals(['x.ebuild, line %d' % line for line in range(1, 6)],
                       failure.items)
 
 
