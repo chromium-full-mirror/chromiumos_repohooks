@@ -1623,5 +1623,36 @@ class DirectMainTest(cros_test_lib.MockTempDirTestCase):
         mock.ANY, proj_dir=mock.ANY, commit_list=commits, presubmit=mock.ANY)
 
 
+class CheckRustfmtTest(cros_test_lib.MockTestCase):
+  """Tests for _check_rustfmt."""
+
+  def setUp(self):
+    self.content_mock = self.PatchObject(pre_upload, '_get_file_content')
+
+  def testBadRustFile(self):
+    self.PatchObject(pre_upload, '_get_affected_files', return_value=['a.rs'])
+    # Bad because it's missing trailing newline.
+    self.content_mock.return_value = 'fn main() {}'
+    failure = pre_upload._check_rustfmt(ProjectNamed('PROJECT'), 'COMMIT')
+    self.assertIsNotNone(failure)
+    self.assertEquals('Files not formatted with rustfmt: '
+                      "(run 'cargo fmt' to fix)",
+                      failure.msg)
+    self.assertEquals(['a.rs'], failure.items)
+
+  def testGoodRustFile(self):
+    self.PatchObject(pre_upload, '_get_affected_files', return_value=['a.rs'])
+    self.content_mock.return_value = 'fn main() {}\n'
+    failure = pre_upload._check_rustfmt(ProjectNamed('PROJECT'), 'COMMIT')
+    self.assertIsNone(failure)
+
+  def testFilterNonRustFiles(self):
+    self.PatchObject(pre_upload, '_get_affected_files',
+                     return_value=['a.cc', 'a.rsa', 'a.irs', 'rs.cc'])
+    self.content_mock.return_value = 'fn main() {\n}'
+    failure = pre_upload._check_rustfmt(ProjectNamed('PROJECT'), 'COMMIT')
+    self.assertIsNone(failure)
+
+
 if __name__ == '__main__':
   cros_test_lib.main(module=__name__)

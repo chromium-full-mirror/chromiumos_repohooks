@@ -567,6 +567,23 @@ def _check_gofmt(_project, commit):
     return HookFailure('Files not formatted with gofmt:', errors)
 
 
+def _check_rustfmt(_project, commit):
+  """Checks that Rust files are formatted with rustfmt."""
+  errors = []
+  files = _filter_files(_get_affected_files(commit, relative=True),
+                        [r'\.rs$'])
+
+  for rustfile in files:
+    contents = _get_file_content(rustfile, commit)
+    output = _run_command(cmd=['rustfmt'], input=contents,
+                          combine_stdout_stderr=True)
+    if output != contents:
+      errors.append(rustfile)
+  if errors:
+    return HookFailure('Files not formatted with rustfmt: '
+                       "(run 'cargo fmt' to fix)", errors)
+
+
 def _check_change_has_test_field(_project, commit):
   """Check for a non-empty 'TEST=' field in the commit message."""
   TEST_RE = r'\nTEST=\S+'
@@ -1714,6 +1731,7 @@ _COMMON_HOOKS = [
     _check_no_stray_whitespace,
     _check_no_tabs,
     _check_portage_make_use_var,
+    _check_rustfmt,
     _check_tabbed_indents,
 ]
 
