@@ -52,47 +52,47 @@ PRE_SUBMIT = 'pre-submit'
 
 COMMON_INCLUDED_PATHS = [
     # C++ and friends
-    r".*\.c$", r".*\.cc$", r".*\.cpp$", r".*\.h$", r".*\.m$", r".*\.mm$",
-    r".*\.inl$", r".*\.asm$", r".*\.hxx$", r".*\.hpp$", r".*\.s$", r".*\.S$",
+    r'.*\.c$', r'.*\.cc$', r'.*\.cpp$', r'.*\.h$', r'.*\.m$', r'.*\.mm$',
+    r'.*\.inl$', r'.*\.asm$', r'.*\.hxx$', r'.*\.hpp$', r'.*\.s$', r'.*\.S$',
     # Scripts
-    r".*\.js$", r".*\.py$", r".*\.sh$", r".*\.rb$", r".*\.pl$", r".*\.pm$",
+    r'.*\.js$', r'.*\.py$', r'.*\.sh$', r'.*\.rb$', r'.*\.pl$', r'.*\.pm$',
     # No extension at all, note that ALL CAPS files are black listed in
     # COMMON_EXCLUDED_LIST below.
-    r"(^|.*[\\\/])[^.]+$",
+    r'(^|.*[\\\/])[^.]+$',
     # Other
-    r".*\.java$", r".*\.mk$", r".*\.am$",
-    r".*\.policy$", r".*\.conf$", r".*\.go$",
-    r"(^OWNERS|/OWNERS)",
+    r'.*\.java$', r'.*\.mk$', r'.*\.am$',
+    r'.*\.policy$', r'.*\.conf$', r'.*\.go$',
+    r'(^OWNERS|/OWNERS)',
 ]
 
 
 COMMON_EXCLUDED_PATHS = [
     # For ebuild trees, ignore any caches and manifest data.
-    r".*/Manifest$",
-    r".*/metadata/[^/]*cache[^/]*/[^/]+/[^/]+$",
+    r'.*/Manifest$',
+    r'.*/metadata/[^/]*cache[^/]*/[^/]+/[^/]+$',
 
     # Ignore profiles data (like overlay-tegra2/profiles).
-    r"(^|.*/)overlay-.*/profiles/.*",
-    r"^profiles/.*$",
+    r'(^|.*/)overlay-.*/profiles/.*',
+    r'^profiles/.*$',
 
     # Ignore config files in ebuild setup.
-    r"(^|.*/)overlay-.*/chromeos-base/chromeos-bsp.*/files/.*",
-    r"^chromeos-base/chromeos-bsp.*/files/.*",
+    r'(^|.*/)overlay-.*/chromeos-base/chromeos-bsp.*/files/.*',
+    r'^chromeos-base/chromeos-bsp.*/files/.*',
 
     # Ignore minified js and jquery.
-    r".*\.min\.js",
-    r".*jquery.*\.js",
+    r'.*\.min\.js',
+    r'.*jquery.*\.js',
 
     # Ignore license files as the content is often taken verbatim.
-    r".*/licenses/.*",
+    r'.*/licenses/.*',
 
     # Exclude generated protobuf bindings.
-    r".*_pb2\.py$",
-    r".*\.pb\.go$",
+    r'.*_pb2\.py$',
+    r'.*\.pb\.go$',
 ]
 
 LICENSE_EXCLUDED_PATHS = [
-    r"^(.*/)?OWNERS$",
+    r'^(.*/)?OWNERS$',
 ]
 
 _CONFIG_FILE = 'PRESUBMIT.cfg'
@@ -461,7 +461,7 @@ def _check_no_long_lines(_project, commit, options=()):
   LONG_LINE_OK_PATHS = [
       # Go has no line length limit.
       # https://golang.org/doc/effective_go.html#formatting
-      r".*\.go$",
+      r'.*\.go$',
   ]
 
   MAX_LEN = 80
@@ -517,11 +517,11 @@ def _check_no_tabs(_project, commit, options=()):
   # Don't add entire repos here.  Update the PRESUBMIT.cfg in each repo instead.
   # We only whitelist known specific filetypes here that show up in all repos.
   TAB_OK_PATHS = [
-      r".*\.ebuild$",
-      r".*\.eclass$",
-      r".*\.go$",
-      r".*/[M|m]akefile$",
-      r".*\.mk$",
+      r'.*\.ebuild$',
+      r'.*\.eclass$',
+      r'.*\.go$',
+      r'.*/[M|m]akefile$',
+      r'.*\.mk$',
   ]
 
   included, excluded = _parse_common_inclusion_options(options)
@@ -536,8 +536,8 @@ def _check_no_tabs(_project, commit, options=()):
 def _check_tabbed_indents(_project, commit, options=()):
   """Checks that indents use tabs only."""
   TABS_REQUIRED_PATHS = [
-      r".*\.ebuild$",
-      r".*\.eclass$",
+      r'.*\.ebuild$',
+      r'.*\.eclass$',
   ]
   LEADING_SPACE_RE = re.compile('[\t]* ')
 
@@ -1721,8 +1721,8 @@ _COMMON_HOOKS = [
 # A dictionary of project-specific hooks(callbacks), indexed by project name.
 # dict[project] = [callback1, callback2]
 _PROJECT_SPECIFIC_HOOKS = {
-    "chromiumos/third_party/kernel": [_kernel_configcheck],
-    "chromiumos/third_party/kernel-next": [_kernel_configcheck],
+    'chromiumos/third_party/kernel': [_kernel_configcheck],
+    'chromiumos/third_party/kernel-next': [_kernel_configcheck],
 }
 
 
@@ -1891,7 +1891,7 @@ def _run_project_hooks(project_name, proj_dir=None,
   remote_branch = _run_command(['git', 'rev-parse', '--abbrev-ref',
                                 '--symbolic-full-name', '@{u}']).strip()
   if not remote_branch:
-    print('Your project %s doesn\'t track any remote repo.' % project_name,
+    print("Your project %s doesn't track any remote repo." % project_name,
           file=sys.stderr)
     remote = None
   else:
@@ -1970,7 +1970,7 @@ def main(project_list, worktree_list=None, **_kwargs):
     msg = ('Preupload failed due to errors in project(s). HINTS:\n'
            '- To disable some source style checks, and for other hints, see '
            '<checkout_dir>/src/repohooks/README\n'
-           '- To upload only current project, run \'repo upload .\'')
+           "- To upload only current project, run 'repo upload .'")
     print(msg, file=sys.stderr)
     sys.exit(1)
 
@@ -2011,14 +2011,14 @@ def direct_main(argv):
   parser.add_argument('--rerun-since', default=None,
                       help='Rerun hooks on old commits since some point '
                       'in the past.  The argument could be a date (should '
-                      'match git log\'s concept of a date, e.g. 2012-06-20), '
+                      "match git log's concept of a date, e.g. 2012-06-20), "
                       'or a SHA1, or just a number of commits to check (from 1 '
                       'to 99).  This option is mutually exclusive with '
                       '--pre-submit.')
-  parser.add_argument('--pre-submit', action="store_true",
+  parser.add_argument('--pre-submit', action='store_true',
                       help='Run the check against the pending commit.  '
-                      'This option should be used at the \'git commit\' '
-                      'phase as opposed to \'repo upload\'. This option '
+                      "This option should be used at the 'git commit' "
+                      "phase as opposed to 'repo upload'. This option "
                       'is mutually exclusive with --rerun-since.')
   parser.add_argument('commits', nargs='*',
                       help='Check specific commits')
@@ -2026,7 +2026,7 @@ def direct_main(argv):
 
   if opts.rerun_since:
     if opts.commits:
-      raise BadInvocation('Can\'t pass commits and use rerun-since: %s' %
+      raise BadInvocation("Can't pass commits and use rerun-since: %s" %
                           ' '.join(opts.commits))
 
     if len(opts.rerun_since) < 3 and opts.rerun_since.isdigit():
@@ -2051,7 +2051,7 @@ def direct_main(argv):
                           'used together')
   if opts.pre_submit:
     if opts.commits:
-      raise BadInvocation('Can\'t pass commits and use pre-submit: %s' %
+      raise BadInvocation("Can't pass commits and use pre-submit: %s" %
                           ' '.join(opts.commits))
     opts.commits = [PRE_SUBMIT,]
 

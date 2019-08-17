@@ -60,14 +60,14 @@ class CheckNoLongLinesTest(cros_test_lib.MockTestCase):
   def testCheck(self):
     self.PatchObject(pre_upload, '_get_affected_files', return_value=['x.py'])
     self.diff_mock.return_value = [
-        (1, u"x" * 80),                      # OK
-        (2, "\x80" * 80),                    # OK
-        (3, u"x" * 81),                      # Too long
-        (4, "\x80" * 81),                    # Too long
-        (5, u"See http://" + (u"x" * 80)),   # OK (URL)
-        (6, u"See https://" + (u"x" * 80)),  # OK (URL)
-        (7, u"#  define " + (u"x" * 80)),    # OK (compiler directive)
-        (8, u"#define" + (u"x" * 74)),       # Too long
+        (1, u'x' * 80),                      # OK
+        (2, '\x80' * 80),                    # OK
+        (3, u'x' * 81),                      # Too long
+        (4, '\x80' * 81),                    # Too long
+        (5, u'See http://' + (u'x' * 80)),   # OK (URL)
+        (6, u'See https://' + (u'x' * 80)),  # OK (URL)
+        (7, u'#  define ' + (u'x' * 80)),    # OK (compiler directive)
+        (8, u'#define' + (u'x' * 74)),       # Too long
     ]
     failure = pre_upload._check_no_long_lines(ProjectNamed('PROJECT'), 'COMMIT')
     self.assertTrue(failure)
@@ -113,7 +113,7 @@ class CheckNoLongLinesTest(cros_test_lib.MockTestCase):
     self.PatchObject(pre_upload,
                      '_get_affected_files',
                      return_value=['foo.txt'])
-    self.diff_mock.return_value = [(1, u"x" * 81)]
+    self.diff_mock.return_value = [(1, u'x' * 81)]
     self.assertFalse(pre_upload._check_no_long_lines(
         ProjectNamed('PROJECT'), 'COMMIT'))
     self.assertTrue(pre_upload._check_no_long_lines(
@@ -123,7 +123,7 @@ class CheckNoLongLinesTest(cros_test_lib.MockTestCase):
     self.PatchObject(pre_upload,
                      '_get_affected_files',
                      return_value=['foo.py'])
-    self.diff_mock.return_value = [(1, u"x" * 81)]
+    self.diff_mock.return_value = [(1, u'x' * 81)]
     self.assertTrue(pre_upload._check_no_long_lines(
         ProjectNamed('PROJECT'), 'COMMIT'))
     self.assertFalse(pre_upload._check_no_long_lines(
@@ -358,10 +358,10 @@ class CheckManifests(cros_test_lib.MockTestCase):
         '/foo/bar.txt',
         '/cat/pkg/Manifest',
     ]
-    self.content_mock.return_value = '''# Comment and blank lines.
+    self.content_mock.return_value = """# Comment and blank lines.
 
 DIST lines
-'''
+"""
     ret = pre_upload._check_manifests('PROJECT', 'COMMIT')
     self.assertIsNone(ret)
     self.content_mock.assert_called_once_with('/cat/pkg/Manifest', 'COMMIT')
