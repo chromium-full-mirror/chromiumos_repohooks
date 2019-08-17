@@ -1918,11 +1918,12 @@ def _run_project_hooks(project_name, proj_dir=None,
   hooks = _get_project_hooks(project.name, presubmit)
   error_found = False
   commit_count = len(commit_list)
+  hook_count = len(hooks)
   for i, commit in enumerate(commit_list):
     error_list = []
-    for hook in hooks:
-      output = ('PRESUBMIT.cfg: [%i/%i]: %s: Running %s' %
-                (i + 1, commit_count, commit, hook.__name__))
+    for h, hook in enumerate(hooks):
+      output = ('PRESUBMIT.cfg: [%i/%i]: %s: Running [%i/%i] %s' %
+                (i + 1, commit_count, commit, h, hook_count, hook.__name__))
       print(output, end='\r')
       sys.stdout.flush()
       hook_error = hook(project, commit)
