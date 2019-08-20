@@ -1632,7 +1632,9 @@ class CheckRustfmtTest(cros_test_lib.MockTestCase):
   def testBadRustFile(self):
     self.PatchObject(pre_upload, '_get_affected_files', return_value=['a.rs'])
     # Bad because it's missing trailing newline.
-    self.content_mock.return_value = 'fn main() {}'
+    content = 'fn main() {}'
+    self.content_mock.return_value = content
+    self.PatchObject(pre_upload, '_run_command', return_value=content + '\n')
     failure = pre_upload._check_rustfmt(ProjectNamed('PROJECT'), 'COMMIT')
     self.assertIsNotNone(failure)
     self.assertEquals('Files not formatted with rustfmt: '
@@ -1642,7 +1644,9 @@ class CheckRustfmtTest(cros_test_lib.MockTestCase):
 
   def testGoodRustFile(self):
     self.PatchObject(pre_upload, '_get_affected_files', return_value=['a.rs'])
-    self.content_mock.return_value = 'fn main() {}\n'
+    content = 'fn main() {}\n'
+    self.content_mock.return_value = content
+    self.PatchObject(pre_upload, '_run_command', return_value=content)
     failure = pre_upload._check_rustfmt(ProjectNamed('PROJECT'), 'COMMIT')
     self.assertIsNone(failure)
 
