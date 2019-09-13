@@ -401,7 +401,8 @@ def _get_affected_files(commit, include_deletes=False, relative=False,
 
 def _get_commits():
   """Returns a list of commits for this review."""
-  cmd = ['git', 'log', '%s..' % _get_upstream_branch(), '--format=%H']
+  cmd = ['git', 'log', '--no-merges', '--format=%H',
+         '%s..' % _get_upstream_branch()]
   return _run_command(cmd).split()
 
 
