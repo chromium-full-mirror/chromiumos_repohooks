@@ -21,7 +21,8 @@ import errors
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 '..', '..'))
 
-from chromite.cbuildbot import constants
+from chromite.lib import constants
+from chromite.lib import cros_build_lib
 from chromite.lib import cros_test_lib
 from chromite.lib import git
 from chromite.lib import osutils
@@ -48,14 +49,43 @@ class PreUploadTestCase(cros_test_lib.MockTestCase):
 class TryUTF8DecodeTest(PreUploadTestCase):
   """Verify we sanely handle unicode content."""
 
-  def runTest(self):
-    self.assertEquals(u'', pre_upload._try_utf8_decode(''))
-    self.assertEquals(u'abc', pre_upload._try_utf8_decode('abc'))
-    self.assertEquals(
-        u'ä½ å¥½å¸èæ©',
-        pre_upload._try_utf8_decode('ä½ å¥½å¸èæ©'))
-    # Invalid UTF-8
-    self.assertEquals('\x80', pre_upload._try_utf8_decode('\x80'))
+  def setUp(self):
+    self.rc_mock = self.PatchObject(cros_build_lib, 'RunCommand')
+
+  def _run(self, content):
+    """Helper for round tripping through _run_command."""
+    self.rc_mock.return_value = cros_build_lib.CommandResult(
+        output=content, returncode=0)
+    return pre_upload._run_command([])
+
+  def testEmpty(self):
+    """Check empty output."""
+    ret = self._run(b'')
+    self.assertEqual('', ret)
+
+    if sys.version_info.major < 3:
+      ret = self._run('')
+      self.assertEqual(u'', ret)
+
+  def testAscii(self):
+    """Check ascii output."""
+    ret = self._run(b'abc')
+    self.assertEqual('abc', ret)
+
+    if sys.version_info.major < 3:
+      ret = self._run('abc')
+      self.assertEqual(u'abc', ret)
+
+  def testUtf8(self):
+    """Check valid UTF-8 output."""
+    text = u'ä½ å¥½å¸èæ©'
+    ret = self._run(text.encode('utf-8'))
+    self.assertEqual(text, ret)
+
+  def testBinary(self):
+    """Check binary (invalid UTF-8) output."""
+    ret = self._run(b'hi \x80 there')
+    self.assertEquals(u'hi \ufffd there', ret)
 
 
 class CheckNoLongLinesTest(PreUploadTestCase):
@@ -465,40 +495,40 @@ class CheckPortageMakeUseVar(PreUploadTestCase):
   def testMakeConfOmitsOriginalUseValue(self):
     """Fail for make.conf that discards the previous value of $USE."""
     self.file_mock.return_value = ['make.conf']
-    self.content_mock.return_value = 'USE="foo"\nUSE="${USE} bar"'
+    self.content_mock.return_value = u'USE="foo"\nUSE="${USE} bar"'
     failure = pre_upload._check_portage_make_use_var('PROJECT', 'COMMIT')
     self.assertTrue(failure, failure)
 
   def testMakeConfCorrectUsage(self):
     """Succeed for make.conf that preserves the previous value of $USE."""
     self.file_mock.return_value = ['make.conf']
-    self.content_mock.return_value = 'USE="${USE} foo"\nUSE="${USE}" bar'
+    self.content_mock.return_value = u'USE="${USE} foo"\nUSE="${USE}" bar'
     failure = pre_upload._check_portage_make_use_var('PROJECT', 'COMMIT')
     self.assertFalse(failure, failure)
 
   def testMakeDefaultsReferencesOriginalUseValue(self):
     """Fail for make.defaults that refers to a not-yet-set $USE value."""
     self.file_mock.return_value = ['make.defaults']
-    self.content_mock.return_value = 'USE="${USE} foo"'
+    self.content_mock.return_value = u'USE="${USE} foo"'
     failure = pre_upload._check_portage_make_use_var('PROJECT', 'COMMIT')
     self.assertTrue(failure, failure)
 
     # Also check for "$USE" without curly brackets.
-    self.content_mock.return_value = 'USE="$USE foo"'
+    self.content_mock.return_value = u'USE="$USE foo"'
     failure = pre_upload._check_portage_make_use_var('PROJECT', 'COMMIT')
     self.assertTrue(failure, failure)
 
   def testMakeDefaultsOverwritesUseValue(self):
     """Fail for make.defaults that discards its own $USE value."""
     self.file_mock.return_value = ['make.defaults']
-    self.content_mock.return_value = 'USE="foo"\nUSE="bar"'
+    self.content_mock.return_value = u'USE="foo"\nUSE="bar"'
     failure = pre_upload._check_portage_make_use_var('PROJECT', 'COMMIT')
     self.assertTrue(failure, failure)
 
   def testMakeDefaultsCorrectUsage(self):
     """Succeed for make.defaults that sets and preserves $USE."""
     self.file_mock.return_value = ['make.defaults']
-    self.content_mock.return_value = 'USE="foo"\nUSE="${USE}" bar'
+    self.content_mock.return_value = u'USE="foo"\nUSE="${USE}" bar'
     failure = pre_upload._check_portage_make_use_var('PROJECT', 'COMMIT')
     self.assertFalse(failure, failure)
 
@@ -539,7 +569,7 @@ class CheckEbuildEapi(PreUploadTestCase):
   def testSkipSymlink(self):
     """Skip files that are just symlinks."""
     self.file_mock.return_value = ['a-r1.ebuild']
-    self.content_mock.return_value = 'a.ebuild'
+    self.content_mock.return_value = u'a.ebuild'
     ret = pre_upload._check_ebuild_eapi(ProjectNamed('overlay'), 'HEAD')
     self.assertEqual(ret, None)
 
@@ -547,7 +577,7 @@ class CheckEbuildEapi(PreUploadTestCase):
     """Reject ebuilds that do not declare EAPI (so it's 0)."""
     self.file_mock.return_value = ['a.ebuild']
 
-    self.content_mock.return_value = """# Header
+    self.content_mock.return_value = u"""# Header
 IUSE="foo"
 src_compile() { }
 """
@@ -558,7 +588,7 @@ src_compile() { }
     """Reject ebuilds that do declare old EAPI explicitly."""
     self.file_mock.return_value = ['a.ebuild']
 
-    template = """# Header
+    template = u"""# Header
 EAPI=%s
 IUSE="foo"
 src_compile() { }
@@ -582,7 +612,7 @@ src_compile() { }
     """Accept ebuilds that do declare new EAPI explicitly."""
     self.file_mock.return_value = ['a.ebuild']
 
-    template = """# Header
+    template = u"""# Header
 EAPI=%s
 IUSE="foo"
 src_compile() { }
@@ -622,7 +652,7 @@ class CheckEbuildKeywords(PreUploadTestCase):
   def testSomeEbuilds(self):
     """If ebuilds are found, only scan them."""
     self.file_mock.return_value = ['a.file', 'blah', 'foo.ebuild', 'cow']
-    self.content_mock.return_value = ''
+    self.content_mock.return_value = u''
 
     ret = pre_upload._check_ebuild_keywords(ProjectNamed('overlay'), 'HEAD')
     self.assertEqual(ret, None)
@@ -649,27 +679,27 @@ class CheckEbuildKeywords(PreUploadTestCase):
 
   def testEmpty(self):
     """Check KEYWORDS= is accepted."""
-    self._CheckContent('# HEADER\nKEYWORDS=\nblah\n', False)
+    self._CheckContent(u'# HEADER\nKEYWORDS=\nblah\n', False)
 
   def testEmptyQuotes(self):
     """Check KEYWORDS="" is accepted."""
-    self._CheckContent('# HEADER\nKEYWORDS="    "\nblah\n', False)
+    self._CheckContent(u'# HEADER\nKEYWORDS="    "\nblah\n', False)
 
   def testStableGlob(self):
     """Check KEYWORDS=* is accepted."""
-    self._CheckContent('# HEADER\nKEYWORDS="\t*\t"\nblah\n', False)
+    self._CheckContent(u'# HEADER\nKEYWORDS="\t*\t"\nblah\n', False)
 
   def testUnstableGlob(self):
     """Check KEYWORDS=~* is accepted."""
-    self._CheckContent('# HEADER\nKEYWORDS="~* "\nblah\n', False)
+    self._CheckContent(u'# HEADER\nKEYWORDS="~* "\nblah\n', False)
 
   def testRestrictedGlob(self):
     """Check KEYWORDS=-* is accepted."""
-    self._CheckContent('# HEADER\nKEYWORDS="\t-* arm"\nblah\n', False)
+    self._CheckContent(u'# HEADER\nKEYWORDS="\t-* arm"\nblah\n', False)
 
   def testMissingGlobs(self):
     """Reject KEYWORDS missing any globs."""
-    self._CheckContent('# HEADER\nKEYWORDS="~arm x86"\nblah\n', True)
+    self._CheckContent(u'# HEADER\nKEYWORDS="~arm x86"\nblah\n', True)
 
 
 class CheckEbuildVirtualPv(PreUploadTestCase):
@@ -763,15 +793,15 @@ class CheckCrosLicenseCopyrightHeader(PreUploadTestCase):
   def testOldHeaders(self):
     """Accept old header styles."""
     HEADERS = (
-        ('#!/bin/sh\n'
-         '# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.\n'
-         '# Use of this source code is governed by a BSD-style license that'
-         ' can be\n'
-         '# found in the LICENSE file.\n'),
-        ('// Copyright 2010-2013 The Chromium OS Authors. All rights reserved.'
-         '\n// Use of this source code is governed by a BSD-style license that'
-         ' can be\n'
-         '// found in the LICENSE file.\n'),
+        (u'#!/bin/sh\n'
+         u'# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.\n'
+         u'# Use of this source code is governed by a BSD-style license that'
+         u' can be\n'
+         u'# found in the LICENSE file.\n'),
+        (u'// Copyright 2010-2013 The Chromium OS Authors. All rights reserved.'
+         u'\n// Use of this source code is governed by a BSD-style license that'
+         u' can be\n'
+         u'// found in the LICENSE file.\n'),
     )
     self.file_mock.return_value = ['file']
     for header in HEADERS:
@@ -782,14 +812,14 @@ class CheckCrosLicenseCopyrightHeader(PreUploadTestCase):
     """Added files should have the current year in license header."""
     year = datetime.datetime.now().year
     HEADERS = (
-        ('// Copyright 2016 The Chromium OS Authors. All rights reserved.\n'
-         '// Use of this source code is governed by a BSD-style license that'
-         ' can be\n'
-         '// found in the LICENSE file.\n'),
-        ('// Copyright %d The Chromium OS Authors. All rights reserved.\n'
-         '// Use of this source code is governed by a BSD-style license that'
-         ' can be\n'
-         '// found in the LICENSE file.\n') % year,
+        (u'// Copyright 2016 The Chromium OS Authors. All rights reserved.\n'
+         u'// Use of this source code is governed by a BSD-style license that'
+         u' can be\n'
+         u'// found in the LICENSE file.\n'),
+        (u'// Copyright %d The Chromium OS Authors. All rights reserved.\n'
+         u'// Use of this source code is governed by a BSD-style license that'
+         u' can be\n'
+         u'// found in the LICENSE file.\n') % year,
     )
     want_error = (True, False)
     def fake_get_affected_files(_, relative, include_adds=True):
@@ -810,14 +840,16 @@ class CheckCrosLicenseCopyrightHeader(PreUploadTestCase):
   def testRejectC(self):
     """Reject the (c) in newer headers."""
     HEADERS = (
-        ('// Copyright (c) 2015 The Chromium OS Authors. All rights reserved.\n'
-         '// Use of this source code is governed by a BSD-style license that'
-         ' can be\n'
-         '// found in the LICENSE file.\n'),
-        ('// Copyright (c) 2020 The Chromium OS Authors. All rights reserved.\n'
-         '// Use of this source code is governed by a BSD-style license that'
-         ' can be\n'
-         '// found in the LICENSE file.\n'),
+        (u'// Copyright (c) 2015 The Chromium OS Authors. All rights reserved.'
+         u'\n'
+         u'// Use of this source code is governed by a BSD-style license that'
+         u' can be\n'
+         u'// found in the LICENSE file.\n'),
+        (u'// Copyright (c) 2020 The Chromium OS Authors. All rights reserved.'
+         u'\n'
+         u'// Use of this source code is governed by a BSD-style license that'
+         u' can be\n'
+         u'// found in the LICENSE file.\n'),
     )
     self.file_mock.return_value = ['file']
     for header in HEADERS:
@@ -827,10 +859,10 @@ class CheckCrosLicenseCopyrightHeader(PreUploadTestCase):
   def testNoLeadingSpace(self):
     """Allow headers without leading space (e.g., not a source comment)"""
     HEADERS = (
-        ('Copyright 2018 The Chromium OS Authors. All rights reserved.\n'
-         'Use of this source code is governed by a BSD-style license that '
-         'can be\n'
-         'found in the LICENSE file.\n'),
+        (u'Copyright 2018 The Chromium OS Authors. All rights reserved.\n'
+         u'Use of this source code is governed by a BSD-style license that '
+         u'can be\n'
+         u'found in the LICENSE file.\n'),
     )
     self.file_mock.return_value = ['file']
     for header in HEADERS:
@@ -840,19 +872,19 @@ class CheckCrosLicenseCopyrightHeader(PreUploadTestCase):
   def testNoExcludedGolang(self):
     """Don't exclude .go files for license checks."""
     self.file_mock.return_value = ['foo/main.go']
-    self.content_mock.return_value = ('package main\nfunc main() {}')
+    self.content_mock.return_value = u'package main\nfunc main() {}'
     self.assertTrue(pre_upload._check_cros_license('proj', 'sha1'))
 
   def testIgnoreExcludedPaths(self):
     """Ignores excluded paths for license checks."""
     self.file_mock.return_value = ['foo/OWNERS']
-    self.content_mock.return_value = ('owner@chromium.org')
+    self.content_mock.return_value = u'owner@chromium.org'
     self.assertFalse(pre_upload._check_cros_license('proj', 'sha1'))
 
   def testIgnoreTopLevelExcludedPaths(self):
     """Ignores excluded paths for license checks."""
     self.file_mock.return_value = ['OWNERS']
-    self.content_mock.return_value = ('owner@chromium.org')
+    self.content_mock.return_value = u'owner@chromium.org'
     self.assertFalse(pre_upload._check_cros_license('proj', 'sha1'))
 
 class CheckAOSPLicenseCopyrightHeader(PreUploadTestCase):
@@ -865,7 +897,7 @@ class CheckAOSPLicenseCopyrightHeader(PreUploadTestCase):
   def testHeaders(self):
     """Accept old header styles."""
     HEADERS = (
-        """//
+        u"""//
 // Copyright (C) 2011 The Android Open Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -881,7 +913,7 @@ class CheckAOSPLicenseCopyrightHeader(PreUploadTestCase):
 // limitations under the License.
 //
 """,
-        """#
+        u"""#
 # Copyright (c) 2015 The Android Open Source Project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -906,7 +938,7 @@ class CheckAOSPLicenseCopyrightHeader(PreUploadTestCase):
   def testRejectNoLinesAround(self):
     """Reject headers missing the empty lines before/after the license."""
     HEADERS = (
-        """# Copyright (c) 2015 The Android Open Source Project
+        u"""# Copyright (c) 2015 The Android Open Source Project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -929,13 +961,13 @@ class CheckAOSPLicenseCopyrightHeader(PreUploadTestCase):
   def testIgnoreExcludedPaths(self):
     """Ignores excluded paths for license checks."""
     self.file_mock.return_value = ['foo/OWNERS']
-    self.content_mock.return_value = ('owner@chromium.org')
+    self.content_mock.return_value = u'owner@chromium.org'
     self.assertEqual(None, pre_upload._check_aosp_license('proj', 'sha1'))
 
   def testIgnoreTopLevelExcludedPaths(self):
     """Ignores excluded paths for license checks."""
     self.file_mock.return_value = ['OWNERS']
-    self.content_mock.return_value = ('owner@chromium.org')
+    self.content_mock.return_value = u'owner@chromium.org'
     self.assertEqual(None, pre_upload._check_aosp_license('proj', 'sha1'))
 
 class CheckLayoutConfTestCase(PreUploadTestCase):
@@ -960,12 +992,12 @@ class CheckLayoutConfTestCase(PreUploadTestCase):
   def GetLayoutConf(self, filters=()):
     """Return a valid layout.conf with |filters| lines removed."""
     all_lines = [
-        'masters = portage-stable chromiumos',
-        'profile-formats = portage-2 profile-default-eapi',
-        'profile_eapi_when_unspecified = 5-progress',
-        'repo-name = link',
-        'thin-manifests = true',
-        'use-manifests = strict',
+        u'masters = portage-stable chromiumos',
+        u'profile-formats = portage-2 profile-default-eapi',
+        u'profile_eapi_when_unspecified = 5-progress',
+        u'repo-name = link',
+        u'thin-manifests = true',
+        u'use-manifests = strict',
     ]
 
     lines = []
@@ -976,7 +1008,7 @@ class CheckLayoutConfTestCase(PreUploadTestCase):
       else:
         lines.append(line)
 
-    return '\n'.join(lines)
+    return u'\n'.join(lines)
 
   def testNoFilesToCheck(self):
     """Don't blow up when there are no layout.conf files."""
@@ -993,35 +1025,35 @@ class CheckLayoutConfTestCase(PreUploadTestCase):
 
   def testAcceptUnknownKeys(self):
     """Accept keys we don't explicitly know about."""
-    self.content_mock.return_value = self.GetLayoutConf() + '\nzzz-top = ok'
+    self.content_mock.return_value = self.GetLayoutConf() + u'\nzzz-top = ok'
     self.assertAccepted(['metadata/layout.conf'])
 
   def testRejectUnsorted(self):
     """Reject an unsorted layout.conf."""
-    self.content_mock.return_value = 'zzz-top = bad\n' + self.GetLayoutConf()
+    self.content_mock.return_value = u'zzz-top = bad\n' + self.GetLayoutConf()
     self.assertRejected(['metadata/layout.conf'])
 
   def testRejectMissingThinManifests(self):
     """Reject a layout.conf missing thin-manifests."""
     self.content_mock.return_value = self.GetLayoutConf(
-        filters=['thin-manifests'])
+        filters=[u'thin-manifests'])
     self.assertRejected(['metadata/layout.conf'])
 
   def testRejectMissingUseManifests(self):
     """Reject a layout.conf missing use-manifests."""
     self.content_mock.return_value = self.GetLayoutConf(
-        filters=['use-manifests'])
+        filters=[u'use-manifests'])
     self.assertRejected(['metadata/layout.conf'])
 
   def testRejectMissingEapiFallback(self):
     """Reject a layout.conf missing profile_eapi_when_unspecified."""
     self.content_mock.return_value = self.GetLayoutConf(
-        filters=['profile_eapi_when_unspecified'])
+        filters=[u'profile_eapi_when_unspecified'])
     self.assertRejected(['metadata/layout.conf'])
 
   def testRejectMissingRepoName(self):
     """Reject a layout.conf missing repo-name."""
-    self.content_mock.return_value = self.GetLayoutConf(filters=['repo-name'])
+    self.content_mock.return_value = self.GetLayoutConf(filters=[u'repo-name'])
     self.assertRejected(['metadata/layout.conf'])
 
 

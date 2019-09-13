@@ -147,7 +147,8 @@ def _run_command(cmd, **kwargs):
   kwargs.setdefault('print_cmd', False)
   kwargs.setdefault('stdout_to_pipe', True)
   kwargs.setdefault('error_code_ok', True)
-  return cros_build_lib.RunCommand(cmd, **kwargs).output
+  result = cros_build_lib.RunCommand(cmd, **kwargs)
+  return result.output.decode('utf-8', 'replace')
 
 
 def _get_hooks_dir():
@@ -233,18 +234,6 @@ def _get_patch(commit):
     return _run_command(['git', 'format-patch', '--stdout', '-1', commit])
 
 
-def _try_utf8_decode(data):
-  """Attempts to decode a string as UTF-8.
-
-  Returns:
-    The decoded Unicode object, or the original string if parsing fails.
-  """
-  try:
-    return unicode(data, 'utf-8', 'strict')
-  except UnicodeDecodeError:
-    return data
-
-
 def _get_file_content(path, commit):
   """Returns the content of a file at a specific commit.
 
@@ -297,7 +286,7 @@ def _get_file_diff(path, commit):
       line_num = int(m.groups(1)[0])
       continue
     if line.startswith('+') and not line.startswith('++'):
-      new_lines.append((line_num, _try_utf8_decode(line[1:])))
+      new_lines.append((line_num, line[1:]))
     if not line.startswith('-'):
       line_num += 1
   cache[path] = new_lines
