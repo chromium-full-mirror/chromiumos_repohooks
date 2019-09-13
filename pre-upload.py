@@ -13,7 +13,6 @@ from __future__ import print_function
 
 import argparse
 import collections
-import ConfigParser
 import datetime
 import fnmatch
 import functools
@@ -23,6 +22,8 @@ import re
 import sys
 import stat
 import StringIO
+
+from six.moves import configparser
 
 from errors import (VerifyException, HookFailure, PrintErrorForProject,
                     PrintErrorsForCommit)
@@ -1561,14 +1562,15 @@ def _check_cq_ini_well_formed(_project, commit):
   # pre-cq configs it requests are existing ones.
   for f in files:
     try:
-      parser = ConfigParser.SafeConfigParser()
+      parser = configparser.SafeConfigParser()
       # Prior to python3, ConfigParser has no read_string method, so we must
       # pass it either a file path or file like object. And we must use
       # _get_file_content to fetch file contents to ensure we are examining the
       # commit diff, rather than whatever's on disk.
+      # TODO(vapier): Once we migrate this to Python 3 only, cut it over.
       contents = _get_file_content(f, commit)
       parser.readfp(StringIO.StringIO(contents))
-    except ConfigParser.Error as e:
+    except configparser.Error as e:
       msg = ('Unable to parse COMMIT-QUEUE.ini file at %s due to %s.' %
              (f, e))
       return HookFailure(msg)
@@ -1847,7 +1849,7 @@ def _get_override_hooks(config):
         options = config.get(SECTION_OPTIONS, flag)
         hooks[flag] = functools.partial(hooks[flag], options=options.split())
         hooks[flag].__name__ = flag
-      except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+      except (configparser.NoOptionError, configparser.NoSectionError):
         pass
 
   enabled_hooks = set(hooks[x] for x in enable_flags)
@@ -1877,12 +1879,12 @@ def _get_project_hooks(project, presubmit):
     project: A string, name of the project.
     presubmit: A Boolean, True if the check is run as a git pre-submit script.
   """
-  config = ConfigParser.RawConfigParser()
+  config = configparser.RawConfigParser()
   try:
     config.read(_CONFIG_FILE)
-  except ConfigParser.Error:
+  except configparser.Error:
     # Just use an empty config file
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
 
   if presubmit:
     hooks = _COMMON_HOOKS
