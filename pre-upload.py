@@ -132,31 +132,22 @@ CACHE = Cache()
 Project = collections.namedtuple('Project', ['name', 'dir', 'remote'])
 
 
-# pylint: disable=redefined-builtin
-def _run_command(cmd, cwd=None, input=None,
-                 redirect_stderr=False, combine_stdout_stderr=False):
+def _run_command(cmd, **kwargs):
   """Executes the passed in command and returns raw stdout output.
+
+  This is a convenience func to set some RunCommand defaults differently.
 
   Args:
     cmd: The command to run; should be a list of strings.
-    cwd: The directory to switch to for running the command.
-    input: The data to pipe into this command through stdin. If a file object
-      or file descriptor, stdin will be connected directly to that.
-    redirect_stderr: Redirect stderr away from console.
-    combine_stdout_stderr: Combines stdout and stderr streams into stdout.
+    **kwargs: Same as cros_build_lib.RunCommand.
 
   Returns:
     The stdout from the process (discards stderr and returncode).
   """
-  return cros_build_lib.RunCommand(cmd=cmd,
-                                   cwd=cwd,
-                                   print_cmd=False,
-                                   input=input,
-                                   stdout_to_pipe=True,
-                                   redirect_stderr=redirect_stderr,
-                                   combine_stdout_stderr=combine_stdout_stderr,
-                                   error_code_ok=True).output
-# pylint: enable=redefined-builtin
+  kwargs.setdefault('print_cmd', False)
+  kwargs.setdefault('stdout_to_pipe', True)
+  kwargs.setdefault('error_code_ok', True)
+  return cros_build_lib.RunCommand(cmd, **kwargs).output
 
 
 def _get_hooks_dir():
