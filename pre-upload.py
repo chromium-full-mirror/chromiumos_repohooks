@@ -16,12 +16,12 @@ import collections
 import datetime
 import fnmatch
 import functools
+import io
 import json
 import os
 import re
 import sys
 import stat
-import StringIO
 
 from six.moves import configparser
 
@@ -1569,7 +1569,7 @@ def _check_cq_ini_well_formed(_project, commit):
       # commit diff, rather than whatever's on disk.
       # TODO(vapier): Once we migrate this to Python 3 only, cut it over.
       contents = _get_file_content(f, commit)
-      parser.readfp(StringIO.StringIO(contents))
+      parser.readfp(io.StringIO(contents))
     except configparser.Error as e:
       msg = ('Unable to parse COMMIT-QUEUE.ini file at %s due to %s.' %
              (f, e))

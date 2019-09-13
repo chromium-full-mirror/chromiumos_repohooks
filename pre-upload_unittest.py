@@ -424,13 +424,13 @@ class CheckConfigParsing(PreUploadTestCase):
 
   def testIgnoreIrrelevantFile(self):
     self.file_mock.return_value = ['unrelated_file.ini']
-    self.content_mock.return_value = '^$malformed gibberish^^&'
+    self.content_mock.return_value = u'^$malformed gibberish^^&'
     self.assertEqual(pre_upload._check_cq_ini_well_formed('PROJECT', 'COMMIT'),
                      None)
 
   def testWellformedFile(self):
     self.file_mock.return_value = ['COMMIT-QUEUE.ini']
-    self.content_mock.return_value = """#
+    self.content_mock.return_value = u"""#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -450,7 +450,7 @@ ignored-stages: UNitTest HWTest VMTest UploadPrebuilts Archive"""
 
   def testMalformedFile(self):
     self.file_mock.return_value = ['COMMIT-QUEUE.ini']
-    self.content_mock.return_value = '^$malformed gibberish^^&'
+    self.content_mock.return_value = u'^$malformed gibberish^^&'
     m = pre_upload._check_cq_ini_well_formed('PROJECT', 'COMMIT')
     self.assertTrue(isinstance(m, pre_upload.HookFailure))
 
