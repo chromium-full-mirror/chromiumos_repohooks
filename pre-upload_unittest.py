@@ -38,7 +38,14 @@ def ProjectNamed(project_name):
   return pre_upload.Project(project_name, None, None)
 
 
-class TryUTF8DecodeTest(cros_test_lib.TestCase):
+class PreUploadTestCase(cros_test_lib.MockTestCase):
+  """Common test case base."""
+
+  def setUp(self):
+    pre_upload.CACHE.clear()
+
+
+class TryUTF8DecodeTest(PreUploadTestCase):
   """Verify we sanely handle unicode content."""
 
   def runTest(self):
@@ -51,7 +58,7 @@ class TryUTF8DecodeTest(cros_test_lib.TestCase):
     self.assertEquals('\x80', pre_upload._try_utf8_decode('\x80'))
 
 
-class CheckNoLongLinesTest(cros_test_lib.MockTestCase):
+class CheckNoLongLinesTest(PreUploadTestCase):
   """Tests for _check_no_long_lines."""
 
   def setUp(self):
@@ -130,8 +137,9 @@ class CheckNoLongLinesTest(cros_test_lib.MockTestCase):
         ProjectNamed('PROJECT'), 'COMMIT', options=['--exclude_regex=foo']))
 
 
-class CheckTabbedIndentsTest(cros_test_lib.MockTestCase):
+class CheckTabbedIndentsTest(PreUploadTestCase):
   """Tests for _check_tabbed_indents."""
+
   def setUp(self):
     self.PatchObject(pre_upload,
                      '_get_affected_files',
@@ -167,7 +175,7 @@ class CheckTabbedIndentsTest(cros_test_lib.MockTestCase):
                       failure.items)
 
 
-class CheckProjectPrefix(cros_test_lib.MockTempDirTestCase):
+class CheckProjectPrefix(PreUploadTestCase, cros_test_lib.TempDirTestCase):
   """Tests for _check_project_prefix."""
 
   def setUp(self):
@@ -222,7 +230,7 @@ class CheckProjectPrefix(cros_test_lib.MockTempDirTestCase):
         pre_upload._check_project_prefix(ProjectNamed('PROJECT'), 'COMMIT'))
 
 
-class CheckFilePathCharTypeTest(cros_test_lib.MockTestCase):
+class CheckFilePathCharTypeTest(PreUploadTestCase):
   """Tests for _check_filepath_chartype."""
 
   def setUp(self):
@@ -262,7 +270,7 @@ class CheckFilePathCharTypeTest(cros_test_lib.MockTestCase):
                       failure.items)
 
 
-class CheckKernelConfig(cros_test_lib.MockTestCase):
+class CheckKernelConfig(PreUploadTestCase):
   """Tests for _kernel_configcheck."""
 
   def setUp(self):
@@ -295,7 +303,7 @@ class CheckKernelConfig(cros_test_lib.MockTestCase):
     self.assertFalse(failure)
 
 
-class CheckJson(cros_test_lib.MockTestCase):
+class CheckJson(PreUploadTestCase):
   """Tests for _run_json_check."""
 
   def setUp(self):
@@ -334,7 +342,7 @@ class CheckJson(cros_test_lib.MockTestCase):
     self.content_mock.assert_called_once_with('/data.json', 'COMMIT')
 
 
-class CheckManifests(cros_test_lib.MockTestCase):
+class CheckManifests(PreUploadTestCase):
   """Tests _check_manifests."""
 
   def setUp(self):
@@ -407,7 +415,7 @@ DIST lines
     self._testReject('EBUILD foo\n')
 
 
-class CheckConfigParsing(cros_test_lib.MockTestCase):
+class CheckConfigParsing(PreUploadTestCase):
   """Tests _check_cq_ini_well_formed."""
 
   def setUp(self):
@@ -447,7 +455,7 @@ ignored-stages: UNitTest HWTest VMTest UploadPrebuilts Archive"""
     self.assertTrue(isinstance(m, pre_upload.HookFailure))
 
 
-class CheckPortageMakeUseVar(cros_test_lib.MockTestCase):
+class CheckPortageMakeUseVar(PreUploadTestCase):
   """Tests for _check_portage_make_use_var."""
 
   def setUp(self):
@@ -495,7 +503,7 @@ class CheckPortageMakeUseVar(cros_test_lib.MockTestCase):
     self.assertFalse(failure, failure)
 
 
-class CheckEbuildEapi(cros_test_lib.MockTestCase):
+class CheckEbuildEapi(PreUploadTestCase):
   """Tests for _check_ebuild_eapi."""
 
   PORTAGE_STABLE = ProjectNamed('chromiumos/overlays/portage-stable')
@@ -595,7 +603,7 @@ src_compile() { }
     self.assertEqual(ret, None)
 
 
-class CheckEbuildKeywords(cros_test_lib.MockTestCase):
+class CheckEbuildKeywords(PreUploadTestCase):
   """Tests for _check_ebuild_keywords."""
 
   def setUp(self):
@@ -664,7 +672,7 @@ class CheckEbuildKeywords(cros_test_lib.MockTestCase):
     self._CheckContent('# HEADER\nKEYWORDS="~arm x86"\nblah\n', True)
 
 
-class CheckEbuildVirtualPv(cros_test_lib.MockTestCase):
+class CheckEbuildVirtualPv(PreUploadTestCase):
   """Tests for _check_ebuild_virtual_pv."""
 
   PORTAGE_STABLE = ProjectNamed('chromiumos/overlays/portage-stable')
@@ -745,7 +753,7 @@ class CheckEbuildVirtualPv(cros_test_lib.MockTestCase):
     ret = pre_upload._check_ebuild_virtual_pv(self.PRIVATE_VARIANT_OVERLAY, 'H')
     self.assertEqual(ret, None)
 
-class CheckCrosLicenseCopyrightHeader(cros_test_lib.MockTestCase):
+class CheckCrosLicenseCopyrightHeader(PreUploadTestCase):
   """Tests for _check_cros_license."""
 
   def setUp(self):
@@ -847,7 +855,7 @@ class CheckCrosLicenseCopyrightHeader(cros_test_lib.MockTestCase):
     self.content_mock.return_value = ('owner@chromium.org')
     self.assertFalse(pre_upload._check_cros_license('proj', 'sha1'))
 
-class CheckAOSPLicenseCopyrightHeader(cros_test_lib.MockTestCase):
+class CheckAOSPLicenseCopyrightHeader(PreUploadTestCase):
   """Tests for _check_aosp_license."""
 
   def setUp(self):
@@ -930,7 +938,7 @@ class CheckAOSPLicenseCopyrightHeader(cros_test_lib.MockTestCase):
     self.content_mock.return_value = ('owner@chromium.org')
     self.assertEqual(None, pre_upload._check_aosp_license('proj', 'sha1'))
 
-class CheckLayoutConfTestCase(cros_test_lib.MockTestCase):
+class CheckLayoutConfTestCase(PreUploadTestCase):
   """Tests for _check_layout_conf."""
 
   def setUp(self):
@@ -1017,7 +1025,7 @@ class CheckLayoutConfTestCase(cros_test_lib.MockTestCase):
     self.assertRejected(['metadata/layout.conf'])
 
 
-class CommitMessageTestCase(cros_test_lib.MockTestCase):
+class CommitMessageTestCase(PreUploadTestCase):
   """Test case for funcs that check commit messages."""
 
   def setUp(self):
@@ -1333,7 +1341,7 @@ def DiffEntry(src_file=None, dst_file=None, src_mode=None, dst_mode='100644',
                           src_file=src_file, dst_file=dst_file)
 
 
-class HelpersTest(cros_test_lib.MockTempDirTestCase):
+class HelpersTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
   """Various tests for utility functions."""
 
   def setUp(self):
@@ -1433,7 +1441,7 @@ class HelpersTest(cros_test_lib.MockTempDirTestCase):
     self.assertEquals(pre_upload._get_affected_files('HEAD', relative=True), [])
 
 
-class ExecFilesTest(cros_test_lib.MockTestCase):
+class ExecFilesTest(PreUploadTestCase):
   """Tests for _check_exec_files."""
 
   def setUp(self):
@@ -1476,7 +1484,7 @@ class ExecFilesTest(cros_test_lib.MockTestCase):
     self.assertEqual(pre_upload._check_exec_files('proj', 'commit'), None)
 
 
-class CheckForUprev(cros_test_lib.MockTempDirTestCase):
+class CheckForUprev(PreUploadTestCase, cros_test_lib.TempDirTestCase):
   """Tests for _check_for_uprev."""
 
   def setUp(self):
@@ -1563,7 +1571,7 @@ class CheckForUprev(cros_test_lib.MockTempDirTestCase):
     self.assertAccepted([DiffEntry(src_file='c/p/files/f', status='M')])
 
 
-class DirectMainTest(cros_test_lib.MockTempDirTestCase):
+class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
   """Tests for direct_main()"""
 
   def setUp(self):
@@ -1623,7 +1631,7 @@ class DirectMainTest(cros_test_lib.MockTempDirTestCase):
         mock.ANY, proj_dir=mock.ANY, commit_list=commits, presubmit=mock.ANY)
 
 
-class CheckRustfmtTest(cros_test_lib.MockTestCase):
+class CheckRustfmtTest(PreUploadTestCase):
   """Tests for _check_rustfmt."""
 
   def setUp(self):

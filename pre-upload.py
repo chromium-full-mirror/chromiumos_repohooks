@@ -113,6 +113,21 @@ class BadInvocation(Exception):
 # General Helpers
 
 
+class Cache(object):
+  """General helper for caching git content."""
+
+  def __init__(self):
+    self._cache = {}
+
+  def get_subcache(self, scope):
+    return self._cache.setdefault(scope, {})
+
+  def clear(self):
+    self._cache.clear()
+
+CACHE = Cache()
+
+
 Project = collections.namedtuple('Project', ['name', 'dir', 'remote'])
 
 
@@ -248,19 +263,32 @@ def _get_file_content(path, commit):
   a full file, you should check that first.  One way to detect is that the
   content will not have any newlines.
   """
+  # Make sure people don't accidentally pass in full paths which will never
+  # work.  You need to use relative=True with _get_affected_files.
+  if path.startswith('/'):
+    raise ValueError('_get_file_content must be called with relative paths: %s'
+                     % (path,))
+
+  # {<commit>: {<path1>: <content>, <path2>: <content>}}
+  cache = CACHE.get_subcache('get_file_content')
+  if path in cache:
+    return cache[path]
+
   if commit == PRE_SUBMIT:
-    return _run_command(['git', 'diff', 'HEAD', path])
+    content = _run_command(['git', 'diff', 'HEAD', path])
   else:
-    # Make sure people don't accidentally pass in full paths which will never
-    # work.  You need to use relative=True with _get_affected_files.
-    if path.startswith('/'):
-      raise ValueError('_get_file_content must be called with relative paths: '
-                       + path)
-    return _run_command(['git', 'show', '%s:%s' % (commit, path)])
+    content = _run_command(['git', 'show', '%s:%s' % (commit, path)])
+  cache[path] = content
+  return content
 
 
 def _get_file_diff(path, commit):
   """Returns a list of (linenum, lines) tuples that the commit touched."""
+  # {<commit>: {<path1>: <content>, <path2>: <content>}}
+  cache = CACHE.get_subcache('get_file_diff')
+  if path in cache:
+    return cache[path]
+
   if commit == PRE_SUBMIT:
     command = ['git', 'diff', '-p', '--pretty=format:', '--no-ext-diff', 'HEAD',
                path]
@@ -280,6 +308,7 @@ def _get_file_diff(path, commit):
       new_lines.append((line_num, _try_utf8_decode(line[1:])))
     if not line.startswith('-'):
       line_num += 1
+  cache[path] = new_lines
   return new_lines
 
 
@@ -370,7 +399,11 @@ def _get_affected_files(commit, include_deletes=False, relative=False,
                          '--name-only', 'HEAD']).split()
 
   path = os.getcwd()
-  files = git.RawDiff(path, '%s^!' % commit)
+  # {<commit>: {<path1>: <content>, <path2>: <content>}}
+  cache = CACHE.get_subcache('get_affected_files')
+  if path not in cache:
+    cache[path] = git.RawDiff(path, '%s^!' % commit)
+  files = cache[path]
 
   # Filter out symlinks.
   if not include_symlinks:
@@ -410,7 +443,13 @@ def _get_commit_desc(commit):
   """Returns the full commit message of a commit."""
   if commit == PRE_SUBMIT:
     return ''
-  return _run_command(['git', 'log', '--format=%s%n%n%b', commit + '^!'])
+
+  # {<commit>: <content>}
+  cache = CACHE.get_subcache('get_commit_desc')
+  if commit not in cache:
+    cache[commit] = _run_command(['git', 'log', '--format=%s%n%n%b',
+                                  commit + '^!'])
+  return cache[commit]
 
 
 def _check_lines_in_diff(commit, files, check_callable, error_description):
@@ -1939,6 +1978,8 @@ def _run_project_hooks(project_name, proj_dir=None,
   commit_count = len(commit_list)
   hook_count = len(hooks)
   for i, commit in enumerate(commit_list):
+    CACHE.clear()
+
     error_list = []
     for h, hook in enumerate(hooks):
       output = ('PRESUBMIT.cfg: [%i/%i]: %s: Running [%i/%i] %s' %
