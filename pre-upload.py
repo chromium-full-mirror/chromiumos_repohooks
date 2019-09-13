@@ -42,6 +42,8 @@ if __name__ in ('__builtin__', 'builtins'):
 if __name__ == '__main__':
   sys.path.insert(0, os.path.join(os.path.dirname(sys.argv[0]), '..', '..'))
 
+# The sys.path monkey patching confuses the linter.
+# pylint: disable=wrong-import-position
 from chromite.lib import commandline
 from chromite.lib import constants
 from chromite.lib import cros_build_lib

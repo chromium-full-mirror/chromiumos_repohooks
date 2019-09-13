@@ -12,6 +12,8 @@ import datetime
 import os
 import sys
 
+import mock
+
 import errors
 
 # pylint: disable=W0212
@@ -21,14 +23,13 @@ import errors
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 '..', '..'))
 
+# The sys.path monkey patching confuses the linter.
+# pylint: disable=wrong-import-position
 from chromite.lib import constants
 from chromite.lib import cros_build_lib
 from chromite.lib import cros_test_lib
 from chromite.lib import git
 from chromite.lib import osutils
-
-# Needs to be after chromite imports so we use the bundled copy.
-import mock
 
 
 pre_upload = __import__('pre-upload')

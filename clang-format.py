@@ -18,6 +18,8 @@ if sys.path[0] != _path:
   sys.path.insert(0, _path)
 del _path
 
+# The sys.path monkey patching confuses the linter.
+# pylint: disable=wrong-import-position
 from chromite.lib import commandline
 from chromite.lib import constants
 from chromite.lib import cros_build_lib
