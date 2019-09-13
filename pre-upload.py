@@ -33,7 +33,8 @@ from errors import (VerifyException, HookFailure, PrintErrorForProject,
 # that directory, so add it to our path.  This works whether we're running the
 # repo in $CHROMEOS_CHECKOUT/.repo/repo/ or a custom version in a completely
 # different tree.
-if __name__ == '__builtin__':
+# TODO(vapier): Python 2 used "__builtin__" while Python 3 uses "builtins".
+if __name__ in ('__builtin__', 'builtins'):
   sys.path.insert(0, os.getcwd())
 
 # If we're run directly, we'll find chromite relative to the repohooks dir in
