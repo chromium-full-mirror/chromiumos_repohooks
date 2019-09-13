@@ -1,5 +1,5 @@
-#!/usr/bin/env python2
-# -*- coding:utf-8 -*-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 # Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -114,7 +114,9 @@ def main(argv):
   try:
     result = cros_build_lib.RunCommand(cmd=cmd,
                                        print_cmd=False,
-                                       redirect_stdout=True)
+                                       redirect_stdout=True,
+                                       encoding='utf-8',
+                                       errors='replace')
   except cros_build_lib.RunCommandError as e:
     print('clang-format failed:\n' + str(e), file=sys.stderr)
     print('\nPlease report this to the clang team.', file=sys.stderr)

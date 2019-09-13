@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -1425,6 +1425,8 @@ def _check_clang_format(_project, commit, options=()):
   cmd_result = cros_build_lib.RunCommand(cmd=cmd,
                                          print_cmd=False,
                                          redirect_stdout=True,
+                                         encoding='utf-8',
+                                         errors='replace',
                                          combine_stdout_stderr=True,
                                          error_code_ok=True)
   if cmd_result.returncode:
@@ -1452,7 +1454,8 @@ def _run_checkpatch(_project, commit, options=()):
   cmd = [os.path.join(hooks_dir, 'checkpatch.pl')] + options + ['-']
   cmd_result = cros_build_lib.RunCommand(
       cmd=cmd, print_cmd=False, input=_get_patch(commit).encode('utf-8'),
-      redirect_stdout=True, combine_stdout_stderr=True, error_code_ok=True)
+      redirect_stdout=True, combine_stdout_stderr=True, error_code_ok=True,
+      encoding='utf-8', errors='replace')
   if cmd_result.returncode:
     return HookFailure('checkpatch.pl errors/warnings\n\n' + cmd_result.output)
   return None
@@ -1622,6 +1625,8 @@ def _run_project_hook_script(script, project, commit):
                                          input=os.devnull,
                                          redirect_stdout=True,
                                          combine_stdout_stderr=True,
+                                         encoding='utf-8',
+                                         errors='replace',
                                          error_code_ok=True)
   if cmd_result.returncode:
     stdout = cmd_result.output
