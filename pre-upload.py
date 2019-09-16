@@ -1983,7 +1983,7 @@ def _run_project_hooks(project_name, proj_dir=None,
     error_list = []
     for h, hook in enumerate(hooks):
       output = ('PRESUBMIT.cfg: [%i/%i]: %s: Running [%i/%i] %s' %
-                (i + 1, commit_count, commit, h, hook_count, hook.__name__))
+                (i + 1, commit_count, commit, h + 1, hook_count, hook.__name__))
       print(output, end='\r')
       sys.stdout.flush()
       hook_error = hook(project, commit)
