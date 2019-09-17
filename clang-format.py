@@ -145,5 +145,8 @@ def main(argv):
              ' '.join(cros_build_lib.ShellQuote(arg) for arg in argv)))
       return 1
 
+  return 0
+
+
 if __name__ == '__main__':
   commandline.ScriptWrapperMain(lambda _: main)

@@ -457,6 +457,7 @@ def _check_lines_in_diff(commit, files, check_callable, error_description):
         errors.append('%s, line %s' % (afile, line_num))
   if errors:
     return HookFailure(error_description, errors)
+  return None
 
 
 def _parse_common_inclusion_options(options):
@@ -523,6 +524,7 @@ def _check_no_long_lines(_project, commit, options=()):
   if errors:
     msg = 'Found lines longer than %s characters (first 5 shown):' % MAX_LEN
     return HookFailure(msg, errors)
+  return None
 
 
 def _check_no_stray_whitespace(_project, commit, options=()):
@@ -589,6 +591,7 @@ def _check_gofmt(_project, commit):
       errors.append(gofile)
   if errors:
     return HookFailure('Files not formatted with gofmt:', errors)
+  return None
 
 
 def _check_rustfmt(_project, commit):
@@ -606,6 +609,7 @@ def _check_rustfmt(_project, commit):
   if errors:
     return HookFailure('Files not formatted with rustfmt: '
                        "(run 'cargo fmt' to fix)", errors)
+  return None
 
 
 def _check_change_has_test_field(_project, commit):
@@ -615,6 +619,7 @@ def _check_change_has_test_field(_project, commit):
   if not re.search(TEST_RE, _get_commit_desc(commit)):
     msg = 'Changelist description needs TEST field (after first line)'
     return HookFailure(msg)
+  return None
 
 
 def _check_change_has_valid_cq_depend(_project, commit):
@@ -634,6 +639,7 @@ def _check_change_has_valid_cq_depend(_project, commit):
         re.search(r'^CQ-DEPEND=', paragraph, re.M)) \
         and not re.search('^Change-Id:', paragraph, re.M):
       return HookFailure(msg)
+  return None
 
 
 def _check_change_is_contribution(_project, commit):
@@ -643,6 +649,7 @@ def _check_change_is_contribution(_project, commit):
     msg = ('Changelist is not a contribution, this cannot be accepted.\n'
            'Please remove the "%s" text from the commit message.') % NO_CONTRIB
     return HookFailure(msg)
+  return None
 
 
 def _check_change_has_bug_field(project, commit):
@@ -674,6 +681,8 @@ def _check_change_has_bug_field(project, commit):
              'BUG=b:9999 (for buganizer)\n'
              'BUG=None')
       return HookFailure(msg)
+
+  return None
 
 
 def _check_change_no_include_oem(project, commit):
@@ -727,6 +736,8 @@ def _check_change_no_include_oem(project, commit):
       error_msg = ('Changelist description contains the name of an'
                    ' %s: "%s".' % (name_type, '","'.join(matches)))
       return HookFailure(error_msg)
+
+  return None
 
 
 def _check_for_uprev(project, commit, project_top=None):
@@ -801,7 +812,7 @@ def _check_for_uprev(project, commit, project_top=None):
                         if not any(FinalName(obj).startswith(x)
                                    for x in ebuild_dirs)]
   if not affected_path_objs:
-    return
+    return None
 
   # We want to examine the current contents of all directories that are parents
   # of files that were touched (up to the top of the project).
@@ -917,6 +928,8 @@ def _check_ebuild_eapi(project, commit):
         'See this guide for more details:\n%s\n' %
         ('\n\t'.join(['%s: EAPI=%s' % x for x in bad_ebuilds]), url))
 
+  return None
+
 
 def _check_ebuild_keywords(_project, commit):
   """Make sure we use the new style KEYWORDS when possible in ebuilds.
@@ -969,6 +982,8 @@ def _check_ebuild_keywords(_project, commit):
         'then use -* like so:\n'
         '  KEYWORDS="-* arm ..."\n' % '\n* '.join(bad_ebuilds))
 
+  return None
+
 
 def _check_ebuild_licenses(_project, commit):
   """Check if the LICENSE field in the ebuild is correct."""
@@ -1001,6 +1016,8 @@ def _check_ebuild_licenses(_project, commit):
                                                overlay_path=overlay_path)
       except AssertionError as e:
         return HookFailure(str(e), [ebuild])
+
+  return None
 
 
 def _check_ebuild_virtual_pv(project, commit):
@@ -1077,6 +1094,8 @@ def _check_ebuild_virtual_pv(project, commit):
         ('\n\t'.join(['%s:\n\t\tPV is %s but should be %s' % x
                       for x in bad_ebuilds]), url))
 
+  return None
+
 
 def _check_portage_make_use_var(_project, commit):
   """Verify that $USE is set correctly in make.conf and make.defaults."""
@@ -1117,6 +1136,8 @@ def _check_portage_make_use_var(_project, commit):
         '"${USE}".\n',
         errors)
 
+  return None
+
 
 def _check_change_has_proper_changeid(_project, commit):
   """Verify that Change-ID is present in last paragraph of commit message."""
@@ -1145,6 +1166,8 @@ def _check_change_has_proper_changeid(_project, commit):
     return HookFailure('Only "%s:" tag(s) may follow the Change-Id.' %
                        ':", "'.join(allowed_tags))
 
+  return None
+
 
 def _check_commit_message_style(_project, commit):
   """Verify that the commit message matches our style.
@@ -1168,6 +1191,8 @@ def _check_commit_message_style(_project, commit):
   if len(lines[0]) > MAX_FIRST_LINE_LEN:
     return HookFailure('The first line must be less than %i chars.' %
                        MAX_FIRST_LINE_LEN)
+
+  return None
 
 
 def _check_cros_license(_project, commit, options=()):
@@ -1241,6 +1266,7 @@ def _check_cros_license(_project, commit, options=()):
 
   return errors
 
+
 def _check_aosp_license(_project, commit, options=()):
   """Verifies the AOSP license/copyright header.
 
@@ -1289,6 +1315,7 @@ def _check_aosp_license(_project, commit, options=()):
     msg = ('License must match:\n%s\nFound a bad header in these files:' %
            license_re.pattern)
     return HookFailure(msg, bad_files)
+  return None
 
 
 def _check_layout_conf(_project, commit):
@@ -1353,6 +1380,8 @@ def _check_layout_conf(_project, commit):
     lines = 'See the portage(5) man page for layout.conf details' + lines + '\n'
     return HookFailure(lines)
 
+  return None
+
 
 def _check_no_new_gyp(_project, commit):
   """Verifies no project starts to use GYP."""
@@ -1378,6 +1407,7 @@ def _check_no_new_gyp(_project, commit):
   if gypfiles:
     return HookFailure('GYP is deprecated and not allowed in a new project:',
                        gypfiles)
+  return None
 
 
 # Project-specific hooks
@@ -1400,6 +1430,7 @@ def _check_clang_format(_project, commit, options=()):
   if cmd_result.returncode:
     return HookFailure('clang-format.py errors/warnings\n\n' +
                        cmd_result.output)
+  return None
 
 
 def _run_checkpatch(_project, commit, options=()):
@@ -1427,6 +1458,7 @@ def _run_checkpatch(_project, commit, options=()):
                                          error_code_ok=True)
   if cmd_result.returncode:
     return HookFailure('checkpatch.pl errors/warnings\n\n' + cmd_result.output)
+  return None
 
 
 def _run_kerneldoc(_project, commit, options=()):
@@ -1441,6 +1473,7 @@ def _run_kerneldoc(_project, commit, options=()):
     if output:
       return HookFailure('kernel-doc errors/warnings:',
                          items=output.splitlines())
+  return None
 
 
 def _kernel_configcheck(_project, commit):
@@ -1449,6 +1482,7 @@ def _kernel_configcheck(_project, commit):
   if not len(_filter_files(files, [r'chromeos/config'])) in [0, len(files)]:
     return HookFailure('Changes to chromeos/config/ and regular files must '
                        'be in separate commits:\n%s' % '\n'.join(files))
+  return None
 
 
 def _run_json_check(_project, commit):
@@ -1466,6 +1500,7 @@ def _run_json_check(_project, commit):
 
   if ret:
     return HookFailure('\n'.join(ret))
+  return None
 
 
 def _check_manifests(_project, commit):
@@ -1510,30 +1545,33 @@ def _check_manifests(_project, commit):
 
   if ret:
     return HookFailure('\n'.join(ret))
+  return None
 
 
 def _check_change_has_branch_field(_project, commit):
   """Check for a non-empty 'BRANCH=' field in the commit message."""
   if commit == PRE_SUBMIT:
-    return
+    return None
   BRANCH_RE = r'\nBRANCH=\S+'
 
   if not re.search(BRANCH_RE, _get_commit_desc(commit)):
     msg = ('Changelist description needs BRANCH field (after first line)\n'
            'E.g. BRANCH=none or BRANCH=link,snow')
     return HookFailure(msg)
+  return None
 
 
 def _check_change_has_signoff_field(_project, commit):
   """Check for a non-empty 'Signed-off-by:' field in the commit message."""
   if commit == PRE_SUBMIT:
-    return
+    return None
   SIGNOFF_RE = r'\nSigned-off-by: \S+'
 
   if not re.search(SIGNOFF_RE, _get_commit_desc(commit)):
     msg = ('Changelist description needs Signed-off-by: field\n'
            'E.g. Signed-off-by: My Name <me@chromium.org>')
     return HookFailure(msg)
+  return None
 
 
 def _check_cq_ini_well_formed(_project, commit):
@@ -1557,6 +1595,8 @@ def _check_cq_ini_well_formed(_project, commit):
       msg = ('Unable to parse COMMIT-QUEUE.ini file at %s due to %s.' %
              (f, e))
       return HookFailure(msg)
+
+  return None
 
 
 def _run_project_hook_script(script, project, commit):
@@ -1593,6 +1633,7 @@ def _run_project_hook_script(script, project, commit):
     return HookFailure('Hook script "%s" failed with code %d%s' %
                        (script, cmd_result.returncode,
                         ':\n' + stdout if stdout else ''))
+  return None
 
 
 def _check_project_prefix(_project, commit):
@@ -1604,7 +1645,7 @@ def _check_project_prefix(_project, commit):
 
   # If there is no common prefix, the CL span multiple projects.
   if not prefix:
-    return
+    return None
 
   project_name = prefix.split('/')[0]
 
@@ -1625,6 +1666,7 @@ def _check_project_prefix(_project, commit):
     return HookFailure('The commit title for changes affecting only %s'
                        ' should start with \"%s: \"'
                        % (project_name, project_name))
+  return None
 
 
 def _check_filepath_chartype(_project, commit):
@@ -1648,6 +1690,7 @@ def _check_filepath_chartype(_project, commit):
   if errors:
     msg = 'Please assume FilePath::CharType is char (crbug.com/870621):'
     return HookFailure(msg, errors)
+  return None
 
 
 def _check_exec_files(_project, commit):
@@ -1723,6 +1766,7 @@ def _check_exec_files(_project, commit):
   if bad_files:
     return HookFailure('These files should not be executable.  '
                        'Please `chmod -x` them.', bad_files)
+  return None
 
 
 # Base
