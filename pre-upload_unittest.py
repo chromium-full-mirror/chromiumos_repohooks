@@ -86,7 +86,7 @@ class TryUTF8DecodeTest(PreUploadTestCase):
   def testBinary(self):
     """Check binary (invalid UTF-8) output."""
     ret = self._run(b'hi \x80 there')
-    self.assertEquals(u'hi \ufffd there', ret)
+    self.assertEqual(u'hi \ufffd there', ret)
 
 
 class CheckNoLongLinesTest(PreUploadTestCase):
@@ -109,11 +109,10 @@ class CheckNoLongLinesTest(PreUploadTestCase):
     ]
     failure = pre_upload._check_no_long_lines(ProjectNamed('PROJECT'), 'COMMIT')
     self.assertTrue(failure)
-    self.assertEquals('Found lines longer than 80 characters (first 5 shown):',
-                      failure.msg)
-    self.assertEquals(['x.py, line %d, 81 chars' % line
-                       for line in [3, 4, 8]],
-                      failure.items)
+    self.assertEqual('Found lines longer than 80 characters (first 5 shown):',
+                     failure.msg)
+    self.assertEqual(['x.py, line %d, 81 chars' % x for x in [3, 4, 8]],
+                     failure.items)
 
   def testCheckTreatsOwnersFilesSpecially(self):
     affected_files = self.PatchObject(pre_upload, '_get_affected_files')
@@ -200,10 +199,10 @@ class CheckTabbedIndentsTest(PreUploadTestCase):
     failure = pre_upload._check_tabbed_indents(ProjectNamed('PROJECT'),
                                                'COMMIT')
     self.assertTrue(failure)
-    self.assertEquals('Found a space in indentation (must be all tabs):',
-                      failure.msg)
-    self.assertEquals(['x.ebuild, line %d' % line for line in range(1, 6)],
-                      failure.items)
+    self.assertEqual('Found a space in indentation (must be all tabs):',
+                     failure.msg)
+    self.assertEqual(['x.ebuild, line %d' % x for x in range(1, 6)],
+                     failure.items)
 
 
 class CheckProjectPrefix(PreUploadTestCase, cros_test_lib.TempDirTestCase):
@@ -230,8 +229,8 @@ class CheckProjectPrefix(PreUploadTestCase, cros_test_lib.TempDirTestCase):
     failure = pre_upload._check_project_prefix(ProjectNamed('PROJECT'),
                                                'COMMIT')
     self.assertTrue(failure)
-    self.assertEquals(('The commit title for changes affecting only foo' +
-                       ' should start with "foo: "'), failure.msg)
+    self.assertEqual('The commit title for changes affecting only foo should '
+                     'start with "foo: "', failure.msg)
 
   def testValidPrefix(self):
     """Use a prefix that matches the base directory."""
@@ -285,20 +284,20 @@ class CheckFilePathCharTypeTest(PreUploadTestCase):
     failure = pre_upload._check_filepath_chartype(ProjectNamed('PROJECT'),
                                                   'COMMIT')
     self.assertTrue(failure)
-    self.assertEquals(
+    self.assertEqual(
         'Please assume FilePath::CharType is char (crbug.com/870621):',
         failure.msg)
-    self.assertEquals(['x.cc, line 2 has base::FilePath::CharType',
-                       'x.cc, line 3 has base::FilePath::StringType',
-                       'x.cc, line 4 has base::FilePath::StringPieceType',
-                       'x.cc, line 5 has base::FilePath::FromUTF8Unsafe',
-                       'x.cc, line 6 has FilePath::CharType',
-                       'x.cc, line 7 has FilePath::StringType',
-                       'x.cc, line 8 has FilePath::StringPieceType',
-                       'x.cc, line 9 has FilePath::FromUTF8Unsafe',
-                       'x.cc, line 10 has AsUTF8Unsafe',
-                       'x.cc, line 11 has FILE_PATH_LITERAL'],
-                      failure.items)
+    self.assertEqual(['x.cc, line 2 has base::FilePath::CharType',
+                      'x.cc, line 3 has base::FilePath::StringType',
+                      'x.cc, line 4 has base::FilePath::StringPieceType',
+                      'x.cc, line 5 has base::FilePath::FromUTF8Unsafe',
+                      'x.cc, line 6 has FilePath::CharType',
+                      'x.cc, line 7 has FilePath::StringType',
+                      'x.cc, line 8 has FilePath::StringPieceType',
+                      'x.cc, line 9 has FilePath::FromUTF8Unsafe',
+                      'x.cc, line 10 has AsUTF8Unsafe',
+                      'x.cc, line 11 has FILE_PATH_LITERAL'],
+                     failure.items)
 
 
 class CheckKernelConfig(PreUploadTestCase):
@@ -456,8 +455,7 @@ class CheckConfigParsing(PreUploadTestCase):
   def testIgnoreIrrelevantFile(self):
     self.file_mock.return_value = ['unrelated_file.ini']
     self.content_mock.return_value = u'^$malformed gibberish^^&'
-    self.assertEqual(pre_upload._check_cq_ini_well_formed('PROJECT', 'COMMIT'),
-                     None)
+    self.assertIsNone(pre_upload._check_cq_ini_well_formed('PROJECT', 'COMMIT'))
 
   def testWellformedFile(self):
     self.file_mock.return_value = ['COMMIT-QUEUE.ini']
@@ -475,9 +473,7 @@ class CheckConfigParsing(PreUploadTestCase):
 # submitted anyway. Use with caution.
 # The files in here currently only get tested via internal canaries.
 ignored-stages: UNitTest HWTest VMTest UploadPrebuilts Archive"""
-
-    self.assertEqual(pre_upload._check_cq_ini_well_formed('PROJECT', 'COMMIT'),
-                     None)
+    self.assertIsNone(pre_upload._check_cq_ini_well_formed('PROJECT', 'COMMIT'))
 
   def testMalformedFile(self):
     self.file_mock.return_value = ['COMMIT-QUEUE.ini']
@@ -549,7 +545,7 @@ class CheckEbuildEapi(PreUploadTestCase):
     """Skip ebuilds found in upstream overlays."""
     self.file_mock.side_effect = Exception()
     ret = pre_upload._check_ebuild_eapi(self.PORTAGE_STABLE, 'HEAD')
-    self.assertEqual(ret, None)
+    self.assertIsNone(ret)
 
     # Make sure our condition above triggers.
     self.assertRaises(Exception, pre_upload._check_ebuild_eapi, 'o', 'HEAD')
@@ -560,7 +556,7 @@ class CheckEbuildEapi(PreUploadTestCase):
 
     self.file_mock.return_value = ['some-file', 'ebuild/dir', 'an.ebuild~']
     ret = pre_upload._check_ebuild_eapi(ProjectNamed('overlay'), 'HEAD')
-    self.assertEqual(ret, None)
+    self.assertIsNone(ret)
 
     # Make sure our condition above triggers.
     self.file_mock.return_value.append('a/real.ebuild')
@@ -572,7 +568,7 @@ class CheckEbuildEapi(PreUploadTestCase):
     self.file_mock.return_value = ['a-r1.ebuild']
     self.content_mock.return_value = u'a.ebuild'
     ret = pre_upload._check_ebuild_eapi(ProjectNamed('overlay'), 'HEAD')
-    self.assertEqual(ret, None)
+    self.assertIsNone(ret)
 
   def testRejectEapiImplicit0Content(self):
     """Reject ebuilds that do not declare EAPI (so it's 0)."""
@@ -621,17 +617,17 @@ src_compile() { }
     # Make sure we only check the first EAPI= setting.
     self.content_mock.return_value = template % '6\nEAPI=1'
     ret = pre_upload._check_ebuild_eapi(ProjectNamed('overlay'), 'HEAD')
-    self.assertEqual(ret, None)
+    self.assertIsNone(ret)
 
     # Verify we handle double quotes too.
     self.content_mock.return_value = template % '"5"'
     ret = pre_upload._check_ebuild_eapi(ProjectNamed('overlay'), 'HEAD')
-    self.assertEqual(ret, None)
+    self.assertIsNone(ret)
 
     # Verify we handle single quotes too.
     self.content_mock.return_value = template % "'5-hdepend'"
     ret = pre_upload._check_ebuild_eapi(ProjectNamed('overlay'), 'HEAD')
-    self.assertEqual(ret, None)
+    self.assertIsNone(ret)
 
 
 class CheckEbuildKeywords(PreUploadTestCase):
@@ -646,7 +642,7 @@ class CheckEbuildKeywords(PreUploadTestCase):
     self.file_mock.return_value = ['a.file', 'ebuild-is-not.foo']
 
     ret = pre_upload._check_ebuild_keywords(ProjectNamed('overlay'), 'HEAD')
-    self.assertEqual(ret, None)
+    self.assertIsNone(ret)
 
     self.assertEqual(self.content_mock.call_count, 0)
 
@@ -656,7 +652,7 @@ class CheckEbuildKeywords(PreUploadTestCase):
     self.content_mock.return_value = u''
 
     ret = pre_upload._check_ebuild_keywords(ProjectNamed('overlay'), 'HEAD')
-    self.assertEqual(ret, None)
+    self.assertIsNone(ret)
 
     self.assertEqual(self.content_mock.call_count, 1)
 
@@ -674,7 +670,7 @@ class CheckEbuildKeywords(PreUploadTestCase):
     if fails:
       self.assertTrue(isinstance(ret, errors.HookFailure))
     else:
-      self.assertEqual(ret, None)
+      self.assertIsNone(ret)
 
     self.assertEqual(self.content_mock.call_count, 1)
 
@@ -720,14 +716,14 @@ class CheckEbuildVirtualPv(PreUploadTestCase):
     """Skip non virtual packages."""
     self.file_mock.return_value = ['some/package/package-3.ebuild']
     ret = pre_upload._check_ebuild_virtual_pv(ProjectNamed('overlay'), 'H')
-    self.assertEqual(ret, None)
+    self.assertIsNone(ret)
 
   def testCommonVirtuals(self):
     """Non-board overlays should use PV=1."""
     template = 'virtual/foo/foo-%s.ebuild'
     self.file_mock.return_value = [template % '1']
     ret = pre_upload._check_ebuild_virtual_pv(self.CHROMIUMOS_OVERLAY, 'H')
-    self.assertEqual(ret, None)
+    self.assertIsNone(ret)
 
     self.file_mock.return_value = [template % '2']
     ret = pre_upload._check_ebuild_virtual_pv(self.CHROMIUMOS_OVERLAY, 'H')
@@ -738,7 +734,7 @@ class CheckEbuildVirtualPv(PreUploadTestCase):
     template = 'overlay-lumpy/virtual/foo/foo-%s.ebuild'
     self.file_mock.return_value = [template % '2']
     ret = pre_upload._check_ebuild_virtual_pv(self.BOARD_OVERLAY, 'H')
-    self.assertEqual(ret, None)
+    self.assertIsNone(ret)
 
     self.file_mock.return_value = [template % '2.5']
     ret = pre_upload._check_ebuild_virtual_pv(self.BOARD_OVERLAY, 'H')
@@ -749,7 +745,7 @@ class CheckEbuildVirtualPv(PreUploadTestCase):
     template = 'overlay-variant-lumpy-foo/virtual/foo/foo-%s.ebuild'
     self.file_mock.return_value = [template % '2.5']
     ret = pre_upload._check_ebuild_virtual_pv(self.BOARD_OVERLAY, 'H')
-    self.assertEqual(ret, None)
+    self.assertIsNone(ret)
 
     self.file_mock.return_value = [template % '3']
     ret = pre_upload._check_ebuild_virtual_pv(self.BOARD_OVERLAY, 'H')
@@ -760,7 +756,7 @@ class CheckEbuildVirtualPv(PreUploadTestCase):
     template = 'virtual/foo/foo-%s.ebuild'
     self.file_mock.return_value = [template % '3']
     ret = pre_upload._check_ebuild_virtual_pv(self.PRIVATE_OVERLAY, 'H')
-    self.assertEqual(ret, None)
+    self.assertIsNone(ret)
 
     self.file_mock.return_value = [template % '3.5']
     ret = pre_upload._check_ebuild_virtual_pv(self.PRIVATE_OVERLAY, 'H')
@@ -771,18 +767,18 @@ class CheckEbuildVirtualPv(PreUploadTestCase):
     template = 'virtual/foo/foo-%s.ebuild'
     self.file_mock.return_value = [template % '3.5']
     ret = pre_upload._check_ebuild_virtual_pv(self.PRIVATE_VARIANT_OVERLAY, 'H')
-    self.assertEqual(ret, None)
+    self.assertIsNone(ret)
 
   def testSpecialVirtuals(self):
     """Some cases require deeper versioning and can be >= 4."""
     template = 'virtual/foo/foo-%s.ebuild'
     self.file_mock.return_value = [template % '4']
     ret = pre_upload._check_ebuild_virtual_pv(self.PRIVATE_VARIANT_OVERLAY, 'H')
-    self.assertEqual(ret, None)
+    self.assertIsNone(ret)
 
     self.file_mock.return_value = [template % '4.5']
     ret = pre_upload._check_ebuild_virtual_pv(self.PRIVATE_VARIANT_OVERLAY, 'H')
-    self.assertEqual(ret, None)
+    self.assertIsNone(ret)
 
 class CheckCrosLicenseCopyrightHeader(PreUploadTestCase):
   """Tests for _check_cros_license."""
@@ -934,7 +930,7 @@ class CheckAOSPLicenseCopyrightHeader(PreUploadTestCase):
     self.file_mock.return_value = ['file']
     for header in HEADERS:
       self.content_mock.return_value = header
-      self.assertEqual(None, pre_upload._check_aosp_license('proj', 'sha1'))
+      self.assertIsNone(pre_upload._check_aosp_license('proj', 'sha1'))
 
   def testRejectNoLinesAround(self):
     """Reject headers missing the empty lines before/after the license."""
@@ -957,19 +953,20 @@ class CheckAOSPLicenseCopyrightHeader(PreUploadTestCase):
     self.file_mock.return_value = ['file']
     for header in HEADERS:
       self.content_mock.return_value = header
-      self.assertNotEqual(None, pre_upload._check_aosp_license('proj', 'sha1'))
+      self.assertIsNotNone(pre_upload._check_aosp_license('proj', 'sha1'))
 
   def testIgnoreExcludedPaths(self):
     """Ignores excluded paths for license checks."""
     self.file_mock.return_value = ['foo/OWNERS']
     self.content_mock.return_value = u'owner@chromium.org'
-    self.assertEqual(None, pre_upload._check_aosp_license('proj', 'sha1'))
+    self.assertIsNone(pre_upload._check_aosp_license('proj', 'sha1'))
 
   def testIgnoreTopLevelExcludedPaths(self):
     """Ignores excluded paths for license checks."""
     self.file_mock.return_value = ['OWNERS']
     self.content_mock.return_value = u'owner@chromium.org'
-    self.assertEqual(None, pre_upload._check_aosp_license('proj', 'sha1'))
+    self.assertIsNone(pre_upload._check_aosp_license('proj', 'sha1'))
+
 
 class CheckLayoutConfTestCase(PreUploadTestCase):
   """Tests for _check_layout_conf."""
@@ -982,7 +979,7 @@ class CheckLayoutConfTestCase(PreUploadTestCase):
     """Assert _check_layout_conf accepts |files|."""
     self.file_mock.return_value = files
     ret = pre_upload._check_layout_conf(project, commit)
-    self.assertEqual(ret, None, msg='rejected with:\n%s' % ret)
+    self.assertIsNone(ret, msg='rejected with:\n%s' % ret)
 
   def assertRejected(self, files, project='project', commit='fake sha1'):
     """Assert _check_layout_conf rejects |files|."""
@@ -1076,7 +1073,7 @@ class CommitMessageTestCase(PreUploadTestCase):
     """Assert _check_change_has_bug_field accepts |msg|."""
     self.msg_mock.return_value = msg
     ret = self.CheckMessage(project, commit)
-    self.assertEqual(ret, None)
+    self.assertIsNone(ret)
 
   def assertMessageRejected(self, msg, project=ProjectNamed('project'),
                             commit='1234'):
@@ -1407,7 +1404,7 @@ class HelpersTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
     files = pre_upload._get_affected_files('HEAD', include_deletes=False,
                                            relative=False)
     exp_files = [os.path.join(path, 'buildbot/constants.py')]
-    self.assertEquals(files, exp_files)
+    self.assertEqual(files, exp_files)
 
   def testGetAffectedFilesDeletesNoRelative(self):
     """Verify _get_affected_files() works w/delete & not relative."""
@@ -1416,62 +1413,62 @@ class HelpersTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
                                            relative=False)
     exp_files = [os.path.join(path, 'buildbot/constants.py'),
                  os.path.join(path, 'scripts/sync_sonic.py')]
-    self.assertEquals(files, exp_files)
+    self.assertEqual(files, exp_files)
 
   def testGetAffectedFilesNoDeletesRelative(self):
     """Verify _get_affected_files() works w/no delete & relative."""
     files = pre_upload._get_affected_files('HEAD', include_deletes=False,
                                            relative=True)
     exp_files = ['buildbot/constants.py']
-    self.assertEquals(files, exp_files)
+    self.assertEqual(files, exp_files)
 
   def testGetAffectedFilesDeletesRelative(self):
     """Verify _get_affected_files() works w/delete & relative."""
     files = pre_upload._get_affected_files('HEAD', include_deletes=True,
                                            relative=True)
     exp_files = ['buildbot/constants.py', 'scripts/sync_sonic.py']
-    self.assertEquals(files, exp_files)
+    self.assertEqual(files, exp_files)
 
   def testGetAffectedFilesDetails(self):
     """Verify _get_affected_files() works w/full_details."""
     files = pre_upload._get_affected_files('HEAD', full_details=True,
                                            relative=True)
-    self.assertEquals(files[0].src_file, 'buildbot/constants.py')
+    self.assertEqual(files[0].src_file, 'buildbot/constants.py')
 
   def testGetAffectedFilesPresubmitIgnoreDirectory(self):
     """Verify .presubmitignore can be used to exclude a directory."""
     self._WritePresubmitIgnoreFile('.', 'buildbot/')
-    self.assertEquals(pre_upload._get_affected_files('HEAD', relative=True), [])
+    self.assertEqual(pre_upload._get_affected_files('HEAD', relative=True), [])
 
   def testGetAffectedFilesPresubmitIgnoreDirectoryWildcard(self):
     """Verify .presubmitignore can be used with a directory wildcard."""
     self._WritePresubmitIgnoreFile('.', '*/constants.py')
-    self.assertEquals(pre_upload._get_affected_files('HEAD', relative=True), [])
+    self.assertEqual(pre_upload._get_affected_files('HEAD', relative=True), [])
 
   def testGetAffectedFilesPresubmitIgnoreWithinDirectory(self):
     """Verify .presubmitignore can be placed in a subdirectory."""
     self._WritePresubmitIgnoreFile('buildbot', '*.py')
-    self.assertEquals(pre_upload._get_affected_files('HEAD', relative=True), [])
+    self.assertEqual(pre_upload._get_affected_files('HEAD', relative=True), [])
 
   def testGetAffectedFilesPresubmitIgnoreDoesntMatch(self):
     """Verify .presubmitignore has no effect when it doesn't match a file."""
     self._WritePresubmitIgnoreFile('buildbot', '*.txt')
-    self.assertEquals(pre_upload._get_affected_files('HEAD', relative=True),
-                      ['buildbot/constants.py'])
+    self.assertEqual(pre_upload._get_affected_files('HEAD', relative=True),
+                     ['buildbot/constants.py'])
 
   def testGetAffectedFilesPresubmitIgnoreAddedFile(self):
     """Verify .presubmitignore matches added files."""
     self._WritePresubmitIgnoreFile('.', 'buildbot/\nscripts/')
-    self.assertEquals(pre_upload._get_affected_files('HEAD', relative=True,
-                                                     include_symlinks=True),
-                      [])
+    self.assertEqual(pre_upload._get_affected_files('HEAD', relative=True,
+                                                    include_symlinks=True),
+                     [])
 
   def testGetAffectedFilesPresubmitIgnoreSkipIgnoreFile(self):
     """Verify .presubmitignore files are automatically skipped."""
     self.PatchObject(git, 'RawDiff', return_value=[
         DiffEntry(src_file='.presubmitignore', status='M')
     ])
-    self.assertEquals(pre_upload._get_affected_files('HEAD', relative=True), [])
+    self.assertEqual(pre_upload._get_affected_files('HEAD', relative=True), [])
 
 
 class ExecFilesTest(PreUploadTestCase):
@@ -1485,21 +1482,21 @@ class ExecFilesTest(PreUploadTestCase):
     self.diff_mock.return_value = [
         DiffEntry(src_file='make.conf', dst_mode='100644', status='A'),
     ]
-    self.assertEqual(pre_upload._check_exec_files('proj', 'commit'), None)
+    self.assertIsNone(pre_upload._check_exec_files('proj', 'commit'))
 
   def testExec(self):
     """Flag files that are executable."""
     self.diff_mock.return_value = [
         DiffEntry(src_file='make.conf', dst_mode='100755', status='A'),
     ]
-    self.assertNotEqual(pre_upload._check_exec_files('proj', 'commit'), None)
+    self.assertIsNotNone(pre_upload._check_exec_files('proj', 'commit'))
 
   def testDeletedExec(self):
     """Ignore bad files that are being deleted."""
     self.diff_mock.return_value = [
         DiffEntry(src_file='make.conf', dst_mode='100755', status='D'),
     ]
-    self.assertEqual(pre_upload._check_exec_files('proj', 'commit'), None)
+    self.assertIsNone(pre_upload._check_exec_files('proj', 'commit'))
 
   def testModifiedExec(self):
     """Flag bad files that weren't exec, but now are."""
@@ -1507,14 +1504,14 @@ class ExecFilesTest(PreUploadTestCase):
         DiffEntry(src_file='make.conf', src_mode='100644', dst_mode='100755',
                   status='M'),
     ]
-    self.assertNotEqual(pre_upload._check_exec_files('proj', 'commit'), None)
+    self.assertIsNotNone(pre_upload._check_exec_files('proj', 'commit'))
 
   def testNormalExec(self):
     """Don't flag normal files (e.g. scripts) that are executable."""
     self.diff_mock.return_value = [
         DiffEntry(src_file='foo.sh', dst_mode='100755', status='A'),
     ]
-    self.assertEqual(pre_upload._check_exec_files('proj', 'commit'), None)
+    self.assertIsNone(pre_upload._check_exec_files('proj', 'commit'))
 
 
 class CheckForUprev(PreUploadTestCase, cros_test_lib.TempDirTestCase):
@@ -1540,7 +1537,7 @@ class CheckForUprev(PreUploadTestCase, cros_test_lib.TempDirTestCase):
     self.file_mock.return_value = self._Files(files)
     ret = pre_upload._check_for_uprev(ProjectNamed(project), commit,
                                       project_top=self.tempdir)
-    self.assertEqual(ret, None)
+    self.assertIsNone(ret)
 
   def assertRejected(self, files, project='project', commit='fake sha1'):
     """Assert _check_for_uprev rejects |files|."""
@@ -1678,10 +1675,10 @@ class CheckRustfmtTest(PreUploadTestCase):
     self.PatchObject(pre_upload, '_run_command', return_value=content + '\n')
     failure = pre_upload._check_rustfmt(ProjectNamed('PROJECT'), 'COMMIT')
     self.assertIsNotNone(failure)
-    self.assertEquals('Files not formatted with rustfmt: '
-                      "(run 'cargo fmt' to fix)",
-                      failure.msg)
-    self.assertEquals(['a.rs'], failure.items)
+    self.assertEqual('Files not formatted with rustfmt: '
+                     "(run 'cargo fmt' to fix)",
+                     failure.msg)
+    self.assertEqual(['a.rs'], failure.items)
 
   def testGoodRustFile(self):
     self.PatchObject(pre_upload, '_get_affected_files', return_value=['a.rs'])
