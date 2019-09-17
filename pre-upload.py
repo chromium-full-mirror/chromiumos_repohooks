@@ -722,7 +722,7 @@ def _check_change_no_include_oem(project, commit):
     # Construct regex
     name_re = r'\b(%s)\b' % '|'.join([re.escape(x) for x in name_list])
     matches = [x[0] for x in re.findall(name_re, commit_message, re.IGNORECASE)]
-    if len(matches):
+    if matches:
       # If there's a match, throw an error.
       error_msg = ('Changelist description contains the name of an'
                    ' %s: "%s".' % (name_type, '","'.join(matches)))
@@ -1916,7 +1916,7 @@ def _run_project_hooks(project_name, proj_dir=None,
   if proj_dir is None:
     proj_dirs = _run_command(
         ['repo', 'forall', project_name, '-c', 'pwd']).split()
-    if len(proj_dirs) == 0:
+    if not proj_dirs:
       print('%s cannot be found.' % project_name, file=sys.stderr)
       print('Please specify a valid project.', file=sys.stderr)
       return True
