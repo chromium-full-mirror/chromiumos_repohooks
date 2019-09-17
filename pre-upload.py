@@ -991,7 +991,7 @@ def _check_ebuild_licenses(_project, commit):
       license_types = licenses_lib.GetLicenseTypesFromEbuild(ebuild_content,
                                                              overlay_path)
     except ValueError as e:
-      return HookFailure(e.message, [ebuild])
+      return HookFailure(str(e), [ebuild])
 
     # Also ignore licenses ending with '?'
     for license_type in [x for x in license_types
@@ -1000,7 +1000,7 @@ def _check_ebuild_licenses(_project, commit):
         licenses_lib.Licensing.FindLicenseType(license_type,
                                                overlay_path=overlay_path)
       except AssertionError as e:
-        return HookFailure(e.message, [ebuild])
+        return HookFailure(str(e), [ebuild])
 
 
 def _check_ebuild_virtual_pv(project, commit):
