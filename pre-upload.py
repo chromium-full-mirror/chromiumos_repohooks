@@ -585,7 +585,7 @@ def _check_gofmt(_project, commit):
 
   for gofile in files:
     contents = _get_file_content(gofile, commit)
-    output = _run_command(cmd=['gofmt', '-l'], input=contents,
+    output = _run_command(cmd=['gofmt', '-l'], input=contents.encode('utf-8'),
                           combine_stdout_stderr=True)
     if output:
       errors.append(gofile)
@@ -602,7 +602,7 @@ def _check_rustfmt(_project, commit):
 
   for rustfile in files:
     contents = _get_file_content(rustfile, commit)
-    output = _run_command(cmd=['rustfmt'], input=contents,
+    output = _run_command(cmd=['rustfmt'], input=contents.encode('utf-8'),
                           combine_stdout_stderr=True)
     if output != contents:
       errors.append(rustfile)
@@ -1450,12 +1450,9 @@ def _run_checkpatch(_project, commit, options=()):
   # we always do, so disable the check globally.
   options.append('--ignore=GERRIT_CHANGE_ID')
   cmd = [os.path.join(hooks_dir, 'checkpatch.pl')] + options + ['-']
-  cmd_result = cros_build_lib.RunCommand(cmd=cmd,
-                                         print_cmd=False,
-                                         input=_get_patch(commit),
-                                         stdout_to_pipe=True,
-                                         combine_stdout_stderr=True,
-                                         error_code_ok=True)
+  cmd_result = cros_build_lib.RunCommand(
+      cmd=cmd, print_cmd=False, input=_get_patch(commit).encode('utf-8'),
+      stdout_to_pipe=True, combine_stdout_stderr=True, error_code_ok=True)
   if cmd_result.returncode:
     return HookFailure('checkpatch.pl errors/warnings\n\n' + cmd_result.output)
   return None
