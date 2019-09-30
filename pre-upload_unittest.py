@@ -51,7 +51,7 @@ class TryUTF8DecodeTest(PreUploadTestCase):
   """Verify we sanely handle unicode content."""
 
   def setUp(self):
-    self.rc_mock = self.PatchObject(cros_build_lib, 'RunCommand')
+    self.rc_mock = self.PatchObject(cros_build_lib, 'run')
 
   def _run(self, content):
     """Helper for round tripping through _run_command."""

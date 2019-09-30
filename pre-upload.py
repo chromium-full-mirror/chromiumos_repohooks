@@ -138,19 +138,21 @@ Project = collections.namedtuple('Project', ['name', 'dir', 'remote'])
 def _run_command(cmd, **kwargs):
   """Executes the passed in command and returns raw stdout output.
 
-  This is a convenience func to set some RunCommand defaults differently.
+  This is a convenience func to set some run defaults differently.
 
   Args:
     cmd: The command to run; should be a list of strings.
-    **kwargs: Same as cros_build_lib.RunCommand.
+    **kwargs: Same as cros_build_lib.run.
 
   Returns:
     The stdout from the process (discards stderr and returncode).
   """
   kwargs.setdefault('print_cmd', False)
-  kwargs.setdefault('redirect_stdout', True)
-  kwargs.setdefault('error_code_ok', True)
+  kwargs.setdefault('stdout', True)
+  kwargs.setdefault('check', False)
   result = cros_build_lib.RunCommand(cmd, **kwargs)
+  # NB: We decode this directly rather than through kwargs as our tests rely
+  # on this post-processing behavior currently.
   return result.output.decode('utf-8', 'replace')
 
 
@@ -1422,16 +1424,16 @@ def _check_clang_format(_project, commit, options=()):
   else:
     options.extend(['--commit', commit])
   cmd = [os.path.join(hooks_dir, 'clang-format.py')] + options
-  cmd_result = cros_build_lib.RunCommand(cmd=cmd,
-                                         print_cmd=False,
-                                         redirect_stdout=True,
-                                         encoding='utf-8',
-                                         errors='replace',
-                                         combine_stdout_stderr=True,
-                                         error_code_ok=True)
+  cmd_result = cros_build_lib.run(cmd,
+                                  print_cmd=False,
+                                  stdout=True,
+                                  encoding='utf-8',
+                                  errors='replace',
+                                  combine_stdout_stderr=True,
+                                  check=False)
   if cmd_result.returncode:
     return HookFailure('clang-format.py errors/warnings\n\n' +
-                       cmd_result.output)
+                       cmd_result.stdout)
   return None
 
 
@@ -1452,12 +1454,12 @@ def _run_checkpatch(_project, commit, options=()):
   # we always do, so disable the check globally.
   options.append('--ignore=GERRIT_CHANGE_ID')
   cmd = [os.path.join(hooks_dir, 'checkpatch.pl')] + options + ['-']
-  cmd_result = cros_build_lib.RunCommand(
-      cmd=cmd, print_cmd=False, input=_get_patch(commit).encode('utf-8'),
-      redirect_stdout=True, combine_stdout_stderr=True, error_code_ok=True,
-      encoding='utf-8', errors='replace')
+  cmd_result = cros_build_lib.run(
+      cmd, print_cmd=False, input=_get_patch(commit).encode('utf-8'),
+      stdout=True, combine_stdout_stderr=True, check=False, encoding='utf-8',
+      errors='replace')
   if cmd_result.returncode:
-    return HookFailure('checkpatch.pl errors/warnings\n\n' + cmd_result.output)
+    return HookFailure('checkpatch.pl errors/warnings\n\n' + cmd_result.stdout)
   return None
 
 
@@ -1469,7 +1471,7 @@ def _run_kerneldoc(_project, commit, options=()):
   if files:
     hooks_dir = _get_hooks_dir()
     cmd = [os.path.join(hooks_dir, 'kernel-doc'), '-none'] + files
-    output = _run_command(cmd=cmd, combine_stdout_stderr=True)
+    output = _run_command(cmd, combine_stdout_stderr=True)
     if output:
       return HookFailure('kernel-doc errors/warnings:',
                          items=output.splitlines())
@@ -1618,18 +1620,18 @@ def _run_project_hook_script(script, project, commit):
   files = _get_affected_files(commit)
   env['PRESUBMIT_FILES'] = '\n'.join(files)
 
-  cmd_result = cros_build_lib.RunCommand(cmd=script,
-                                         env=env,
-                                         shell=True,
-                                         print_cmd=False,
-                                         input=os.devnull,
-                                         redirect_stdout=True,
-                                         combine_stdout_stderr=True,
-                                         encoding='utf-8',
-                                         errors='replace',
-                                         error_code_ok=True)
+  cmd_result = cros_build_lib.run(cmd=script,
+                                  env=env,
+                                  shell=True,
+                                  print_cmd=False,
+                                  input=os.devnull,
+                                  stdout=True,
+                                  encoding='utf-8',
+                                  errors='replace',
+                                  combine_stdout_stderr=True,
+                                  check=False)
   if cmd_result.returncode:
-    stdout = cmd_result.output
+    stdout = cmd_result.stdout
     if stdout:
       stdout = re.sub('(?m)^', '  ', stdout)
     return HookFailure('Hook script "%s" failed with code %d%s' %
@@ -2075,7 +2077,7 @@ def _identify_project(path):
     a blank string upon failure.
   """
   return _run_command(['repo', 'forall', '.', '-c', 'echo ${REPO_PROJECT}'],
-                      redirect_stderr=True, cwd=path).strip()
+                      stderr=True, cwd=path).strip()
 
 
 def direct_main(argv):
@@ -2151,7 +2153,7 @@ def direct_main(argv):
   # project from CWD
   if opts.dir is None:
     git_dir = _run_command(['git', 'rev-parse', '--git-dir'],
-                           redirect_stderr=True).strip()
+                           stderr=True).strip()
     if not git_dir:
       raise BadInvocation('The current directory is not part of a git project.')
     opts.dir = os.path.dirname(os.path.abspath(git_dir))
