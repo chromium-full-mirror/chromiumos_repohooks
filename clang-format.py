@@ -114,7 +114,7 @@ def main(argv):
   try:
     result = cros_build_lib.RunCommand(cmd=cmd,
                                        print_cmd=False,
-                                       stdout_to_pipe=True)
+                                       redirect_stdout=True)
   except cros_build_lib.RunCommandError as e:
     print('clang-format failed:\n' + str(e), file=sys.stderr)
     print('\nPlease report this to the clang team.', file=sys.stderr)

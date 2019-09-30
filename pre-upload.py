@@ -148,7 +148,7 @@ def _run_command(cmd, **kwargs):
     The stdout from the process (discards stderr and returncode).
   """
   kwargs.setdefault('print_cmd', False)
-  kwargs.setdefault('stdout_to_pipe', True)
+  kwargs.setdefault('redirect_stdout', True)
   kwargs.setdefault('error_code_ok', True)
   result = cros_build_lib.RunCommand(cmd, **kwargs)
   return result.output.decode('utf-8', 'replace')
@@ -1424,7 +1424,7 @@ def _check_clang_format(_project, commit, options=()):
   cmd = [os.path.join(hooks_dir, 'clang-format.py')] + options
   cmd_result = cros_build_lib.RunCommand(cmd=cmd,
                                          print_cmd=False,
-                                         stdout_to_pipe=True,
+                                         redirect_stdout=True,
                                          combine_stdout_stderr=True,
                                          error_code_ok=True)
   if cmd_result.returncode:
@@ -1452,7 +1452,7 @@ def _run_checkpatch(_project, commit, options=()):
   cmd = [os.path.join(hooks_dir, 'checkpatch.pl')] + options + ['-']
   cmd_result = cros_build_lib.RunCommand(
       cmd=cmd, print_cmd=False, input=_get_patch(commit).encode('utf-8'),
-      stdout_to_pipe=True, combine_stdout_stderr=True, error_code_ok=True)
+      redirect_stdout=True, combine_stdout_stderr=True, error_code_ok=True)
   if cmd_result.returncode:
     return HookFailure('checkpatch.pl errors/warnings\n\n' + cmd_result.output)
   return None
@@ -1620,7 +1620,7 @@ def _run_project_hook_script(script, project, commit):
                                          shell=True,
                                          print_cmd=False,
                                          input=os.devnull,
-                                         stdout_to_pipe=True,
+                                         redirect_stdout=True,
                                          combine_stdout_stderr=True,
                                          error_code_ok=True)
   if cmd_result.returncode:
