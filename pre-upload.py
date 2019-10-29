@@ -1351,7 +1351,7 @@ def _check_layout_conf(_project, commit):
     # Require people to set specific values all the time.
     settings = (
         # TODO: Enable this for everyone.  http://crbug.com/408038
-        #('fast caching', 'cache-format = md5-dict'),
+        # ('fast caching', 'cache-format = md5-dict'),
         ('fast manifests', 'thin-manifests = true'),
         ('extra features', 'profile-formats = portage-2 profile-default-eapi'),
         ('newer eapi', 'profile_eapi_when_unspecified = 5-progress'),
@@ -1909,11 +1909,11 @@ def _get_project_hooks(project, presubmit):
     presubmit: A Boolean, True if the check is run as a git pre-submit script.
   """
   config = configparser.RawConfigParser()
-  try:
-    config.read(_CONFIG_FILE)
-  except configparser.Error:
+  if not os.path.exists(_CONFIG_FILE):
     # Just use an empty config file
     config = configparser.RawConfigParser()
+  else:
+    config.read(_CONFIG_FILE)
 
   if presubmit:
     hooks = _COMMON_HOOKS
