@@ -1569,6 +1569,18 @@ def _check_change_has_branch_field(_project, commit):
   return None
 
 
+def _check_change_has_no_branch_field(_project, commit):
+  """Verify 'BRANCH=' field does not exist in the commit message."""
+  if commit == PRE_SUBMIT:
+    return None
+  BRANCH_RE = r'\nBRANCH=\S+'
+
+  if re.search(BRANCH_RE, _get_commit_desc(commit)):
+    msg = 'This checkout does not use BRANCH= fields.  Delete them.'
+    return HookFailure(msg)
+  return None
+
+
 def _check_change_has_signoff_field(_project, commit):
   """Check for a non-empty 'Signed-off-by:' field in the commit message."""
   if commit == PRE_SUBMIT:
@@ -1891,6 +1903,10 @@ def _get_override_hooks(config):
 
   enabled_hooks = set(hooks[x] for x in enable_flags)
   disabled_hooks = set(hooks[x] for x in disable_flags)
+
+  if _check_change_has_branch_field not in enabled_hooks:
+    enabled_hooks.add(_check_change_has_no_branch_field)
+
   return enabled_hooks, disabled_hooks
 
 
