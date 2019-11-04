@@ -1594,6 +1594,18 @@ def _check_change_has_signoff_field(_project, commit):
   return None
 
 
+def _check_change_has_no_signoff_field(_project, commit):
+  """Verify 'Signed-off-by:' field does not exist in the commit message."""
+  if commit == PRE_SUBMIT:
+    return None
+  SIGNOFF_RE = r'\nSigned-off-by: \S+'
+
+  if re.search(SIGNOFF_RE, _get_commit_desc(commit)):
+    msg = 'This checkout does not use Signed-off-by: tags.  Delete them.'
+    return HookFailure(msg)
+  return None
+
+
 def _check_cq_ini_well_formed(_project, commit):
   """Check that any modified COMMIT-QUEUE.ini files are well formed."""
   pattern = '.*' + constants.CQ_CONFIG_FILENAME
@@ -1904,6 +1916,8 @@ def _get_override_hooks(config):
   enabled_hooks = set(hooks[x] for x in enable_flags)
   disabled_hooks = set(hooks[x] for x in disable_flags)
 
+  if _check_change_has_signoff_field not in enabled_hooks:
+    enabled_hooks.add(_check_change_has_no_signoff_field)
   if _check_change_has_branch_field not in enabled_hooks:
     enabled_hooks.add(_check_change_has_no_branch_field)
 
