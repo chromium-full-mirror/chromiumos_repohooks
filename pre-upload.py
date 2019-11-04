@@ -433,7 +433,7 @@ def _get_commit_desc(commit):
   # {<commit>: <content>}
   cache = CACHE.get_subcache('get_commit_desc')
   if commit not in cache:
-    cache[commit] = _run_command(['git', 'log', '--format=%s%n%n%b',
+    cache[commit] = _run_command(['git', 'log', '--format=%B',
                                   commit + '^!'])
   return cache[commit]
 
@@ -1177,22 +1177,28 @@ def _check_commit_message_style(_project, commit):
   We do not check for BUG=/TEST=/etc... lines here as that is handled by other
   commit hooks.
   """
+  DOC = ('https://chromium.googlesource.com/chromiumos/docs/+/HEAD/'
+         'contributing.md#Commit-messages')
+  SEE_ALSO = 'Please review the documentation:\n%s' % (DOC,)
+
   desc = _get_commit_desc(commit)
 
   # The first line should be by itself.
   lines = desc.splitlines()
   if len(lines) > 1 and lines[1]:
-    return HookFailure('The second line of the commit message must be blank.')
+    return HookFailure('The second line of the commit message must be blank.'
+                       '\n%s' % (SEE_ALSO,))
 
   # The first line should be one sentence.
   if '. ' in lines[0]:
-    return HookFailure('The first line cannot be more than one sentence.')
+    return HookFailure('The first line cannot be more than one sentence.\n%s' %
+                       (SEE_ALSO,))
 
   # The first line cannot be too long.
   MAX_FIRST_LINE_LEN = 100
   if len(lines[0]) > MAX_FIRST_LINE_LEN:
-    return HookFailure('The first line must be less than %i chars.' %
-                       MAX_FIRST_LINE_LEN)
+    return HookFailure('The first line must be less than %i chars.\n%s' %
+                       (MAX_FIRST_LINE_LEN, SEE_ALSO))
 
   return None
 
