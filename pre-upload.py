@@ -150,7 +150,7 @@ def _run_command(cmd, **kwargs):
   kwargs.setdefault('print_cmd', False)
   kwargs.setdefault('stdout', True)
   kwargs.setdefault('check', False)
-  result = cros_build_lib.RunCommand(cmd, **kwargs)
+  result = cros_build_lib.run(cmd, **kwargs)
   # NB: We decode this directly rather than through kwargs as our tests rely
   # on this post-processing behavior currently.
   return result.output.decode('utf-8', 'replace')
