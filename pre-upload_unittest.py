@@ -1311,7 +1311,6 @@ class CheckCommitMessageNoOEM(CommitMessageTestCase):
         'Tested-by: partner@hp.corp-partner.google.com\n'
         'Signed-off-by: partner@dell.corp-partner.google.com\n'
         'Commit-Queue: partner@lenovo.corp-partner.google.com\n'
-        'Legacy-Commit-Queue: partner@acer.corp-partner.google.com\n'
         'CC: partner@acer.corp-partner.google.com\n'
         'Acked-by: partner@hewlett-packard.corp-partner.google.com\n')
     self.assertMessageRejected(

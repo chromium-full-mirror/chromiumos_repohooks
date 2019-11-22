@@ -704,7 +704,6 @@ def _check_change_no_include_oem(project, commit):
       'Commit-Ready',
       'Tested-by',
       'Commit-Queue',
-      'Legacy-Commit-Queue',
       'Acked-by',
       'Modified-by',
       'CC',
