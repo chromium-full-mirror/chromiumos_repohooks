@@ -1166,6 +1166,7 @@ class CheckCommitMessageCqDepend(CommitMessageTestCase):
     self.assertMessageRejected('\nCq-Depend=chromium=1234\n')
     self.assertMessageRejected('\nCq-Depend: None\n')
     self.assertMessageRejected('\nCq-Depend: chromium:1234\n\nChange-Id: I123')
+    self.assertMessageRejected('\nCQ-DEPEND=1234\n')
 
 
 class CheckCommitMessageContribution(CommitMessageTestCase):

@@ -634,13 +634,20 @@ def _check_change_has_valid_cq_depend(_project, commit):
   except ValueError as ex:
     return HookFailure(msg, [example, str(ex)])
   # Check that Cq-Depend is in the same paragraph as Change-Id.
-  msg = 'Cq-Depend (or CQ-DEPEND) is not in the same paragraph as Change-Id.'
+  msg = 'Cq-Depend is not in the same paragraph as Change-Id.'
   paragraphs = desc.split('\n\n')
   for paragraph in paragraphs:
-    if (re.search(r'^Cq-Depend:', paragraph, re.M) or
-        re.search(r'^CQ-DEPEND=', paragraph, re.M)) \
-        and not re.search('^Change-Id:', paragraph, re.M):
+    if (re.search(r'^Cq-Depend:', paragraph, re.M) and not
+        re.search('^Change-Id:', paragraph, re.M)):
       return HookFailure(msg)
+
+  # We no longer support CQ-DEPEND= lines.
+  if re.search(r'^CQ-DEPEND[=:]', desc, re.M):
+    return HookFailure(
+        'CQ-DEPEND= is no longer supported.  Please see:\n'
+        'https://chromium.googlesource.com/chromiumos/docs/+/HEAD/'
+        'contributing.md#CQ-DEPEND')
+
   return None
 
 
