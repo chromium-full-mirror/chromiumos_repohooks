@@ -13,17 +13,15 @@ from __future__ import print_function
 
 import argparse
 import collections
+import configparser
 import datetime
 import fnmatch
 import functools
-import io
 import json
 import os
 import re
 import sys
 import stat
-
-from six.moves import configparser
 
 from errors import (VerifyException, HookFailure, PrintErrorForProject,
                     PrintErrorsForCommit)
@@ -111,7 +109,6 @@ _IGNORE_FILE = '.presubmitignore'
 
 class BadInvocation(Exception):
   """An Exception indicating a bad invocation of the program."""
-  pass
 
 
 # General Helpers
@@ -1493,7 +1490,7 @@ def _run_kerneldoc(_project, commit, options=()):
 def _kernel_configcheck(_project, commit):
   """Makes sure kernel config changes are not mixed with code changes"""
   files = _get_affected_files(commit)
-  if not len(_filter_files(files, [r'chromeos/config'])) in [0, len(files)]:
+  if len(_filter_files(files, [r'chromeos/config'])) not in [0, len(files)]:
     return HookFailure('Changes to chromeos/config/ and regular files must '
                        'be in separate commits:\n%s' % '\n'.join(files))
   return None
@@ -1628,7 +1625,7 @@ def _check_cq_ini_well_formed(_project, commit):
       # commit diff, rather than whatever's on disk.
       # TODO(vapier): Once we migrate this to Python 3 only, cut it over.
       contents = _get_file_content(f, commit)
-      parser.readfp(io.StringIO(contents))
+      parser.read_file(contents.splitlines())
     except configparser.Error as e:
       msg = ('Unable to parse COMMIT-QUEUE.ini file at %s due to %s.' %
              (f, e))
