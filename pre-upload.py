@@ -43,7 +43,6 @@ elif __name__ == '__main__':
 # The sys.path monkey patching confuses the linter.
 # pylint: disable=wrong-import-position
 from chromite.lib import commandline
-from chromite.lib import constants
 from chromite.lib import cros_build_lib
 from chromite.lib import git
 from chromite.lib import osutils
@@ -796,7 +795,7 @@ def _check_for_uprev(project, commit, project_top=None):
       full_details=True)
 
   # Don't yell about changes to whitelisted files...
-  whitelist = ('ChangeLog', 'Manifest', 'metadata.xml', 'COMMIT-QUEUE.ini')
+  whitelist = {'ChangeLog', 'Manifest', 'metadata.xml'}
   affected_path_objs = [x for x in affected_path_objs
                         if os.path.basename(FinalName(x)) not in whitelist]
   if not affected_path_objs:
@@ -1609,31 +1608,6 @@ def _check_change_has_no_signoff_field(_project, commit):
   return None
 
 
-def _check_cq_ini_well_formed(_project, commit):
-  """Check that any modified COMMIT-QUEUE.ini files are well formed."""
-  pattern = '.*' + constants.CQ_CONFIG_FILENAME
-  files = _filter_files(_get_affected_files(commit, relative=True), (pattern,))
-
-  # TODO(akeshet): Check not only that the file is parseable, but that all the
-  # pre-cq configs it requests are existing ones.
-  for f in files:
-    try:
-      parser = configparser.SafeConfigParser()
-      # Prior to python3, ConfigParser has no read_string method, so we must
-      # pass it either a file path or file like object. And we must use
-      # _get_file_content to fetch file contents to ensure we are examining the
-      # commit diff, rather than whatever's on disk.
-      # TODO(vapier): Once we migrate this to Python 3 only, cut it over.
-      contents = _get_file_content(f, commit)
-      parser.read_file(contents.splitlines())
-    except configparser.Error as e:
-      msg = ('Unable to parse COMMIT-QUEUE.ini file at %s due to %s.' %
-             (f, e))
-      return HookFailure(msg)
-
-  return None
-
-
 def _run_project_hook_script(script, project, commit):
   """Runs a project hook script.
 
@@ -1822,7 +1796,6 @@ _PATCH_DESCRIPTION_HOOKS = [
 
 # A list of hooks that are not project-specific
 _COMMON_HOOKS = [
-    _check_cq_ini_well_formed,
     _check_cros_license,
     _check_ebuild_eapi,
     _check_ebuild_keywords,

@@ -445,43 +445,6 @@ DIST lines
     self._testReject('EBUILD foo\n')
 
 
-class CheckConfigParsing(PreUploadTestCase):
-  """Tests _check_cq_ini_well_formed."""
-
-  def setUp(self):
-    self.file_mock = self.PatchObject(pre_upload, '_get_affected_files')
-    self.content_mock = self.PatchObject(pre_upload, '_get_file_content')
-
-  def testIgnoreIrrelevantFile(self):
-    self.file_mock.return_value = ['unrelated_file.ini']
-    self.content_mock.return_value = u'^$malformed gibberish^^&'
-    self.assertIsNone(pre_upload._check_cq_ini_well_formed('PROJECT', 'COMMIT'))
-
-  def testWellformedFile(self):
-    self.file_mock.return_value = ['COMMIT-QUEUE.ini']
-    self.content_mock.return_value = u"""#
-# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
-# Use of this source code is governed by a BSD-style license that can be
-# found in the LICENSE file.
-
-# Per-project Commit Queue settings.
-# Documentation: http://goo.gl/4rZhAx
-
-[GENERAL]
-
-# Stages to ignore in the commit queue. If these steps break, your CL will be
-# submitted anyway. Use with caution.
-# The files in here currently only get tested via internal canaries.
-ignored-stages: UNitTest HWTest VMTest UploadPrebuilts Archive"""
-    self.assertIsNone(pre_upload._check_cq_ini_well_formed('PROJECT', 'COMMIT'))
-
-  def testMalformedFile(self):
-    self.file_mock.return_value = ['COMMIT-QUEUE.ini']
-    self.content_mock.return_value = u'^$malformed gibberish^^&'
-    m = pre_upload._check_cq_ini_well_formed('PROJECT', 'COMMIT')
-    self.assertTrue(isinstance(m, pre_upload.HookFailure))
-
-
 class CheckPortageMakeUseVar(PreUploadTestCase):
   """Tests for _check_portage_make_use_var."""
 
