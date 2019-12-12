@@ -51,6 +51,12 @@ from chromite.licensing import licenses_lib
 
 PRE_SUBMIT = 'pre-submit'
 
+
+# Link to commit message documentation for users.
+DOC_COMMIT_MSG_URL = ('https://chromium.googlesource.com/chromiumos/docs/+/HEAD'
+                      '/contributing.md#commit-messages')
+
+
 COMMON_INCLUDED_PATHS = [
     # C++ and friends
     r'.*\.c$', r'.*\.cc$', r'.*\.cpp$', r'.*\.h$', r'.*\.m$', r'.*\.mm$',
@@ -612,10 +618,12 @@ def _check_rustfmt(_project, commit):
 
 def _check_change_has_test_field(_project, commit):
   """Check for a non-empty 'TEST=' field in the commit message."""
+  SEE_ALSO = 'Please review the documentation:\n%s' % (DOC_COMMIT_MSG_URL,)
   TEST_RE = r'\nTEST=\S+'
 
   if not re.search(TEST_RE, _get_commit_desc(commit)):
-    msg = 'Changelist description needs TEST field (after first line)'
+    msg = ('Changelist description needs TEST field (after first line)\n%s' %
+           (SEE_ALSO,))
     return HookFailure(msg)
   return None
 
@@ -659,6 +667,8 @@ def _check_change_is_contribution(_project, commit):
 
 def _check_change_has_bug_field(project, commit):
   """Check for a correctly formatted 'BUG=' field in the commit message."""
+  SEE_ALSO = 'Please review the documentation:\n%s' % (DOC_COMMIT_MSG_URL,)
+
   OLD_BUG_RE = r'\nBUG=.*chromium-os'
   if re.search(OLD_BUG_RE, _get_commit_desc(commit)):
     msg = ('The chromium-os bug tracker is now deprecated. Please use\n'
@@ -675,16 +685,18 @@ def _check_change_has_bug_field(project, commit):
     BUG_RE = r'\nBug: ?([Nn]one|\d+)'
     if not re.search(BUG_RE, _get_commit_desc(commit)):
       msg = ('Changelist description needs BUG field (after first line):\n'
+             'Examples:\n'
              'Bug: 9999 (for buganizer)\n'
-             'BUG=None')
+             'BUG=None\n%s' % (SEE_ALSO,))
       return HookFailure(msg)
   else:
     BUG_RE = r'\nBUG=([Nn]one|(chromium|b):\d+)'
     if not re.search(BUG_RE, _get_commit_desc(commit)):
       msg = ('Changelist description needs BUG field (after first line):\n'
+             'Examples:\n'
              'BUG=chromium:9999 (for public tracker)\n'
              'BUG=b:9999 (for buganizer)\n'
-             'BUG=None')
+             'BUG=None\n%s' % (SEE_ALSO,))
       return HookFailure(msg)
 
   return None
@@ -1179,9 +1191,7 @@ def _check_commit_message_style(_project, commit):
   We do not check for BUG=/TEST=/etc... lines here as that is handled by other
   commit hooks.
   """
-  DOC = ('https://chromium.googlesource.com/chromiumos/docs/+/HEAD/'
-         'contributing.md#Commit-messages')
-  SEE_ALSO = 'Please review the documentation:\n%s' % (DOC,)
+  SEE_ALSO = 'Please review the documentation:\n%s' % (DOC_COMMIT_MSG_URL,)
 
   desc = _get_commit_desc(commit)
 
