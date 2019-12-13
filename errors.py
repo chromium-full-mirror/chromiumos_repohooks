@@ -42,12 +42,6 @@ def _PrintWithIndent(msg, indent_level):
   print(msg, file=sys.stderr)
 
 
-def _FormatCommitDesc(desc):
-  """Returns the properly prefixed commit description."""
-  regex = re.compile(r'^', re.M)
-  return regex.sub('>', desc)
-
-
 def _FormatHookFailure(hook_failure):
   """Returns the properly formatted VerifyException as a string."""
   item_prefix = '\n%s* ' % _INDENT
@@ -69,42 +63,21 @@ def PrintErrorForProject(project, error):
   print('', file=sys.stderr)
 
 
-def PrintErrorsForCommit(project, commit, commit_desc, error_list):
+def PrintErrorsForCommit(color, hook, project, error_list):
   """Prints the hook error to stderr with project and commit context
 
-  A sample error output for a project would be:
-  ----------------------------------------------------------------------------
-  Errors in PROJECT *chromiumos/repohooks*!
-    COMMIT 10041758:
-        Description:
-            >staged
-            >
-            >TEST=some
-            >Change-Id: I2c4f545a20a659541c02be16aa9dc440c876a604
-            >
-        Errors:
-            * Changelist description needs BUG field (after first line)
-            * Found line ending with white space in:
-                * src/repohooks/pre-upload.py, line 307
-            * Found lines longer than 80 characters (first 5 shown):
-                * src/repohooks/pre-upload.py, line 335, 85 chars
-  ----------------------------------------------------------------------------
-
   Args:
+    color: terminal.Color object for colorizing output.
+    hook: Hook function that generated these errors.
     project: project name
-    commit: the commit hash the errors belong to
-    commit_desc: a string containing the commit message
     error_list: a list of HookFailure instances
   """
-  _PrintWithIndent(_PROJECT_INFO % project, 0)
-
-  formatted_desc = _FormatCommitDesc(commit_desc)
-  _PrintWithIndent('COMMIT %s:' % commit[:8], 1)
-  _PrintWithIndent('Description:', 2)
-  _PrintWithIndent(formatted_desc, 3)
-  _PrintWithIndent('Errors:', 2)
+  print('[%s] %s: %s' %
+        (color.Color(color.RED, 'FAILED'), project, hook.__name__))
 
   for error in error_list:
-    _PrintWithIndent(_FormatHookFailure(error), 3)
-
-  print('', file=sys.stderr)
+    _PrintWithIndent(error.msg.strip(), 1)
+    if error.items:
+      for item in error.items:
+        _PrintWithIndent(item.strip(), 1)
+    print('', file=sys.stderr)

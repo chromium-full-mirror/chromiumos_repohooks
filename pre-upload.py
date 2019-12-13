@@ -47,6 +47,7 @@ from chromite.lib import cros_build_lib
 from chromite.lib import git
 from chromite.lib import osutils
 from chromite.lib import patch
+from chromite.lib import terminal
 from chromite.licensing import licenses_lib
 
 PRE_SUBMIT = 'pre-submit'
@@ -2001,6 +2002,8 @@ def _run_project_hooks(project_name, proj_dir=None,
   # hooks assume they are run from the root of the project
   os.chdir(proj_dir)
 
+  color = terminal.Color()
+
   remote_branch = _run_command(['git', 'rev-parse', '--abbrev-ref',
                                 '--symbolic-full-name', '@{u}']).strip()
   if not remote_branch:
@@ -2035,24 +2038,25 @@ def _run_project_hooks(project_name, proj_dir=None,
   for i, commit in enumerate(commit_list):
     CACHE.clear()
 
-    error_list = []
+    desc = _get_commit_desc(commit)
+    print('[%s %i/%i %s] %s' %
+          (color.Color(color.CYAN, 'COMMIT'), i + 1, commit_count, commit[0:12],
+           desc.splitlines()[0]))
+
     for h, hook in enumerate(hooks):
-      output = ('PRESUBMIT.cfg: [%i/%i]: %s: Running [%i/%i] %s' %
-                (i + 1, commit_count, commit, h + 1, hook_count, hook.__name__))
+      output = ('[%s %i/%i PRESUBMIT.cfg] %s' %
+                (color.Color(color.YELLOW, 'RUNNING'), h + 1, hook_count,
+                 hook.__name__))
       print(output, end='\r')
       sys.stdout.flush()
       hook_error = hook(project, commit)
       print(' ' * len(output), end='\r')
       sys.stdout.flush()
       if hook_error:
-        if isinstance(hook_error, list):
-          error_list.extend(hook_error)
-        else:
-          error_list.append(hook_error)
+        if not isinstance(hook_error, list):
+          hook_error = [hook_error]
+        PrintErrorsForCommit(color, hook, project.name, hook_error)
         error_found = True
-    if error_list:
-      PrintErrorsForCommit(project.name, commit, _get_commit_desc(commit),
-                           error_list)
 
   os.chdir(pwd)
   return error_found
@@ -2075,6 +2079,7 @@ def main(project_list, worktree_list=None, **_kwargs):
       automatically.
     kwargs: Leave this here for forward-compatibility.
   """
+  start_time = datetime.datetime.now()
   found_error = False
   if not worktree_list:
     worktree_list = [None] * len(project_list)
@@ -2082,13 +2087,20 @@ def main(project_list, worktree_list=None, **_kwargs):
     if _run_project_hooks(project, proj_dir=worktree):
       found_error = True
 
+  end_time = datetime.datetime.now()
+  color = terminal.Color()
   if found_error:
-    msg = ('Preupload failed due to errors in project(s). HINTS:\n'
+    msg = ('%s: Preupload failed due to above error(s).\n'
            '- To disable some source style checks, and for other hints, see '
-           '<checkout_dir>/src/repohooks/README\n'
-           "- To upload only current project, run 'repo upload .'")
+           '<checkout_dir>/src/repohooks/README.md\n'
+           "- To upload only current project, run 'repo upload .'" %
+           (color.Color(color.RED, 'FATAL'),))
     print(msg, file=sys.stderr)
     sys.exit(1)
+  else:
+    msg = ('[%s] repohooks passed in %s' %
+           (color.Color(color.GREEN, 'PASSED'), end_time - start_time))
+    print(msg)
 
 
 def _identify_project(path):
