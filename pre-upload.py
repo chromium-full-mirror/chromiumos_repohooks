@@ -22,6 +22,7 @@ import os
 import re
 import sys
 import stat
+import subprocess
 
 from errors import (VerifyException, HookFailure, PrintErrorForProject,
                     PrintErrorsForCommit)
@@ -591,7 +592,7 @@ def _check_gofmt(_project, commit):
   for gofile in files:
     contents = _get_file_content(gofile, commit)
     output = _run_command(cmd=['gofmt', '-l'], input=contents.encode('utf-8'),
-                          combine_stdout_stderr=True)
+                          stderr=subprocess.STDOUT)
     if output:
       errors.append(gofile)
   if errors:
@@ -608,7 +609,7 @@ def _check_rustfmt(_project, commit):
   for rustfile in files:
     contents = _get_file_content(rustfile, commit)
     output = _run_command(cmd=['rustfmt'], input=contents.encode('utf-8'),
-                          combine_stdout_stderr=True)
+                          stderr=subprocess.STDOUT)
     if output != contents:
       errors.append(rustfile)
   if errors:
@@ -1448,7 +1449,7 @@ def _check_clang_format(_project, commit, options=()):
                                   stdout=True,
                                   encoding='utf-8',
                                   errors='replace',
-                                  combine_stdout_stderr=True,
+                                  stderr=subprocess.STDOUT,
                                   check=False)
   if cmd_result.returncode:
     return HookFailure('clang-format.py errors/warnings\n\n' +
@@ -1475,7 +1476,7 @@ def _run_checkpatch(_project, commit, options=()):
   cmd = [os.path.join(hooks_dir, 'checkpatch.pl')] + options + ['-']
   cmd_result = cros_build_lib.run(
       cmd, print_cmd=False, input=_get_patch(commit).encode('utf-8'),
-      stdout=True, combine_stdout_stderr=True, check=False, encoding='utf-8',
+      stdout=True, stderr=subprocess.STDOUT, check=False, encoding='utf-8',
       errors='replace')
   if cmd_result.returncode:
     return HookFailure('checkpatch.pl errors/warnings\n\n' + cmd_result.stdout)
@@ -1490,7 +1491,7 @@ def _run_kerneldoc(_project, commit, options=()):
   if files:
     hooks_dir = _get_hooks_dir()
     cmd = [os.path.join(hooks_dir, 'kernel-doc'), '-none'] + files
-    output = _run_command(cmd, combine_stdout_stderr=True)
+    output = _run_command(cmd, stderr=subprocess.STDOUT)
     if output:
       return HookFailure('kernel-doc errors/warnings:',
                          items=output.splitlines())
@@ -1646,7 +1647,7 @@ def _run_project_hook_script(script, project, commit):
                                   stdout=True,
                                   encoding='utf-8',
                                   errors='replace',
-                                  combine_stdout_stderr=True,
+                                  stderr=subprocess.STDOUT,
                                   check=False)
   if cmd_result.returncode:
     stdout = cmd_result.stdout
