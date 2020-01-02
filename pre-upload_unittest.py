@@ -1132,6 +1132,17 @@ class CheckCommitMessageBug(CommitMessageTestCase):
     """Reject bug lines that are not BUG."""
     self.assertMessageRejected('\nbug=none\n')
 
+  def testNotAfterTest(self):
+    """Reject any TEST line before any BUG line."""
+    test_field = 'TEST=i did not do it\n'
+    middle_field = 'A random between line\n'
+    for project, bug_field in ((self.AOSP_PROJECT, 'Bug:none\n'),
+                               (self.CROS_PROJECT, 'BUG=None\n')):
+      self.assertMessageRejected(
+          '\n' + test_field + middle_field + bug_field, project)
+      self.assertMessageRejected(
+          '\n' + test_field + bug_field, project)
+
 
 class CheckCommitMessageCqDepend(CommitMessageTestCase):
   """Tests for _check_change_has_valid_cq_depend."""

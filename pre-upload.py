@@ -111,6 +111,9 @@ _CONFIG_FILE = 'PRESUBMIT.cfg'
 # excluded from presubmit checks. Lines beginning with '#' are ignored.
 _IGNORE_FILE = '.presubmitignore'
 
+
+TEST_FIELD_RE = r'\nTEST=\S+'
+
 # Exceptions
 
 
@@ -635,9 +638,8 @@ def _check_rustfmt(_project, commit):
 def _check_change_has_test_field(_project, commit):
   """Check for a non-empty 'TEST=' field in the commit message."""
   SEE_ALSO = 'Please review the documentation:\n%s' % (DOC_COMMIT_MSG_URL,)
-  TEST_RE = r'\nTEST=\S+'
 
-  if not re.search(TEST_RE, _get_commit_desc(commit)):
+  if not re.search(TEST_FIELD_RE, _get_commit_desc(commit)):
     msg = ('Changelist description needs TEST field (after first line)\n%s' %
            (SEE_ALSO,))
     return HookFailure(msg)
@@ -714,6 +716,13 @@ def _check_change_has_bug_field(project, commit):
              'BUG=b:9999 (for buganizer)\n'
              'BUG=None\n%s' % (SEE_ALSO,))
       return HookFailure(msg)
+
+  TEST_BEFORE_BUG_RE = TEST_FIELD_RE + r'.*' + BUG_RE
+
+  if re.search(TEST_BEFORE_BUG_RE, _get_commit_desc(commit), re.DOTALL):
+    msg = ('The BUG field must come before the TEST field.\n%s' %
+           (SEE_ALSO,))
+    return HookFailure(msg)
 
   return None
 
