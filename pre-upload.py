@@ -1940,7 +1940,8 @@ def _get_override_hooks(config):
   disabled_hooks = set(hooks[x] for x in disable_flags)
 
   if _check_change_has_signoff_field not in enabled_hooks:
-    enabled_hooks.add(_check_change_has_no_signoff_field)
+    if _check_change_has_signoff_field not in disabled_hooks:
+      enabled_hooks.add(_check_change_has_no_signoff_field)
   if _check_change_has_branch_field not in enabled_hooks:
     enabled_hooks.add(_check_change_has_no_branch_field)
 
