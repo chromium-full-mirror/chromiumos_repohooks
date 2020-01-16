@@ -109,9 +109,10 @@ class CheckNoLongLinesTest(PreUploadTestCase):
     ]
     failure = pre_upload._check_no_long_lines(ProjectNamed('PROJECT'), 'COMMIT')
     self.assertTrue(failure)
-    self.assertEqual('Found lines longer than 80 characters (first 5 shown):',
+    self.assertEqual('Found lines longer than the limit (first 5 shown):',
                      failure.msg)
-    self.assertEqual(['x.py, line %d, 81 chars' % x for x in [3, 4, 8]],
+    self.assertEqual(['x.py, line %d, 81 chars, over 80 chars' %
+                      x for x in [3, 4, 8]],
                      failure.items)
 
   def testCheckTreatsOwnersFilesSpecially(self):
@@ -143,7 +144,7 @@ class CheckNoLongLinesTest(PreUploadTestCase):
           self.assertFalse(failure, assert_msg)
         else:
           self.assertTrue(failure, assert_msg)
-          self.assertIn('Found lines longer than 80 characters', failure.msg,
+          self.assertIn('Found lines longer than the limit', failure.msg,
                         assert_msg)
 
   def testIncludeOptions(self):
@@ -165,6 +166,25 @@ class CheckNoLongLinesTest(PreUploadTestCase):
         ProjectNamed('PROJECT'), 'COMMIT'))
     self.assertFalse(pre_upload._check_no_long_lines(
         ProjectNamed('PROJECT'), 'COMMIT', options=['--exclude_regex=foo']))
+
+  def testSpecialLineLength(self):
+    mock_lines = (
+        (u'x' * 101, True),
+        (u'x' * 100, False),
+        (u'x' * 81, False),
+        (u'x' * 80, False),
+    )
+    self.PatchObject(pre_upload,
+                     '_get_affected_files',
+                     return_value=['foo.java'])
+    for line, is_ok in mock_lines:
+      self.diff_mock.return_value = [(1, line)]
+      if is_ok:
+        self.assertTrue(pre_upload._check_no_long_lines(
+            ProjectNamed('PROJECT'), 'COMMIT'))
+      else:
+        self.assertFalse(pre_upload._check_no_long_lines(
+            ProjectNamed('PROJECT'), 'COMMIT'))
 
 
 class CheckTabbedIndentsTest(PreUploadTestCase):

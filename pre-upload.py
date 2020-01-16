@@ -495,6 +495,12 @@ def _check_no_long_lines(_project, commit, options=()):
       r'.*\.go$',
   ]
 
+  DEFAULT_MAX_LENGTHS = [
+      # Java's line length limit is 100 chars.
+      # https://chromium.googlesource.com/chromium/src/+/master/styleguide/java/java.md
+      (r'.*\.java$', 100),
+  ]
+
   MAX_LEN = 80
 
   included, excluded = _parse_common_inclusion_options(options)
@@ -509,6 +515,13 @@ def _check_no_long_lines(_project, commit, options=()):
         r'^#\s*(define|include|import|pragma|if|ifndef|endif)\b',
     )
 
+    max_len = MAX_LEN
+
+    for expr, length in DEFAULT_MAX_LENGTHS:
+      if re.search(expr, afile):
+        max_len = length
+        break
+
     if os.path.basename(afile).startswith('OWNERS'):
       # File paths can get long, and there's no way to break them up into
       # multiple lines.
@@ -520,15 +533,16 @@ def _check_no_long_lines(_project, commit, options=()):
     skip_regexps = [re.compile(x) for x in skip_regexps]
     for line_num, line in _get_file_diff(afile, commit):
       # Allow certain lines to exceed the maxlen rule.
-      if len(line) <= MAX_LEN or any(x.search(line) for x in skip_regexps):
+      if len(line) <= max_len or any(x.search(line) for x in skip_regexps):
         continue
 
-      errors.append('%s, line %s, %s chars' % (afile, line_num, len(line)))
+      errors.append('%s, line %s, %s chars, over %s chars' %
+                    (afile, line_num, len(line), max_len))
       if len(errors) == 5:  # Just show the first 5 errors.
         break
 
   if errors:
-    msg = 'Found lines longer than %s characters (first 5 shown):' % MAX_LEN
+    msg = 'Found lines longer than the limit (first 5 shown):'
     return HookFailure(msg, errors)
   return None
 
