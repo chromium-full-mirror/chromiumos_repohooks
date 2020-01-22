@@ -1254,6 +1254,10 @@ class CheckCommitMessageChangeId(CommitMessageTestCase):
     """Permit s-o-b tags to follow the Change-Id."""
     self.assertMessageAccepted('foo\n\nChange-Id: I1234\nSigned-off-by: Hi\n')
 
+  def testCqClTag(self):
+    """Permit Cq-Cl-Tag tags to follow the Change-Id."""
+    self.assertMessageAccepted('foo\n\nChange-Id: I1234\nCq-Cl-Tag: Hi\n')
+
 
 class CheckCommitMessageNoOEM(CommitMessageTestCase):
   """Tests for _check_change_no_include_oem."""
