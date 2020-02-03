@@ -1884,15 +1884,14 @@ def _get_override_hooks(config):
   """
   SECTION = 'Hook Overrides'
   SECTION_OPTIONS = 'Hook Overrides Options'
-  if not config.has_section(SECTION):
-    return set(), set()
 
   valid_keys = set(_HOOK_FLAGS.keys())
   hooks = _HOOK_FLAGS.copy()
+  options = config.options(SECTION) if config.has_section(SECTION) else []
 
   enable_flags = []
   disable_flags = []
-  for flag in config.options(SECTION):
+  for flag in options:
     if flag not in valid_keys:
       raise ValueError('Error: unknown key "%s" in hook section of "%s"' %
                        (flag, _CONFIG_FILE))
