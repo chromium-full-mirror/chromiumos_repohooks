@@ -600,11 +600,13 @@ def _check_tabbed_indents(_project, commit, options=()):
       'Found a space in indentation (must be all tabs):')
 
 
-def _check_gofmt(_project, commit):
+def _check_gofmt(_project, commit, options=()):
   """Checks that Go files are formatted with gofmt."""
+  included, excluded = _parse_common_inclusion_options(options)
   errors = []
   files = _filter_files(_get_affected_files(commit, relative=True),
-                        [r'\.go$'])
+                        included + [r'\.go$'],
+                        excluded)
 
   for gofile in files:
     contents = _get_file_content(gofile, commit)
@@ -1870,6 +1872,7 @@ _HOOK_FLAGS = {
     'long_line_check': _check_no_long_lines,
     'cros_license_check': _check_cros_license,
     'aosp_license_check': _check_aosp_license,
+    'gofmt_check': _check_gofmt,
     'tab_check': _check_no_tabs,
     'tabbed_indent_required_check': _check_tabbed_indents,
     'branch_check': _check_change_has_branch_field,
