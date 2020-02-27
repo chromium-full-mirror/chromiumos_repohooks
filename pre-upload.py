@@ -51,6 +51,10 @@ from chromite.lib import patch
 from chromite.lib import terminal
 from chromite.licensing import licenses_lib
 
+
+assert sys.version_info >= (3, 6), 'This module requires Python 3.6+'
+
+
 PRE_SUBMIT = 'pre-submit'
 
 
