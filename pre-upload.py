@@ -757,6 +757,7 @@ def _check_change_no_include_oem(project, commit):
       'Reported-by',
       'Acked-for-chrome-by',
       'Cq-Cl-Tag',
+      'Cq-Include-Trybots',
   }
 
   # Ignore tags, which could reasonably contain OEM names
@@ -1195,8 +1196,8 @@ def _check_change_has_proper_changeid(_project, commit):
   if not m:
     return HookFailure('Last paragraph of description must include Change-Id.')
 
-  # S-o-b tags always allowed to follow Change-ID.
-  allowed_tags = ['Signed-off-by', 'Cq-Cl-Tag']
+  # S-o-b and some other tags always allowed to follow Change-ID in the footer.
+  allowed_tags = ['Signed-off-by', 'Cq-Cl-Tag', 'Cq-Include-Trybots']
 
   end = desc[m.end():].strip().splitlines()
   cherry_pick_marker = 'cherry picked from commit'

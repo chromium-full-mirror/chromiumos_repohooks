@@ -1272,6 +1272,11 @@ class CheckCommitMessageChangeId(CommitMessageTestCase):
     """Permit Cq-Cl-Tag tags to follow the Change-Id."""
     self.assertMessageAccepted('foo\n\nChange-Id: I1234\nCq-Cl-Tag: Hi\n')
 
+  def testCqIncludeTrybotsTag(self):
+    """Permit Cq-Include-Trybots tags to follow the Change-Id."""
+    self.assertMessageAccepted(
+        'foo\n\nChange-Id: I1234\nCq-Include-Trybots: chromeos/cq:foo\n')
+
 
 class CheckCommitMessageNoOEM(CommitMessageTestCase):
   """Tests for _check_change_no_include_oem."""
