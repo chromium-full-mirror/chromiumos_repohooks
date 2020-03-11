@@ -2070,7 +2070,9 @@ def _run_project_hooks(project_name, proj_dir=None,
   for i, commit in enumerate(commit_list):
     CACHE.clear()
 
-    desc = _get_commit_desc(commit)
+    # If run with --pre-submit, then commit is PRE_SUBMIT, and not a commit.
+    # Use that as the description.
+    desc = commit if commit == PRE_SUBMIT else _get_commit_desc(commit)
     print('[%s %i/%i %s] %s' %
           (color.Color(color.CYAN, 'COMMIT'), i + 1, commit_count, commit[0:12],
            desc.splitlines()[0]))
