@@ -971,12 +971,12 @@ def _check_ebuild_eapi(project, commit):
 
   if bad_ebuilds:
     # pylint: disable=C0301
-    url = 'http://dev.chromium.org/chromium-os/how-tos-and-troubleshooting/upgrade-ebuild-eapis'
+    url = 'https://dev.chromium.org/chromium-os/how-tos-and-troubleshooting/upgrade-ebuild-eapis'
     # pylint: enable=C0301
     return HookFailure(
         'These ebuilds are using old EAPIs.  If these are imported from\n'
         'Gentoo, then you may ignore and upload once with the --no-verify\n'
-        'flag.  Otherwise, please update to 5 or newer.\n'
+        'flag.  Otherwise, please update to 7 or newer.\n'
         '\t%s\n'
         'See this guide for more details:\n%s\n' %
         ('\n\t'.join(['%s: EAPI=%s' % x for x in bad_ebuilds]), url))
