@@ -500,12 +500,16 @@ def _check_no_long_lines(_project, commit, options=()):
       # Go has no line length limit.
       # https://golang.org/doc/effective_go.html#formatting
       r'.*\.go$',
+      # Python does its own long line checks via pylint.
+      r'.*\.py$',
   ]
 
   DEFAULT_MAX_LENGTHS = [
       # Java's line length limit is 100 chars.
       # https://chromium.googlesource.com/chromium/src/+/master/styleguide/java/java.md
       (r'.*\.java$', 100),
+      # Rust's line length limit is 100 chars.
+      (r'.*\.rs$', 100),
   ]
 
   MAX_LEN = 80

@@ -99,7 +99,8 @@ class CheckNoLongLinesTest(PreUploadTestCase):
     self.diff_mock = self.PatchObject(pre_upload, '_get_file_diff')
 
   def testCheck(self):
-    self.PatchObject(pre_upload, '_get_affected_files', return_value=['x.py'])
+    path = 'x.cc'
+    self.PatchObject(pre_upload, '_get_affected_files', return_value=[path])
     self.diff_mock.return_value = [
         (1, u'x' * 80),                      # OK
         (2, '\x80' * 80),                    # OK
@@ -114,7 +115,7 @@ class CheckNoLongLinesTest(PreUploadTestCase):
     self.assertTrue(failure)
     self.assertEqual('Found lines longer than the limit (first 5 shown):',
                      failure.msg)
-    self.assertEqual(['x.py, line %d, 81 chars, over 80 chars' %
+    self.assertEqual([path + ', line %d, 81 chars, over 80 chars' %
                       x for x in [3, 4, 8]],
                      failure.items)
 
@@ -163,7 +164,7 @@ class CheckNoLongLinesTest(PreUploadTestCase):
   def testExcludeOptions(self):
     self.PatchObject(pre_upload,
                      '_get_affected_files',
-                     return_value=['foo.py'])
+                     return_value=['foo.cc'])
     self.diff_mock.return_value = [(1, u'x' * 81)]
     self.assertTrue(pre_upload._check_no_long_lines(
         ProjectNamed('PROJECT'), 'COMMIT'))
