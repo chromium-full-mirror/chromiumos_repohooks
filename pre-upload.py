@@ -1481,6 +1481,10 @@ def _run_checkpatch(_project, commit, options=()):
   """Runs checkpatch.pl on the given project"""
   hooks_dir = _get_hooks_dir()
   options = list(options)
+  if options and options[0].startswith('./') and os.path.exists(options[0]):
+    cmdpath = options.pop(0)
+  else:
+    cmdpath = os.path.join(hooks_dir, 'checkpatch.pl')
   if commit == PRE_SUBMIT:
     # The --ignore option must be present and include 'MISSING_SIGN_OFF' in
     # this case.
@@ -1493,13 +1497,14 @@ def _run_checkpatch(_project, commit, options=()):
   # Upstream does not want those lines (since they do not use Gerrit), but
   # we always do, so disable the check globally.
   options.append('--ignore=GERRIT_CHANGE_ID')
-  cmd = [os.path.join(hooks_dir, 'checkpatch.pl')] + options + ['-']
+  cmd = [cmdpath] + options + ['-']
   cmd_result = cros_build_lib.run(
       cmd, print_cmd=False, input=_get_patch(commit).encode('utf-8'),
       stdout=True, stderr=subprocess.STDOUT, check=False, encoding='utf-8',
       errors='replace')
   if cmd_result.returncode:
-    return HookFailure('checkpatch.pl errors/warnings\n\n' + cmd_result.stdout)
+    return HookFailure('%s errors/warnings\n\n%s' %
+                       (cmdpath, cmd_result.stdout))
   return None
 
 
