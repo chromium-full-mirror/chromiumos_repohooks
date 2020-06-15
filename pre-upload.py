@@ -1442,21 +1442,6 @@ def _check_layout_conf(_project, commit):
 
 def _check_no_new_gyp(_project, commit):
   """Verifies no project starts to use GYP."""
-  whitelist = [
-      'chromeos/ap',
-      'chromeos/ap-daemons',
-      'chromeos/ap/security',
-      'chromeos/ap/wireless',
-      'chromeos/platform/actions',
-      'chromeos/platform/drivefs-google3',
-      'chromeos/platform/experimental-touch-fw',
-      'chromeos/thermald',
-      'chromiumos/platform2',
-      'weave/libweave',
-  ]
-  if _project.name in whitelist:
-    return None
-
   gypfiles = _filter_files(
       _get_affected_files(commit, include_symlinks=True, relative=True),
       [r'\.gyp$'])
