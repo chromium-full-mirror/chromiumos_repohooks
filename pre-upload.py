@@ -635,7 +635,8 @@ def _check_rustfmt(_project, commit):
 
   for rustfile in files:
     contents = _get_file_content(rustfile, commit)
-    output = _run_command(cmd=['rustfmt'], input=contents.encode('utf-8'),
+    output = _run_command(cmd=['rustfmt', '--edition', '2018'],
+                          input=contents.encode('utf-8'),
                           stderr=subprocess.STDOUT)
     if output != contents:
       errors.append(rustfile)
