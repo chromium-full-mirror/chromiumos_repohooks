@@ -1703,5 +1703,90 @@ class CheckRustfmtTest(PreUploadTestCase):
     self.assertIsNone(failure)
 
 
+class GetCargoClippyParserTest(cros_test_lib.TestCase):
+  """Tests for _get_cargo_clippy_parser."""
+
+  def testSingleProject(self):
+    parser = pre_upload._get_cargo_clippy_parser()
+    args = parser.parse_args(['--project', 'foo'])
+    self.assertEqual(args.project,
+                     [pre_upload.ClippyProject(root='foo', script=None)])
+
+  def testMultipleProjects(self):
+    parser = pre_upload._get_cargo_clippy_parser()
+    args = parser.parse_args(['--project', 'foo:bar',
+                              '--project', 'baz'])
+    self.assertCountEqual(args.project,
+                          [pre_upload.ClippyProject(root='foo', script='bar'),
+                           pre_upload.ClippyProject(root='baz', script=None)])
+
+
+class CheckCargoClippyTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
+  """Tests for _check_cargo_clippy."""
+
+  def setUp(self):
+    self.project = pre_upload.Project(name='PROJECT', dir=self.tempdir,
+                                      remote=None)
+
+  def testClippy(self):
+    """Verify clippy is called when a monitored file was changed."""
+    rc_mock = self.PatchObject(pre_upload, '_run_command', return_value='')
+
+    self.PatchObject(pre_upload, '_get_affected_files',
+                     return_value=[f'{self.project.dir}/repo_a/a.rs'])
+
+    ret = pre_upload._check_cargo_clippy(self.project, 'COMMIT',
+                                         options=['--project=repo_a',
+                                                  '--project=repo_b:foo'])
+    self.assertFalse(ret)
+
+    # Check if `cargo clippy` ran.
+    called = False
+    for args, _ in  rc_mock.call_args_list:
+      cmd = args[0]
+      if len(cmd) > 1 and cmd[0] == 'cargo' and cmd[1] == 'clippy':
+        called = True
+        break
+
+    self.assertTrue(called)
+
+  def testDontRun(self):
+    """Skip checks when no monitored files are modified."""
+    rc_mock = self.PatchObject(pre_upload, '_run_command', return_value='')
+
+    # A file under `repo_a` was monitored.
+    self.PatchObject(pre_upload, '_get_affected_files',
+                     return_value=[f'{self.project.dir}/repo_a/a.rs'])
+    # But, we only care about files under `repo_b`.
+    errs = pre_upload._check_cargo_clippy(self.project, 'COMMIT',
+                                          options=['--project=repo_b:foo'])
+
+    self.assertFalse(errs)
+
+    rc_mock.assert_not_called()
+
+  def testCustomScript(self):
+    """Verify project-specific script is used."""
+    rc_mock = self.PatchObject(pre_upload, '_run_command', return_value='')
+
+    self.PatchObject(pre_upload, '_get_affected_files',
+                     return_value=[f'{self.project.dir}/repo_b/b.rs'])
+
+    errs = pre_upload._check_cargo_clippy(self.project, 'COMMIT',
+                                          options=['--project=repo_a',
+                                                   '--project=repo_b:foo'])
+    self.assertFalse(errs)
+
+    # Check if the script `foo` ran.
+    called = False
+    for args, _ in  rc_mock.call_args_list:
+      cmd = args[0]
+      if len(cmd) > 0 and cmd[0] == os.path.join(self.project.dir, 'foo'):
+        called = True
+        break
+
+    self.assertTrue(called)
+
+
 if __name__ == '__main__':
   cros_test_lib.main(module=__name__)

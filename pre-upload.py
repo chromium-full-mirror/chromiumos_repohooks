@@ -646,6 +646,108 @@ def _check_rustfmt(_project, commit):
   return None
 
 
+class CargoClippyArgumentParserError(Exception):
+  """An exception indicating an invalid check_cargo_clippy option."""
+
+
+class CargoClippyArgumentParser(argparse.ArgumentParser):
+  """A argument parser for check_cargo_clippy."""
+
+  def error(self, message):
+    raise CargoClippyArgumentParserError(message)
+
+
+# A cargo project in which clippy runs.
+ClippyProject = collections.namedtuple('ClippyProject', ('root', 'script'))
+
+
+class _AddClippyProjectAction(argparse.Action):
+  """A callback that adds a cargo clippy setting.
+
+  It accepts a value which is in the form of "ROOT[:SCRIPT]".
+  """
+
+  def __call__(self, parser, namespace, values, option_string=None):
+    if getattr(namespace, self.dest, None) is None:
+      setattr(namespace, self.dest, [])
+    spec = values.split(':', 1)
+    if len(spec) == 1:
+      spec += [None]
+
+    if spec[0].startswith('/'):
+      raise CargoClippyArgumentParserError('root path must not start with "/"'
+                                           f' but "{spec[0]}"')
+
+    clippy = ClippyProject(root=spec[0], script=spec[1])
+    getattr(namespace, self.dest).append(clippy)
+
+
+def _get_cargo_clippy_parser():
+  """Creates a parser for check_cargo_clippy options."""
+
+  parser = CargoClippyArgumentParser()
+  parser.add_argument('--project', action=_AddClippyProjectAction, default=[])
+
+  return parser
+
+
+def _check_cargo_clippy(project, commit, options=()):
+  """Checks that a change doesn't produce cargo-clippy errors."""
+
+  options = list(options)
+  if not options:
+    return []
+  parser = _get_cargo_clippy_parser()
+
+  try:
+    opts = parser.parse_args(options)
+  except CargoClippyArgumentParserError as e:
+    return [HookFailure('invalid check_cargo_clippy option is given.'
+                        f' Please check PRESUBMIT.cfg is correct: {e}')]
+  files = _get_affected_files(commit)
+
+  errors = []
+  for clippy in opts.project:
+    root = os.path.normpath(os.path.join(project.dir, clippy.root))
+
+    # Check if any file under `root` was modified.
+    modified = False
+    for f in files:
+      if f.startswith(root):
+        modified = True
+        break
+    if not modified:
+      continue
+
+    # Clean cargo's cache when we run clippy for this `root` for the first time.
+    # We don't want to clean the cache between commits to save time when
+    # multiple commits are checked.
+    if root not in _check_cargo_clippy.cleaned_root:
+      _run_command(['cargo', 'clean',
+                    f'--manifest-path={root}/Cargo.toml'],
+                   stderr=subprocess.STDOUT)
+      _check_cargo_clippy.cleaned_root.add(root)
+
+    cmd = ['cargo', 'clippy', '--all-features', '--all-targets',
+           f'--manifest-path={root}/Cargo.toml',
+           '--', '-D', 'warnings']
+    # Overwrite the clippy command if a project-specific script is specified.
+    if clippy.script:
+      cmd = [os.path.join(project.dir, clippy.script)]
+
+    output = _run_command(cmd, stderr=subprocess.STDOUT)
+    error = re.search(r'^error: ', output, flags=re.MULTILINE)
+    if error:
+      msg = output[error.start():]
+      errors.append(HookFailure(msg))
+
+  return errors
+
+
+# Stores cargo projects in which `cargo clean` ran.
+_check_cargo_clippy.cleaned_root = set()
+
+
 def _check_change_has_test_field(_project, commit):
   """Check for a non-empty 'TEST=' field in the commit message."""
   SEE_ALSO = 'Please review the documentation:\n%s' % (DOC_COMMIT_MSG_URL,)
@@ -1834,6 +1936,7 @@ _PATCH_DESCRIPTION_HOOKS = [
 
 # A list of hooks that are not project-specific
 _COMMON_HOOKS = [
+    _check_cargo_clippy,
     _check_cros_license,
     _check_ebuild_eapi,
     _check_ebuild_keywords,
@@ -1883,6 +1986,7 @@ _HOOK_FLAGS = {
     'contribution_check': _check_change_is_contribution,
     'project_prefix_check': _check_project_prefix,
     'filepath_chartype_check': _check_filepath_chartype,
+    'cargo_clippy_check': _check_cargo_clippy,
 }
 
 
