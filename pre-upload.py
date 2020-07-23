@@ -466,8 +466,12 @@ def _check_lines_in_diff(commit, files, check_callable, error_description):
   errors = []
   for afile in files:
     for line_num, line in _get_file_diff(afile, commit):
-      if check_callable(line):
-        errors.append('%s, line %s' % (afile, line_num))
+      result = check_callable(line)
+      if result:
+        msg = f'{afile}, line {line_num}'
+        if isinstance(result, str):
+          msg += f': {result}'
+        errors.append(msg)
   if errors:
     return HookFailure(error_description, errors)
   return None
@@ -588,6 +592,59 @@ def _check_no_tabs(_project, commit, options=()):
   return _check_lines_in_diff(commit, files,
                               lambda line: '\t' in line,
                               'Found a tab character in:')
+
+
+def _check_keywords(_project, commit, options=()):
+  """Checks there are no blocked keywords in commit content."""
+  blocked_terms_file = os.path.join(_get_hooks_dir(), 'blocked_terms.txt')
+  common_keywords = set(osutils.ReadFile(blocked_terms_file).splitlines())
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--exclude_regex', action='append', default=[])
+  parser.add_argument('--include_regex', action='append', default=[])
+  parser.add_argument('--block', action='append', default=[])
+  parser.add_argument('--unblock', action='append', default=[])
+  opts = parser.parse_args(options)
+
+  keywords = set(common_keywords | set(opts.block))
+  keywords = sorted(keywords - set(opts.unblock))
+  files = _filter_files(_get_affected_files(commit),
+                        opts.include_regex + COMMON_INCLUDED_PATHS,
+                        opts.exclude_regex + COMMON_EXCLUDED_PATHS)
+  errors = []
+
+  def _check_line(line):
+    for word in keywords:
+      m = re.search(word, line, flags=re.I)
+      if m:
+        if opts.unblock:
+          # Even though we remove the unblocked values from the keywords list
+          # we walk through them here as well in the case that they are a
+          # sub-regex of one of the common keyword values and not a direct
+          # match.
+          for unblocked in opts.unblock:
+            if not re.search(unblocked, m.group(0)):
+              return 'Matched ' + word
+        else:
+          return 'Matched ' + word
+    return False
+
+  diff_errors = _check_lines_in_diff(commit, files, _check_line,
+                                     'Found a blocked keyword in:')
+  if diff_errors:
+    errors.append(diff_errors)
+
+  line_num = 1
+  commit_desc_errors = []
+  for line in _get_commit_desc(commit).splitlines():
+    result = _check_line(line)
+    if result:
+      commit_desc_errors.append('Commit message, line %s: %s' %
+                                (line_num, result))
+    line_num += 1
+  if commit_desc_errors:
+    errors.append(HookFailure('Found a blocked keyword in:',
+                              commit_desc_errors))
+  return errors
 
 
 def _check_tabbed_indents(_project, commit, options=()):
@@ -1945,6 +2002,7 @@ _COMMON_HOOKS = [
     _check_exec_files,
     _check_for_uprev,
     _check_gofmt,
+    _check_keywords,
     _check_layout_conf,
     _check_no_long_lines,
     _check_no_new_gyp,
@@ -1976,6 +2034,7 @@ _HOOK_FLAGS = {
     'cros_license_check': _check_cros_license,
     'aosp_license_check': _check_aosp_license,
     'gofmt_check': _check_gofmt,
+    'keyword_check': _check_keywords,
     'tab_check': _check_no_tabs,
     'tabbed_indent_required_check': _check_tabbed_indents,
     'branch_check': _check_change_has_branch_field,

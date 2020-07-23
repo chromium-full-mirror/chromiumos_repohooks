@@ -92,6 +92,78 @@ class TryUTF8DecodeTest(PreUploadTestCase):
     self.assertEqual(u'hi \ufffd there', ret)
 
 
+class CheckKeywordsTest(PreUploadTestCase):
+  """Tests for _check_keywords."""
+
+  def setUp(self):
+    self.PatchObject(pre_upload, '_get_affected_files',
+                     return_value=['x.ebuild'])
+    self.PatchObject(pre_upload, '_filter_files', return_value=['x.ebuild'])
+    self.PatchObject(osutils, 'ReadFile',
+                     return_value='scruffy\nmangy\ndog.?pile\ncat.?circle')
+    self.diff_mock = self.PatchObject(pre_upload, '_get_file_diff')
+    self.desc_mock = self.PatchObject(pre_upload, '_get_commit_desc')
+
+  def test_good_cases(self):
+    self.desc_mock.return_value = 'Commit Message.\nLine 2'
+    self.diff_mock.return_value = [
+        (1, 'Some text without keywords.'),
+        (2, 'The dog is black has a partial keyword that does not count.'),
+    ]
+    failures = pre_upload._check_keywords(ProjectNamed('PROJECT'), 'COMMIT')
+    self.assertEqual(failures, [])
+
+  def test_bad_cases(self):
+    self.desc_mock.return_value = 'Commit Message.\nLine 2\nLine 3 scruffy'
+    self.diff_mock.return_value = [
+        (1, 'Scruffy plain catch'),
+        (2, 'dog-pile hyphenated catch'),
+        (3, 'cat_circle underscored catch'),
+        (4, 'dog pile space catch'),
+        (5, 'dogpiled substring catch'),
+        (6, 'scruffy mangy dog, multiple in a line catch'),
+    ]
+    failures = pre_upload._check_keywords(ProjectNamed('PROJECT'),
+                                          'COMMIT')
+    self.assertNotEqual(failures, [])
+    self.assertEqual('Found a blocked keyword in:', failures[0].msg)
+    self.assertEqual(['x.ebuild, line 1: Matched scruffy',
+                      'x.ebuild, line 2: Matched dog.?pile',
+                      'x.ebuild, line 3: Matched cat.?circle',
+                      'x.ebuild, line 4: Matched dog.?pile',
+                      'x.ebuild, line 5: Matched dog.?pile',
+                      'x.ebuild, line 6: Matched mangy'],
+                     failures[0].items)
+    self.assertEqual('Found a blocked keyword in:', failures[1].msg)
+    self.assertEqual(['Commit message, line 3: Matched scruffy'],
+                     failures[1].items)
+
+  def test_block_option_cases(self):
+    self.desc_mock.return_value = 'Commit Message.\nLine 2 voldemort'
+    self.diff_mock.return_value = [
+        (1, 'Line with a new term voldemort.'),
+        (2, 'Line with only they who shall not be named.'),
+    ]
+    failures = pre_upload._check_keywords(ProjectNamed('PROJECT'),
+                                          'COMMIT', ['--block', 'voldemort'])
+    self.assertNotEqual(failures, [])
+    self.assertEqual('Found a blocked keyword in:', failures[0].msg)
+    self.assertEqual(['x.ebuild, line 1: Matched voldemort'], failures[0].items)
+    self.assertEqual('Found a blocked keyword in:', failures[1].msg)
+    self.assertEqual(['Commit message, line 2: Matched voldemort'],
+                     failures[1].items)
+
+  def test_unblock_option_cases(self):
+    self.desc_mock.return_value = 'Commit message with scruffy'
+    self.diff_mock.return_value = [
+        (1, 'Line with a now unblocked term scruffy'),
+        (2, 'Line with without any blocked terms'),
+    ]
+    failures = pre_upload._check_keywords(ProjectNamed('PROJECT'),
+                                          'COMMIT', ['--unblock', 'scru.?fy'])
+    self.assertEqual(failures, [])
+
+
 class CheckNoLongLinesTest(PreUploadTestCase):
   """Tests for _check_no_long_lines."""
 
