@@ -2056,7 +2056,7 @@ def _get_project_hook_scripts(config):
   return config.items(SECTION)
 
 
-def _get_project_hooks(project, presubmit):
+def _get_project_hooks(project, presubmit, config_file=None):
   """Returns a list of hooks that need to be run for a project.
 
   Expects to be called from within the project root.
@@ -2064,13 +2064,16 @@ def _get_project_hooks(project, presubmit):
   Args:
     project: A string, name of the project.
     presubmit: A Boolean, True if the check is run as a git pre-submit script.
+    config_file: A string, the config file. Defaults to _CONFIG_FILE.
   """
   config = configparser.RawConfigParser()
-  if not os.path.exists(_CONFIG_FILE):
+  if config_file is None:
+    config_file = _CONFIG_FILE
+  if not os.path.exists(config_file):
     # Just use an empty config file
     config = configparser.RawConfigParser()
   else:
-    config.read(_CONFIG_FILE)
+    config.read(config_file)
 
   if presubmit:
     hooks = _COMMON_HOOKS
@@ -2102,7 +2105,8 @@ def _get_project_hooks(project, presubmit):
 
 
 def _run_project_hooks(project_name, proj_dir=None,
-                       commit_list=None, presubmit=False):
+                       commit_list=None, presubmit=False,
+                       config_file=None):
   """For each project run its project specific hook from the hooks dictionary.
 
   Args:
@@ -2112,6 +2116,8 @@ def _run_project_hooks(project_name, proj_dir=None,
     commit_list: A list of commits to run hooks against.  If None or empty list
         then we'll automatically get the list of commits that would be uploaded.
     presubmit: A Boolean, True if the check is run as a git pre-submit script.
+    config_file: A string, the presubmit config file. If not specified,
+        defaults to PRESUBMIT.cfg in the project directory.
 
   Returns:
     Boolean value of whether any errors were ecountered while running the hooks.
@@ -2163,7 +2169,7 @@ def _run_project_hooks(project_name, proj_dir=None,
       os.chdir(pwd)
       return True
 
-  hooks = _get_project_hooks(project.name, presubmit)
+  hooks = _get_project_hooks(project.name, presubmit, config_file)
   error_found = False
   commit_count = len(commit_list)
   hook_count = len(hooks)
@@ -2282,6 +2288,8 @@ def direct_main(argv):
                       "This option should be used at the 'git commit' "
                       "phase as opposed to 'repo upload'. This option "
                       'is mutually exclusive with --rerun-since.')
+  parser.add_argument('--presubmit-config',
+                      help='Specify presubmit config file to be used.')
   parser.add_argument('commits', nargs='*',
                       help='Check specific commits')
   opts = parser.parse_args(argv)
@@ -2339,7 +2347,8 @@ def direct_main(argv):
 
   found_error = _run_project_hooks(opts.project, proj_dir=opts.dir,
                                    commit_list=opts.commits,
-                                   presubmit=opts.pre_submit)
+                                   presubmit=opts.pre_submit,
+                                   config_file=opts.presubmit_config)
   if found_error:
     return 1
   return 0

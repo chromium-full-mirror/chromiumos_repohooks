@@ -1620,7 +1620,8 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
     ret = pre_upload.direct_main([])
     self.assertEqual(ret, 0)
     self.hooks_mock.assert_called_once_with(
-        mock.ANY, proj_dir=os.getcwd(), commit_list=[], presubmit=mock.ANY)
+        mock.ANY, proj_dir=os.getcwd(), commit_list=[], presubmit=mock.ANY,
+        config_file=mock.ANY)
 
   def testExplicitDir(self):
     """Verify we can run on a diff dir."""
@@ -1629,7 +1630,7 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
     self.assertEqual(ret, 0)
     self.hooks_mock.assert_called_once_with(
         mock.ANY, proj_dir=constants.CHROMITE_DIR, commit_list=[],
-        presubmit=mock.ANY)
+        presubmit=mock.ANY, config_file=mock.ANY)
 
   def testBogusProject(self):
     """A bogus project name should be fine (use default settings)."""
@@ -1639,7 +1640,7 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
     self.assertEqual(ret, 0)
     self.hooks_mock.assert_called_once_with(
         'foooooooooo', proj_dir=constants.CHROMITE_DIR, commit_list=[],
-        presubmit=mock.ANY)
+        presubmit=mock.ANY, config_file=mock.ANY)
 
   def testBogustProjectNoDir(self):
     """Make sure --dir is detected even with --project."""
@@ -1647,7 +1648,7 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
     self.assertEqual(ret, 0)
     self.hooks_mock.assert_called_once_with(
         'foooooooooo', proj_dir=os.getcwd(), commit_list=[],
-        presubmit=mock.ANY)
+        presubmit=mock.ANY, config_file=mock.ANY)
 
   def testNoGitDir(self):
     """We should die when run on a non-git dir."""
@@ -1665,7 +1666,8 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
     ret = pre_upload.direct_main(commits)
     self.assertEqual(ret, 0)
     self.hooks_mock.assert_called_once_with(
-        mock.ANY, proj_dir=mock.ANY, commit_list=commits, presubmit=mock.ANY)
+        mock.ANY, proj_dir=mock.ANY, commit_list=commits, presubmit=mock.ANY,
+        config_file=mock.ANY)
 
 
 class CheckRustfmtTest(PreUploadTestCase):
