@@ -1987,6 +1987,7 @@ _HOOK_FLAGS = {
     'project_prefix_check': _check_project_prefix,
     'filepath_chartype_check': _check_filepath_chartype,
     'cargo_clippy_check': _check_cargo_clippy,
+    'exec_files_check': _check_exec_files,
 }
 
 
