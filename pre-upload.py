@@ -2063,23 +2063,34 @@ def _get_override_hooks(config):
 
   valid_keys = set(_HOOK_FLAGS.keys())
   hooks = _HOOK_FLAGS.copy()
-  options = config.options(SECTION) if config.has_section(SECTION) else []
+  hook_overrides = set(
+      config.options(SECTION) if config.has_section(SECTION) else [])
+
+  unknown_keys = hook_overrides - valid_keys
+  if unknown_keys:
+    raise ValueError(f'{_CONFIG_FILE}: [{SECTION}]: unknown keys: '
+                     f'{unknown_keys}')
 
   enable_flags = []
   disable_flags = []
-  for flag in options:
-    if flag not in valid_keys:
-      raise ValueError('Error: unknown key "%s" in hook section of "%s"' %
-                       (flag, _CONFIG_FILE))
+  for flag in valid_keys:
+    if flag in hook_overrides:
+      try:
+        enabled = config.getboolean(SECTION, flag)
+      except ValueError as e:
+        raise ValueError('Error: parsing flag "%s" in "%s" failed: %s' %
+                         (flag, _CONFIG_FILE, e))
+    elif hooks[flag] in _COMMON_HOOKS:
+      # Enable common hooks by default so we process custom options below.
+      enabled = True
+    else:
+      # All other hooks we left as a tristate.  We use this below for a few
+      # hooks to control default behavior.
+      enabled = None
 
-    try:
-      enabled = config.getboolean(SECTION, flag)
-    except ValueError as e:
-      raise ValueError('Error: parsing flag "%s" in "%s" failed: %s' %
-                       (flag, _CONFIG_FILE, e))
     if enabled:
       enable_flags.append(flag)
-    else:
+    elif enabled is not None:
       disable_flags.append(flag)
 
     # See if this hook has custom options.

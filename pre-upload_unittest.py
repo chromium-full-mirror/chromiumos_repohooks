@@ -8,6 +8,7 @@
 
 from __future__ import print_function
 
+import configparser
 import datetime
 import os
 import sys
@@ -1860,6 +1861,113 @@ class CheckCargoClippyTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
         break
 
     self.assertTrue(called)
+
+
+class OverrideHooksProcessing(PreUploadTestCase):
+  """Verify _get_override_hooks processing."""
+
+  @staticmethod
+  def parse(data):
+    """Helper to create a config & parse it."""
+    cfg = configparser.ConfigParser()
+    cfg.read_string(data)
+    return pre_upload._get_override_hooks(cfg)
+
+  def testHooks(self):
+    """Verify we reject unknown hook names (e.g. typos)."""
+    with self.assertRaises(ValueError) as e:
+      self.parse("""
+[Hook Overrides]
+foobar: true
+""")
+    self.assertIn('foobar', str(e.exception))
+
+  def testImplicitDisable(self):
+    """Verify non-common hooks aren't enabled by default."""
+    enabled, _ = self.parse('')
+    self.assertNotIn(pre_upload._run_checkpatch, enabled)
+
+  def testExplicitDisable(self):
+    """Verify hooks disabled are disabled."""
+    _, disabled = self.parse("""
+[Hook Overrides]
+tab_check: false
+""")
+    self.assertIn(pre_upload._check_no_tabs, disabled)
+
+  def testExplicitEnable(self):
+    """Verify hooks enabled are enabled."""
+    enabled, _ = self.parse("""
+[Hook Overrides]
+tab_check: true
+""")
+    self.assertIn(pre_upload._check_no_tabs, enabled)
+
+  def testOptions(self):
+    """Verify hook options are loaded."""
+    enabled, _ = self.parse("""
+[Hook Overrides Options]
+keyword_check: --kw
+""")
+    for func in enabled:
+      if func.__name__ == 'keyword_check':
+        self.assertIn('options', func.keywords)
+        self.assertEqual(func.keywords['options'], ['--kw'])
+        break
+    else:
+      self.fail('could not find "keyword_check" enabled hook')
+
+  def testSignOffField(self):
+    """Verify signoff field handling."""
+    # Enforce no s-o-b by default.
+    enabled, disabled = self.parse('')
+    self.assertIn(pre_upload._check_change_has_no_signoff_field, enabled)
+    self.assertNotIn(pre_upload._check_change_has_signoff_field, enabled)
+    self.assertNotIn(pre_upload._check_change_has_signoff_field, disabled)
+
+    # If disabled, don't enforce either policy.
+    enabled, disabled = self.parse("""
+[Hook Overrides]
+signoff_check: false
+""")
+    self.assertNotIn(pre_upload._check_change_has_no_signoff_field, enabled)
+    self.assertNotIn(pre_upload._check_change_has_signoff_field, enabled)
+    self.assertIn(pre_upload._check_change_has_signoff_field, disabled)
+
+    # If enabled, require s-o-b.
+    enabled, disabled = self.parse("""
+[Hook Overrides]
+signoff_check: true
+""")
+    self.assertNotIn(pre_upload._check_change_has_no_signoff_field, enabled)
+    self.assertIn(pre_upload._check_change_has_signoff_field, enabled)
+    self.assertNotIn(pre_upload._check_change_has_signoff_field, disabled)
+
+  def testBranchField(self):
+    """Verify branch field enabling."""
+    # Should be disabled by default.
+    enabled, disabled = self.parse('')
+    self.assertIn(pre_upload._check_change_has_no_branch_field, enabled)
+    self.assertNotIn(pre_upload._check_change_has_branch_field, enabled)
+    self.assertNotIn(pre_upload._check_change_has_branch_field, disabled)
+
+    # Should be disabled if requested.
+    enabled, disabled = self.parse("""
+[Hook Overrides]
+branch_check: false
+""")
+    self.assertIn(pre_upload._check_change_has_no_branch_field, enabled)
+    self.assertNotIn(pre_upload._check_change_has_branch_field, enabled)
+    self.assertIn(pre_upload._check_change_has_branch_field, disabled)
+
+    # Should be enabled if requested.
+    enabled, disabled = self.parse("""
+[Hook Overrides]
+branch_check: true
+""")
+    self.assertNotIn(pre_upload._check_change_has_no_branch_field, enabled)
+    self.assertIn(pre_upload._check_change_has_branch_field, enabled)
+    self.assertNotIn(pre_upload._check_change_has_branch_field, disabled)
 
 
 if __name__ == '__main__':
