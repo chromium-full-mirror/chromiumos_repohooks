@@ -8,7 +8,6 @@
 
 from __future__ import print_function
 
-import configparser
 import datetime
 import os
 import sys
@@ -1861,48 +1860,6 @@ class CheckCargoClippyTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
         break
 
     self.assertTrue(called)
-
-
-class OverrideHooksProcessing(PreUploadTestCase):
-  """Verify _get_override_hooks processing."""
-
-  @staticmethod
-  def parse(data):
-    """Helper to create a config & parse it."""
-    cfg = configparser.ConfigParser()
-    cfg.read_string(data)
-    return pre_upload._get_override_hooks(cfg)
-
-  def testHooks(self):
-    """Verify we reject unknown hook names (e.g. typos)."""
-    with self.assertRaises(ValueError) as e:
-      self.parse("""
-[Hook Overrides]
-foobar: true
-""")
-    self.assertIn('foobar', str(e.exception))
-
-  def testExplicitDisable(self):
-    """Verify hooks disabled are disabled."""
-    _, disabled = self.parse("""
-[Hook Overrides]
-tab_check: false
-""")
-    self.assertIn(pre_upload._check_no_tabs, disabled)
-
-  def testOptions(self):
-    """Verify hook options are loaded."""
-    enabled, _ = self.parse("""
-[Hook Overrides Options]
-keyword_check: --kw
-""")
-    for func in enabled:
-      if func.__name__ == 'keyword_check':
-        self.assertIn('options', func.keywords)
-        self.assertEqual(func.keywords['options'], ['--kw'])
-        break
-    else:
-      self.fail('could not find "keyword_check" enabled hook')
 
 
 if __name__ == '__main__':
