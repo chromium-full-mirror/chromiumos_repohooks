@@ -128,25 +128,29 @@ cros_license_check: --exclude_regex=\b(checkpatch\.pl|kernel-doc)$
 
 ## Blocked and Unblocked Word List
 
-`blocked_terms.txt` contains a list of words which are blocked if
-`keyword_check` is enabled in the project. `unblocked_terms.txt` is a copy of
-`blocked_terms.txt`. So, by default nothing will be blocked.
+`blocked_terms.txt` contains a default list of words which are blocked by
+keyword_check. `unblocked_terms.txt` is a default list of words which are
+unblocked. They have the same contents. So, by default nothing is blocked.
 
-`unblocked_terms.txt` in this directry is referenced only if it doesn't exist in
-a project directory. To transition to the default blocked word list for project
-X, one can do:
+The global `unblocked_terms.txt` is referenced only if a copy doesn't exist in a
+project. Thus, by copying `unblocked_terms.txt` to your project, you can start
+blocking changes which contain words not listed in the project's
+`unblocked_terms.txt`:
 
-1.  Copy `unblocked_terms.txt` to X.
-2.  Remove words which are not used in X.
-    `$ egrep -r -i -I '(keyword1|keyword2|...)'`
-3.  Test and submit CL.
+1.  Copy `unblocked_terms.txt` to the project's root directory.
+2.  List which words are already cleared (or not present):
+    ```$ ~/chromiumos/src/platform/dev/contrib/search_blocked_words.sh```
+3.  Remove the cleared words from the project's `unblocked_terms.txt`
+4.  Test and submit CL.
 
-Then, when blocking word 'foo' for project X, one can do:
+When later making the project more inclusive, you can do:
 
-1.  Remove 'foo' from `unblocked_terms.txt` in X.
-2.  Grep and fix matches.
-    `$ egrep -r -i -I foo`
-3.  Test & submit CL.
+1.  Pick a word from the project's `unblocked_terms.txt`.
+2.  Fix all occurrences of the word.
+3.  Verify the clearance:
+    ```$ ~/chromiumos/src/platform/dev/contrib/search_blocked_words.sh```
+4.  Remove the word from the project's `unblocked_terms.txt`.
+5.  Test and submit CL.
 
 # Third Party code
 

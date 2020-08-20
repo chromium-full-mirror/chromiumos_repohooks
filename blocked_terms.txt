@@ -3,8 +3,11 @@
 # This is the global list of words to be blocked. unblocked_terms.txt has the
 # same contents. Copy unblocked_terms.txt to your project to enable repo hook to
 # block the words.
+
+# KEEP THIS COMMENT IN YOUR COPY.
 #
-# See repohooks/README.md for more details.
+# Don't delete this file if you want to keep keyword_check enabled even if it's
+# empty. See repohooks/README.md for more details.
 
 black.?hat
 black.?list
