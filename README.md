@@ -126,6 +126,28 @@ name above, so see that list for more details.
 cros_license_check: --exclude_regex=\b(checkpatch\.pl|kernel-doc)$
 ```
 
+## Blocked and Unblocked Word List
+
+`blocked_terms.txt` contains a list of words which are blocked if
+`keyword_check` is enabled in the project. `unblocked_terms.txt` is a copy of
+`blocked_terms.txt`. So, by default nothing will be blocked.
+
+`unblocked_terms.txt` in this directry is referenced only if it doesn't exist in
+a project directory. To transition to the default blocked word list for project
+X, one can do:
+
+1.  Copy `unblocked_terms.txt` to X.
+2.  Remove words which are not used in X.
+    `$ egrep -r -i -I '(keyword1|keyword2|...)'`
+3.  Test and submit CL.
+
+Then, when blocking word 'foo' for project X, one can do:
+
+1.  Remove 'foo' from `unblocked_terms.txt` in X.
+2.  Grep and fix matches.
+    `$ egrep -r -i -I foo`
+3.  Test & submit CL.
+
 # Third Party code
 
 We have many third party repos where you probably want to disable CrOS checks.

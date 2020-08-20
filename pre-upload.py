@@ -118,6 +118,9 @@ _IGNORE_FILE = '.presubmitignore'
 
 TEST_FIELD_RE = r'\nTEST=\S+'
 
+BLOCKED_TERMS_FILE = 'blocked_terms.txt'
+UNBLOCKED_TERMS_FILE = 'unblocked_terms.txt'
+
 # Exceptions
 
 
@@ -594,10 +597,21 @@ def _check_no_tabs(_project, commit, options=()):
                               'Found a tab character in:')
 
 
+def _read_terms_file(terms_file):
+  """Read list of words from file, skipping comments and blank lines."""
+  file_terms = set()
+  for line in osutils.ReadFile(terms_file).splitlines():
+    # Allow comment and blank lines.
+    line = line.split('#', 1)[0]
+    if not line:
+      continue
+    file_terms.add(line)
+  return file_terms
+
+
 def _check_keywords(_project, commit, options=()):
   """Checks there are no blocked keywords in commit content."""
-  blocked_terms_file = os.path.join(_get_hooks_dir(), 'blocked_terms.txt')
-  common_keywords = set(osutils.ReadFile(blocked_terms_file).splitlines())
+  # Read options from override list.
   parser = argparse.ArgumentParser()
   parser.add_argument('--exclude_regex', action='append', default=[])
   parser.add_argument('--include_regex', action='append', default=[])
@@ -605,8 +619,19 @@ def _check_keywords(_project, commit, options=()):
   parser.add_argument('--unblock', action='append', default=[])
   opts = parser.parse_args(options)
 
+  # Read blocked word list.
+  blocked_terms_file = os.path.join(_get_hooks_dir(), BLOCKED_TERMS_FILE)
+  common_keywords = _read_terms_file(blocked_terms_file)
+
+  # Read unblocked word list. Global list is skipped if local list exists.
+  unblocked_terms_file = os.path.join(_get_hooks_dir(), UNBLOCKED_TERMS_FILE)
+  if os.path.isfile(os.path.join(_project.dir, UNBLOCKED_TERMS_FILE)):
+    unblocked_terms_file = os.path.join(_project.dir, UNBLOCKED_TERMS_FILE)
+  unblocked_words = _read_terms_file(unblocked_terms_file)
+  unblocked_words.update(opts.unblock)
+
   keywords = set(common_keywords | set(opts.block))
-  keywords = sorted(keywords - set(opts.unblock))
+  keywords = sorted(keywords - unblocked_words)
   files = _filter_files(_get_affected_files(commit),
                         opts.include_regex + COMMON_INCLUDED_PATHS,
                         opts.exclude_regex + COMMON_EXCLUDED_PATHS)
@@ -619,12 +644,12 @@ def _check_keywords(_project, commit, options=()):
         matched = True
         # The unblock values supercede blocked values, so if any unblock
         # regex matches a term found by the block list, we ignore it.
-        for unblocked in opts.unblock:
+        for unblocked in unblocked_words:
           if re.search(unblocked, m.group(0)):
             matched = False
             break
         if matched:
-          return 'Matched ' + word
+          return f'Matched "{m[0]}" with regex of "{word}"'
     return False
 
   diff_errors = _check_lines_in_diff(commit, files, _check_line,
