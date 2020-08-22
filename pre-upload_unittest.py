@@ -12,8 +12,7 @@ import configparser
 import datetime
 import os
 import sys
-
-import mock
+from unittest import mock
 
 import errors
 
