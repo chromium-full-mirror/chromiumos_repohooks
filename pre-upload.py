@@ -6,7 +6,7 @@
 
 """Presubmit checks to run when doing `repo upload`.
 
-You can add new checks by adding a functions to the HOOKS constants.
+You can add new checks by adding a function to the HOOKS constants.
 """
 
 from __future__ import print_function
