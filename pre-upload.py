@@ -616,15 +616,14 @@ def _check_keywords(_project, commit, options=()):
     for word in keywords:
       m = re.search(word, line, flags=re.I)
       if m:
-        if opts.unblock:
-          # Even though we remove the unblocked values from the keywords list
-          # we walk through them here as well in the case that they are a
-          # sub-regex of one of the common keyword values and not a direct
-          # match.
-          for unblocked in opts.unblock:
-            if not re.search(unblocked, m.group(0)):
-              return 'Matched ' + word
-        else:
+        matched = True
+        # The unblock values supercede blocked values, so if any unblock
+        # regex matches a term found by the block list, we ignore it.
+        for unblocked in opts.unblock:
+          if re.search(unblocked, m.group(0)):
+            matched = False
+            break
+        if matched:
           return 'Matched ' + word
     return False
 

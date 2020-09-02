@@ -162,6 +162,14 @@ class CheckKeywordsTest(PreUploadTestCase):
     failures = pre_upload._check_keywords(ProjectNamed('PROJECT'),
                                           'COMMIT', ['--unblock', 'scru.?fy'])
     self.assertEqual(failures, [])
+    self.diff_mock.return_value = [
+        (1, 'Line with two unblocked terms scruffy big dog-pile'),
+        (2, 'Line with without any blocked terms'),
+    ]
+    failures = pre_upload._check_keywords(ProjectNamed('PROJECT'),
+                                          'COMMIT', ['--unblock', 'dog.?pile',
+                                                     '--unblock', 'scru.?fy'])
+    self.assertEqual(failures, [])
 
 
 class CheckNoLongLinesTest(PreUploadTestCase):
