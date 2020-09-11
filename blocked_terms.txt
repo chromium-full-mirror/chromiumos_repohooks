@@ -1,13 +1,7 @@
-# DELETE THIS COMMENT IN YOUR COPY.
-#
-# This is the global list of words to be blocked. unblocked_terms.txt has the
-# same contents. Copy unblocked_terms.txt to your project to enable repo hook to
-# block the words.
-
-# KEEP THIS COMMENT IN YOUR COPY.
-#
-# Don't delete this file if you want to keep keyword_check enabled even if it's
-# empty. See repohooks/README.md for more details.
+# This is the global list of words to be blocked. unblocked_terms.txt has
+# terms that are too commonly used still and are in the process of being
+# cleaned from the codebase. Copy unblocked_terms.txt to your project and
+# start commenting out terms to enable the repo hook to block the words.
 
 black.?hat
 black.?list
