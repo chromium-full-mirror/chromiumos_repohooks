@@ -1,1 +1,42 @@
-blocked_terms.txt
+# DELETE THIS COMMENT IN YOUR COPY.
+#
+# This is the global list of words to be blocked. unblocked_terms.txt has the
+# same contents. Copy unblocked_terms.txt to your project to enable repo hook to
+# block the words.
+
+# KEEP THIS COMMENT IN YOUR COPY.
+#
+# Don't delete this file if you want to keep keyword_check enabled even if it's
+# empty. See repohooks/README.md for more details.
+
+black.?hat
+black.?list
+build.?cop
+crazy
+cripple
+dummy
+first.?class.?citizen
+grandfathered
+gr[ae]y.?hat
+gr[ae]y.?list
+insane
+\bhe\b
+\bshe\b
+\bhim\b
+\bher\b
+\bhis\b
+\bhers\b
+man.?in.?the.?middle
+master
+mitm
+native
+red.?line
+rtfm
+sane
+sanity
+slave
+white.?glove
+white.?hat
+white.?label
+white.?list
+wtf
