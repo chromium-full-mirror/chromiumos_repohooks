@@ -34,7 +34,7 @@ insane
 man.?in.?the.?middle
 master
 mitm
-\bnative\b
+\bnative
 red.?line
 rtfm
 sane
