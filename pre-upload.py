@@ -1664,6 +1664,15 @@ def _check_clang_format(_project, commit, options=()):
 
 def _run_checkpatch(_project, commit, options=()):
   """Runs checkpatch.pl on the given project"""
+  # Bypass checkpatch for upstream or almost upstream commits, since we do not
+  # intend to modify the upstream commits when landing them to our branches.
+  # Any fixes should sent as independent patches.
+  # The check is retained for FROMLIST and BACKPORT commits, as by definition
+  # those can be still fixed up.
+  desc = _get_commit_desc(commit)
+  if desc.startswith('UPSTREAM:') or desc.startswith('FROMGIT:'):
+    return None
+
   hooks_dir = _get_hooks_dir()
   options = list(options)
   if options and options[0].startswith('./') and os.path.exists(options[0]):
