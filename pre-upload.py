@@ -275,7 +275,7 @@ def _get_file_content(path, commit):
     return cache[path]
 
   if commit == PRE_SUBMIT:
-    content = _run_command(['git', 'diff', 'HEAD', path])
+    content = _run_command(['git', 'diff', 'HEAD', '--', path])
   else:
     content = _run_command(['git', 'show', '%s:%s' % (commit, path)])
   cache[path] = content
@@ -291,10 +291,10 @@ def _get_file_diff(path, commit):
 
   if commit == PRE_SUBMIT:
     command = ['git', 'diff', '-p', '--pretty=format:', '--no-ext-diff', 'HEAD',
-               path]
+               '--', path]
   else:
     command = ['git', 'show', '-p', '--pretty=format:', '--no-ext-diff', commit,
-               path]
+               '--', path]
   output = _run_command(command)
 
   new_lines = []
