@@ -569,7 +569,7 @@ def _check_no_stray_whitespace(_project, commit, options=()):
   """Checks that there is no stray whitespace at source lines end."""
   included, excluded = _parse_common_inclusion_options(options)
   files = _filter_files(_get_affected_files(commit),
-                        included + COMMON_INCLUDED_PATHS + ['^.*\.md$'],
+                        included + COMMON_INCLUDED_PATHS + [r'^.*\.md$'],
                         excluded + COMMON_EXCLUDED_PATHS)
   return _check_lines_in_diff(commit, files,
                               lambda line: line.rstrip() != line,
@@ -634,7 +634,7 @@ def _check_keywords(_project, commit, options=()):
   keywords = sorted(keywords - unblocked_words)
   files = _filter_files(
       _get_affected_files(commit),
-      opts.include_regex + COMMON_INCLUDED_PATHS + ['^.*\.md$'],
+      opts.include_regex + COMMON_INCLUDED_PATHS + [r'^.*\.md$'],
       opts.exclude_regex + COMMON_EXCLUDED_PATHS)
   errors = []
 
