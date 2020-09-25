@@ -1987,5 +1987,64 @@ branch_check: true
     self.assertNotIn(pre_upload._check_change_has_branch_field, disabled)
 
 
+class ProjectHooksProcessing(PreUploadTestCase, cros_test_lib.TempDirTestCase):
+  """Verify _get_project_hooks processing."""
+
+  def parse(self, data):
+    """Helper to write config and parse it."""
+    filename = os.path.join(self.tempdir, 'config')
+    osutils.WriteFile(filename, data)
+    return pre_upload._get_project_hooks(project='test', presubmit=True,
+                                         config_file=filename)
+
+  def testClangFormatCheckDefault(self):
+    """Verify clang-format check disabled by default."""
+    hooks = self.parse('')
+    for func in hooks:
+      self.assertNotEqual(func.__name__, '_check_clang_format')
+      self.assertNotEqual(func.__name__, 'clang_format_check')
+
+  def testClangFormatCheckDisabled(self):
+    """Verify clang-format check disabled when requested."""
+    hooks = self.parse("""
+[Hook Overrides]
+clang_format_check: false
+""")
+    for func in hooks:
+      self.assertNotEqual(func.__name__, '_check_clang_format')
+      self.assertNotEqual(func.__name__, 'clang_format_check')
+
+  def testClangFormatCheckEnabled(self):
+    """Verify clang-format check enabled when requested."""
+    hooks = self.parse("""
+[Hook Overrides]
+clang_format_check: true
+""")
+    for func in hooks:
+      if func.__name__ == '_check_clang_format':
+        self.assertFalse(hasattr(func, 'keywords'))
+        break
+    else:
+      self.fail('could not find "_check_clang_format" enabled hook')
+
+  def testClangFormatCheckEnabledWithOptions(self):
+    """Verify clang-format check has options when provided."""
+    hooks = self.parse("""
+[Hook Overrides]
+clang_format_check: true
+
+[Hook Overrides Options]
+clang_format_check:
+  some_dir/
+""")
+    for func in hooks:
+      if func.__name__ == 'clang_format_check':
+        self.assertIn('options', func.keywords)
+        self.assertEqual(func.keywords['options'], ['some_dir/'])
+        break
+    else:
+      self.fail('could not find "clang_format_check" enabled hook')
+
+
 if __name__ == '__main__':
   cros_test_lib.main(module=__name__)
