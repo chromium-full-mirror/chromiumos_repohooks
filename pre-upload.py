@@ -639,18 +639,41 @@ def _check_keywords(_project, commit, options=()):
   errors = []
 
   def _check_line(line):
+    # Store information about each span matching blocking regex.
+    # to match unblocked regex with blocked reg ex match.
+    # [{'span':re.span,    - overlap of matching regex in line
+    #   'group':re.group,  - matching term
+    #   'blocked':bool,    - True: matching blocked, False: matching unblocked
+    #   'keyword':regex,   - block regex
+    #  }, ...]
+    blocked_span = []
+    # Store information about each span matching unblocking regex.
+    # [re.span, ...]
+    unblocked_span = []
+
     for word in keywords:
-      m = re.search(word, line, flags=re.I)
-      if m:
-        matched = True
-        # The unblock values supercede blocked values, so if any unblock
-        # regex matches a term found by the block list, we ignore it.
-        for unblocked in unblocked_words:
-          if re.search(unblocked, m.group(0)):
-            matched = False
-            break
-        if matched:
-          return f'Matched "{m[0]}" with regex of "{word}"'
+      for match in re.finditer(word, line, flags=re.I):
+        blocked_span.append({'span' : match.span(),
+                             'group' : match.group(0),
+                             'blocked' : True,
+                             'keyword' : word})
+
+    for unblocked in unblocked_words:
+      for match in re.finditer(unblocked, line, flags=re.I):
+        unblocked_span.append(match.span())
+
+    # Unblock terms that are superset of blocked terms:
+    #   blocked := "this.?word"
+    #   unblocked := "\.this.?word"
+    # "this line is blocked because of this1word"
+    # "this line is unblocked because of thenew.this1word"
+    #
+    for b in blocked_span:
+      for ub in unblocked_span:
+        if ub[0] <= b['span'][0] and ub[1] >= b['span'][1]:
+          b['blocked'] = False
+      if b['blocked']:
+        return f'Matched "{b["group"]}" with regex of "{b["keyword"]}"'
     return False
 
   diff_errors = _check_lines_in_diff(commit, files, _check_line,

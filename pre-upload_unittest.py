@@ -181,6 +181,35 @@ class CheckKeywordsTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
                                                      '--unblock', 'scru.?fy'])
     self.assertEqual(failures, [])
 
+  def test_unblock_and_block_option_cases(self):
+    self.desc_mock.return_value = 'Commit message with scruffy'
+    self.diff_mock.return_value = [
+        (1, 'Two unblocked terms scruffy and dog-pile'),
+        (2, 'Without any blocked terms'),
+        (3, 'Blocked dogpile'),
+        (4, 'Unblocked m.dogpile'),
+        (5, 'Blocked dogpile and unblocked m.dogpile'),
+        (6, 'Unlocked m.dogpile and blocked dogpile'),
+        (7, 'Unlocked m.dogpile and unblocked dog-pile'),
+    ]
+    # scruffy matches regex of 'scruffy' in block list but excluded by
+    # a different regex of 'scru.?fy' in unblock list.
+    # dogpile, dog.pile matches regex of 'dog.?pile' in block list.
+    # m.dogpile and dog-pile matches regex of 'dog.?pile' in block list but
+    # excluded by different regex '\.dog.?pile' and 'dog-pile' in unblock list.
+    failures = pre_upload._check_keywords(self.project,
+                                          'COMMIT',
+                                          ['--unblock', r'dog-pile',
+                                           '--unblock', r'scru.?fy',
+                                           '--unblock', r'\.dog.?pile'])
+    self.assertNotEqual(failures, [])
+    self.assertEqual('Found a blocked keyword in:', failures[0].msg)
+    self.assertEqual(
+        [r'x.ebuild, line 3: Matched "dogpile" with regex of "dog.?pile"',
+         r'x.ebuild, line 5: Matched "dogpile" with regex of "dog.?pile"',
+         r'x.ebuild, line 6: Matched "dogpile" with regex of "dog.?pile"'],
+        failures[0].items)
+
 
 class CheckNoLongLinesTest(PreUploadTestCase):
   """Tests for _check_no_long_lines."""
