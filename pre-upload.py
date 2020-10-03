@@ -69,7 +69,7 @@ COMMON_INCLUDED_PATHS = [
     r'.*\.inl$', r'.*\.asm$', r'.*\.hxx$', r'.*\.hpp$', r'.*\.s$', r'.*\.S$',
     # Scripts
     r'.*\.js$', r'.*\.py$', r'.*\.sh$', r'.*\.rb$', r'.*\.pl$', r'.*\.pm$',
-    # No extension at all, note that ALL CAPS files are black listed in
+    # No extension at all, note that ALL CAPS files are excluded by
     # COMMON_EXCLUDED_LIST below.
     r'(^|.*[\\\/])[^.]+$',
     # Other
@@ -579,7 +579,7 @@ def _check_no_stray_whitespace(_project, commit, options=()):
 def _check_no_tabs(_project, commit, options=()):
   """Checks there are no unexpanded tabs."""
   # Don't add entire repos here.  Update the PRESUBMIT.cfg in each repo instead.
-  # We only whitelist known specific filetypes here that show up in all repos.
+  # We only allow known specific filetypes here that show up in all repos.
   TAB_OK_PATHS = [
       r'.*\.ebuild$',
       r'.*\.eclass$',
@@ -1011,10 +1011,10 @@ def _check_for_uprev(project, commit, project_top=None):
   # If this is the portage-stable overlay, then ignore the check.  It's rare
   # that we're doing anything other than importing files from upstream, so
   # forcing a rev bump makes no sense.
-  whitelist = (
+  allowlist = (
       'chromiumos/overlays/portage-stable',
   )
-  if project.name in whitelist:
+  if project.name in allowlist:
     return None
 
   def FinalName(obj):
@@ -1028,10 +1028,10 @@ def _check_for_uprev(project, commit, project_top=None):
       commit, include_deletes=True, include_symlinks=True, relative=True,
       full_details=True)
 
-  # Don't yell about changes to whitelisted files...
-  whitelist = {'ChangeLog', 'Manifest', 'metadata.xml'}
+  # Don't yell about changes to allowed files...
+  allowlist = {'ChangeLog', 'Manifest', 'metadata.xml'}
   affected_path_objs = [x for x in affected_path_objs
-                        if os.path.basename(FinalName(x)) not in whitelist]
+                        if os.path.basename(FinalName(x)) not in allowlist]
   if not affected_path_objs:
     return None
 
@@ -1117,10 +1117,10 @@ def _check_ebuild_eapi(project, commit):
   # If this is the portage-stable overlay, then ignore the check.  It's rare
   # that we're doing anything other than importing files from upstream, and
   # we shouldn't be rewriting things fundamentally anyways.
-  whitelist = (
+  allowlist = (
       'chromiumos/overlays/portage-stable',
   )
-  if project.name in whitelist:
+  if project.name in allowlist:
     return None
 
   BAD_EAPIS = ('0', '1', '2', '3', '4')
@@ -1185,7 +1185,7 @@ def _check_ebuild_keywords(_project, commit):
   Returns:
     A HookFailure or None.
   """
-  WHITELIST = set(('*', '-*', '~*'))
+  ALLOWLIST = set(('*', '-*', '~*'))
 
   get_keywords = re.compile(r'^\s*KEYWORDS="(.*)"')
 
@@ -1202,7 +1202,7 @@ def _check_ebuild_keywords(_project, commit):
       m = get_keywords.match(line)
       if m:
         keywords = set(m.group(1).split())
-        if not keywords or WHITELIST - keywords != WHITELIST:
+        if not keywords or ALLOWLIST - keywords != ALLOWLIST:
           continue
 
         bad_ebuilds.append(ebuild)
@@ -1262,10 +1262,10 @@ def _check_ebuild_virtual_pv(project, commit):
   """Enforce the virtual PV policies."""
   # If this is the portage-stable overlay, then ignore the check.
   # We want to import virtuals as-is from upstream Gentoo.
-  whitelist = (
+  allowlist = (
       'chromiumos/overlays/portage-stable',
   )
-  if project.name in whitelist:
+  if project.name in allowlist:
     return None
 
   # We assume the repo name is the same as the dir name on disk.

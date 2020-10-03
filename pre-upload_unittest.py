@@ -1479,7 +1479,7 @@ class HelpersTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
         # A modified normal file.
         DiffEntry(src_file='buildbot/constants.py', status='M'),
         # A new symlink file.
-        DiffEntry(dst_file='scripts/cros_env_whitelist', dst_mode='120000',
+        DiffEntry(dst_file='scripts/cros_env_allowlist', dst_mode='120000',
                   status='A'),
         # A deleted file.
         DiffEntry(src_file='scripts/sync_sonic.py', status='D'),
@@ -1643,13 +1643,13 @@ class CheckForUprev(PreUploadTestCase, cros_test_lib.TempDirTestCase):
                                       project_top=self.tempdir)
     self.assertTrue(isinstance(ret, errors.HookFailure))
 
-  def testWhitelistOverlay(self):
-    """Skip checks on whitelisted overlays."""
+  def testAllowlistOverlay(self):
+    """Skip checks on allowed overlays."""
     self.assertAccepted([DiffEntry(src_file='cat/pkg/pkg-0.ebuild')],
                         project='chromiumos/overlays/portage-stable')
 
-  def testWhitelistFiles(self):
-    """Skip checks on whitelisted files."""
+  def testAllowlistFiles(self):
+    """Skip checks on allowed files."""
     files = ['ChangeLog', 'Manifest', 'metadata.xml']
     self.assertAccepted([DiffEntry(src_file=os.path.join('c', 'p', x),
                                    status='M')
