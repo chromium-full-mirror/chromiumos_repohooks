@@ -24,7 +24,7 @@ man.?in.?the.?middle
 master
 mitm
 \bnative
-red.?line
+\bred.?line
 rtfm
 sane
 sanity
@@ -33,4 +33,4 @@ white.?glove
 white.?hat
 white.?label
 white.?list
-wtf
+\bwtf

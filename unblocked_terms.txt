@@ -35,7 +35,7 @@ man.?in.?the.?middle
 master
 mitm
 \bnative
-red.?line
+\bred.?line
 rtfm
 sane
 sanity
@@ -44,4 +44,4 @@ slave
 # white.?hat
 white.?label
 white.?list
-wtf
+\bwtf
