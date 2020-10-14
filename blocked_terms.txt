@@ -22,7 +22,7 @@ insane
 \bhers\b
 man.?in.?the.?middle
 master
-mitm
+\bmitm(\b|\d)
 \bnative
 \bred.?line
 rtfm
