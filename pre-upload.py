@@ -19,6 +19,7 @@ import fnmatch
 import functools
 import json
 import os
+import pathlib
 import re
 import sys
 import stat
@@ -1047,14 +1048,27 @@ def _check_for_uprev(project, commit, project_top=None):
     else:
       return obj.dst_file
 
+  def AllowedPath(obj):
+    allowed_files = {'ChangeLog', 'Manifest', 'metadata.xml'}
+    allowed_directories = {'profiles'}
+
+    affected = pathlib.Path(FinalName(obj))
+    if affected.name in allowed_files:
+      return True
+
+    for directory in allowed_directories:
+      if directory in affected.parts:
+        return True
+
+    return False
+
   affected_path_objs = _get_affected_files(
       commit, include_deletes=True, include_symlinks=True, relative=True,
       full_details=True)
 
-  # Don't yell about changes to allowed files...
-  allowlist = {'ChangeLog', 'Manifest', 'metadata.xml'}
+  # Don't yell about changes to allowed files or directories...
   affected_path_objs = [x for x in affected_path_objs
-                        if os.path.basename(FinalName(x)) not in allowlist]
+                        if not AllowedPath(x)]
   if not affected_path_objs:
     return None
 

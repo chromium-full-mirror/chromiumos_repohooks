@@ -1726,6 +1726,15 @@ class CheckForUprev(PreUploadTestCase, cros_test_lib.TempDirTestCase):
     osutils.WriteFile(ebuild_9999_file, 'fake')
     self.assertAccepted([DiffEntry(src_file='c/p/files/f', status='M')])
 
+  def testModifiedFilesAndProfilesWith9999(self):
+    """Accept changes in files/ with a parent 9999 ebuild and profile change"""
+    ebuild_9999_file = os.path.join(self.tempdir, 'c/p/p-9999.ebuild')
+    os.makedirs(os.path.dirname(ebuild_9999_file))
+    osutils.WriteFile(ebuild_9999_file, 'fake')
+    self.assertAccepted([
+        DiffEntry(src_file='c/p/files/f', status='M'),
+        DiffEntry(src_file='c/profiles/base/make.defaults', status='M')])
+
 
 class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
   """Tests for direct_main()"""
