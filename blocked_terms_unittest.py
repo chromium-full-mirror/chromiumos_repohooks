@@ -61,52 +61,65 @@ class CheckFilesTest(cros_test_lib.MockTestCase, cros_test_lib.TempDirTestCase):
     self.project = pre_upload.Project(name='PROJECT', dir='./', remote=None)
 
   def CheckKeyword(self, test):
-    # Test a particular keyword.
-    #
-    #  Args:
-    #   { DIFF:[list of values to test keyword against],
-    #     FAILURE:[list of expected failures] or None }
-    #
+    """Test a particular keyword.
+
+    Args:
+      test: { DIFF: [(int, 'line to test keyword against'), ],
+              MATCH: number of matched terms or None, }
+    """
     def __check_keyword(unblocked):
       self.desc_mock.return_value = 'Commit message'
       self.diff_mock.return_value = test[self.DIFF]
       failures = pre_upload._check_keywords(self.project, 'COMMIT', ())
       if test[self.MATCH] and not unblocked:
+        # Check that the expected number of blocked lines are found.
         self.assertNotEqual(failures, [])
-        self.assertEqual('Found a blocked keyword in:', failures[0].msg)
-        self.assertEqual(test[self.MATCH], failures[0].items)
+        self.assertEqual(test[self.MATCH], len(failures[0].items))
       else:
         self.assertEqual(failures, [])
 
+    # Check blocked terms.
     self.rf_mock.side_effect = [self.common_keywords, str('')]
     __check_keyword(unblocked=False)
 
+    # Check unblocked terms.
     self.rf_mock.side_effect = [self.common_keywords, self.unblocked_keywords]
     __check_keyword(unblocked=True)
 
   def test_mitm_keyword(self):
-    # pylint: disable=C0301
-
-    # { DIFF:[list of values to test keyword against],
-    #   FAILURE:[list of expected failures] or None },}
-    #
-    test_instance = {
-        self.DIFF:[(1, 'Line with blocked mitm '),
-                   (2, 'Line with blocked (mitm)'),
-                   (3, 'Line with blocked .mitm'),
-                   (4, 'Line with blocked MITM'),
-                   (5, 'Line with blocked mitm1'),
-                   (6, 'Line with unblocked (commitment)'),
-                   (7, 'Line with unblocked DailyLimitMins'),],
-        self.MATCH:[
-            'x.ebuild, line 1: Matched "mitm" with regex of "\\bmitm(\\b|\\d)"',
-            'x.ebuild, line 2: Matched "mitm" with regex of "\\bmitm(\\b|\\d)"',
-            'x.ebuild, line 3: Matched "mitm" with regex of "\\bmitm(\\b|\\d)"',
-            'x.ebuild, line 4: Matched "MITM" with regex of "\\bmitm(\\b|\\d)"',
-            'x.ebuild, line 5: Matched "mitm1" with regex of "\\bmitm(\\b|\\d)"'],
+    test_instance_blocked = {
+        self.DIFF: [(1, 'blocked mitm '),
+                    (2, 'blocked (mitm)'),
+                    (3, 'blocked .mitm'),
+                    (4, 'blocked MITM'),
+                    (5, 'blocked mitm1'),],
+        self.MATCH: 5,
     }
+    self.CheckKeyword(test_instance_blocked)
 
-    self.CheckKeyword(test_instance)
+    test_instance_unblocked = {
+        self.DIFF: [(1, 'unblocked (commitment)'),
+                    (2, 'unblocked DailyLimitMins'),],
+        self.MATCH: 0,
+    }
+    self.CheckKeyword(test_instance_unblocked)
+
+  def test_sane_keyword(self):
+    test_instance_blocked = {
+        self.DIFF: [(1, 'blocked sane '),
+                    (2, 'blocked (sane)'),
+                    (3, 'blocked .sane'),
+                    (4, 'blocked SANE'),
+                    (5, 'blocked sane1'),],
+        self.MATCH: 5,
+    }
+    self.CheckKeyword(test_instance_blocked)
+
+    test_instance_unblocked = {
+        self.DIFF: [(1, 'unblocked asanEnabled'),],
+        self.MATCH: 0,
+    }
+    self.CheckKeyword(test_instance_unblocked)
 
 
 if __name__ == '__main__':

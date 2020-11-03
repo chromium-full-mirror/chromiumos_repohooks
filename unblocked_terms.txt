@@ -37,7 +37,7 @@ master
 \bnative
 \bred.?line
 rtfm
-sane
+\bsane(\b|\d)
 sanity
 slave
 # white.?glove
