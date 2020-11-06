@@ -121,6 +121,24 @@ class CheckFilesTest(cros_test_lib.MockTestCase, cros_test_lib.TempDirTestCase):
     }
     self.CheckKeyword(test_instance_unblocked)
 
+  def test_whitelist_keyword(self):
+    test_instance_blocked = {
+        self.DIFF: [(1, 'blocked white list '),
+                    (2, 'blocked white-list'),
+                    (3, 'blocked whitelist'),
+                    (4, 'blocked _whitelist'),
+                    (5, 'blocked whitelist1'),
+                    (6, 'blocked whitelisted'),],
+        self.MATCH: 6,
+    }
+    self.CheckKeyword(test_instance_blocked)
+
+    test_instance_unblocked = {
+        self.DIFF: [(1, 'unblocked white dog list'),],
+        self.MATCH: 0,
+    }
+    self.CheckKeyword(test_instance_unblocked)
+
 
 if __name__ == '__main__':
   cros_test_lib.main(module=__name__)
