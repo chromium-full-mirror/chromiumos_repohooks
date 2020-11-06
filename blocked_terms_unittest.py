@@ -93,8 +93,8 @@ class CheckFilesTest(cros_test_lib.MockTestCase, cros_test_lib.TempDirTestCase):
                     (3, 'blocked .mitm'),
                     (4, 'blocked MITM'),
                     (5, 'blocked mitm1'),],
-        self.MATCH: 5,
     }
+    test_instance_blocked[self.MATCH] = len(test_instance_blocked[self.DIFF])
     self.CheckKeyword(test_instance_blocked)
 
     test_instance_unblocked = {
@@ -113,8 +113,8 @@ class CheckFilesTest(cros_test_lib.MockTestCase, cros_test_lib.TempDirTestCase):
                     (5, 'blocked sane1'),
                     (6, 'blocked insane'),
                     (7, 'blocked .insane'),],
-        self.MATCH: 7,
     }
+    test_instance_blocked[self.MATCH] = len(test_instance_blocked[self.DIFF])
     self.CheckKeyword(test_instance_blocked)
 
     test_instance_unblocked = {
@@ -131,8 +131,8 @@ class CheckFilesTest(cros_test_lib.MockTestCase, cros_test_lib.TempDirTestCase):
                     (4, 'blocked _whitelist'),
                     (5, 'blocked whitelist1'),
                     (6, 'blocked whitelisted'),],
-        self.MATCH: 6,
     }
+    test_instance_blocked[self.MATCH] = len(test_instance_blocked[self.DIFF])
     self.CheckKeyword(test_instance_blocked)
 
     test_instance_unblocked = {
