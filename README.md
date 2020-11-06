@@ -130,12 +130,14 @@ cros_license_check: --exclude_regex=\b(checkpatch\.pl|kernel-doc)$
 
 `blocked_terms.txt` contains a default list of words which are blocked by
 keyword_check. `unblocked_terms.txt` is a default list of words which are
-unblocked. They have the same contents. So, by default nothing is blocked.
+unblocked. Some words appear in both lists because they still appear in a
+non-negligible number of projects.
 
-The global `unblocked_terms.txt` is referenced only if a copy doesn't exist in a
-project. Thus, by copying `unblocked_terms.txt` to your project, you can start
-blocking changes which contain words not listed in the project's
-`unblocked_terms.txt`:
+Repohook references the global `unblocked_terms.txt` only if a copy doesn't
+exist in a project. Thus, you can copy `unblocked_terms.txt` to your project
+and remove the words which are already cleared locally. That'll allow your
+project to make progress individually in terms of making the language more
+inclusive. This local copy also works as a TO-DO list.
 
 1.  Copy `unblocked_terms.txt` to the project's root directory.
 2.  List which words are already cleared (or not present):
@@ -143,7 +145,7 @@ blocking changes which contain words not listed in the project's
 3.  Remove the cleared words from the project's `unblocked_terms.txt`
 4.  Test and submit CL.
 
-When later making the project more inclusive, you can do:
+Later you can do:
 
 1.  Pick a word from the project's `unblocked_terms.txt`.
 2.  Fix all occurrences of the word.
