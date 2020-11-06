@@ -24,7 +24,6 @@ dummy
 # grandfathered
 # gr[ae]y.?hat
 gr[ae]y.?list
-insane
 \bhe\b
 \bshe\b
 \bhim\b
@@ -37,7 +36,7 @@ master
 \bnative
 \bred.?line
 rtfm
-\bsane(\b|\d)
+\b(in)?sane(\b|\d)
 sanity
 slave
 # white.?glove

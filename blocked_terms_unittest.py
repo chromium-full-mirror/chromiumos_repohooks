@@ -110,8 +110,10 @@ class CheckFilesTest(cros_test_lib.MockTestCase, cros_test_lib.TempDirTestCase):
                     (2, 'blocked (sane)'),
                     (3, 'blocked .sane'),
                     (4, 'blocked SANE'),
-                    (5, 'blocked sane1'),],
-        self.MATCH: 5,
+                    (5, 'blocked sane1'),
+                    (6, 'blocked insane'),
+                    (7, 'blocked .insane'),],
+        self.MATCH: 7,
     }
     self.CheckKeyword(test_instance_blocked)
 
