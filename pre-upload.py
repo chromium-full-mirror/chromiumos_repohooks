@@ -107,6 +107,7 @@ COMMON_EXCLUDED_PATHS = [
 
 LICENSE_EXCLUDED_PATHS = [
     r'^(.*/)?OWNERS(\..*)?$',
+    r'^(.*/)?DIR_METADATA(\..*)?$',
 ]
 
 _CONFIG_FILE = 'PRESUBMIT.cfg'

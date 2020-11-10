@@ -984,6 +984,12 @@ class CheckCrosLicenseCopyrightHeader(PreUploadTestCase):
     self.content_mock.return_value = u'owner@chromium.org'
     self.assertFalse(pre_upload._check_cros_license('proj', 'sha1'))
 
+  def testIgnoreMetadataFiles(self):
+    """Ignores metadata files for license checks."""
+    self.file_mock.return_value = ['foo/DIR_METADATA']
+    self.content_mock.return_value = u'team_email: "team@chromium.org"'
+    self.assertFalse(pre_upload._check_cros_license('proj', 'sha1'))
+
   def testIgnoreTopLevelExcludedPaths(self):
     """Ignores excluded paths for license checks."""
     self.file_mock.return_value = ['OWNERS']
