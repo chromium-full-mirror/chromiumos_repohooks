@@ -17,7 +17,7 @@ import sys
 
 
 # pylint: disable=W0212
-# We access private members of the pre_upload module all over the place.
+# We access private members of the pre_upload module.
 
 # Make sure we can find the chromite paths.
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -40,25 +40,35 @@ class CheckFilesTest(cros_test_lib.MockTestCase, cros_test_lib.TempDirTestCase):
 
   DIFF = 'diff'
   MATCH = 'match'
+  common_file_terms = None
+  unblocked_file_terms = None
+  hooks_dir = None
 
-  def setUp(self):
-    pre_upload.CACHE.clear()
-
-    self.common_keywords = osutils.ReadFile(
-        os.path.join(pre_upload._get_hooks_dir(),
+  @classmethod
+  def setUpClass(cls):
+    """Initialize the class instance mockers."""
+    CheckFilesTest.setup_initialized = True
+    CheckFilesTest.hooks_dir = pre_upload._get_hooks_dir()
+    CheckFilesTest.common_file_terms = pre_upload._read_terms_file(
+        os.path.join(CheckFilesTest.hooks_dir,
                      pre_upload.BLOCKED_TERMS_FILE))
-
-    self.unblocked_keywords = osutils.ReadFile(
-        os.path.join(pre_upload._get_hooks_dir(),
+    CheckFilesTest.unblocked_file_terms = pre_upload._read_terms_file(
+        os.path.join(CheckFilesTest.hooks_dir,
                      pre_upload.UNBLOCKED_TERMS_FILE))
 
+  def setUp(self):
+    """Initialize the test instance mockers."""
+    pre_upload.CACHE.clear()
     self.PatchObject(pre_upload, '_get_affected_files',
                      return_value=['x.ebuild'])
     self.PatchObject(pre_upload, '_filter_files', return_value=['x.ebuild'])
-    self.rf_mock = self.PatchObject(osutils, 'ReadFile')
+
+    self.rf_mock = self.PatchObject(pre_upload, '_read_terms_file')
     self.diff_mock = self.PatchObject(pre_upload, '_get_file_diff')
     self.desc_mock = self.PatchObject(pre_upload, '_get_commit_desc')
     self.project = pre_upload.Project(name='PROJECT', dir='./', remote=None)
+    self.hooks_dir_mock = self.PatchObject(pre_upload, '_get_hooks_dir')
+    self.hooks_dir_mock.return_value = CheckFilesTest.hooks_dir
 
   def CheckKeyword(self, test):
     """Test a particular keyword.
@@ -67,80 +77,91 @@ class CheckFilesTest(cros_test_lib.MockTestCase, cros_test_lib.TempDirTestCase):
       test: { DIFF: [(int, 'line to test keyword against'), ],
               MATCH: number of matched terms or None, }
     """
-    def __check_keyword(unblocked):
+    def _check_keyword(unblocked):
       self.desc_mock.return_value = 'Commit message'
       self.diff_mock.return_value = test[self.DIFF]
       failures = pre_upload._check_keywords(self.project, 'COMMIT', ())
       if test[self.MATCH] and not unblocked:
-        # Check that the expected number of blocked lines are found.
         self.assertNotEqual(failures, [])
-        self.assertEqual(test[self.MATCH], len(failures[0].items))
+        self.assertEqual(test[self.MATCH], len(failures[0].items),
+                         msg=failures[0].items)
       else:
         self.assertEqual(failures, [])
 
     # Check blocked terms.
-    self.rf_mock.side_effect = [self.common_keywords, str('')]
-    __check_keyword(unblocked=False)
+    self.rf_mock.side_effect = [CheckFilesTest.common_file_terms, set()]
+    _check_keyword(unblocked=False)
 
     # Check unblocked terms.
-    self.rf_mock.side_effect = [self.common_keywords, self.unblocked_keywords]
-    __check_keyword(unblocked=True)
+    self.rf_mock.side_effect = [CheckFilesTest.common_file_terms,
+                                CheckFilesTest.unblocked_file_terms]
+    _check_keyword(unblocked=True)
+
+  def check_lines(self, blocked_lines, unblocked_lines):
+    """Check each lines for blocked or unblocked terms."""
+    self.CheckKeyword({self.DIFF: blocked_lines,
+                       self.MATCH: len(blocked_lines)})
+    self.CheckKeyword({self.DIFF: unblocked_lines, self.MATCH: 0})
 
   def test_mitm_keyword(self):
-    test_instance_blocked = {
-        self.DIFF: [(1, 'blocked mitm '),
-                    (2, 'blocked (mitm)'),
-                    (3, 'blocked .mitm'),
-                    (4, 'blocked MITM'),
-                    (5, 'blocked mitm1'),],
-    }
-    test_instance_blocked[self.MATCH] = len(test_instance_blocked[self.DIFF])
-    self.CheckKeyword(test_instance_blocked)
-
-    test_instance_unblocked = {
-        self.DIFF: [(1, 'unblocked (commitment)'),
-                    (2, 'unblocked DailyLimitMins'),],
-        self.MATCH: 0,
-    }
-    self.CheckKeyword(test_instance_unblocked)
+    """Test mitm term."""
+    self.check_lines([
+        # blocked
+        (1, 'blocked mitm '),
+        (2, 'blocked (mitm)'),
+        (3, 'blocked .mitm'),
+        (4, 'blocked MITM'),
+        (5, 'blocked mitm1'),
+    ], [
+        # unblocked
+        (11, 'unblocked (commitment)'),
+        (12, 'unblocked DailyLimitMins'),
+    ])
 
   def test_sane_keyword(self):
-    test_instance_blocked = {
-        self.DIFF: [(1, 'blocked sane '),
-                    (2, 'blocked (sane)'),
-                    (3, 'blocked .sane'),
-                    (4, 'blocked SANE'),
-                    (5, 'blocked sane1'),
-                    (6, 'blocked insane'),
-                    (7, 'blocked .insane'),],
-    }
-    test_instance_blocked[self.MATCH] = len(test_instance_blocked[self.DIFF])
-    self.CheckKeyword(test_instance_blocked)
-
-    test_instance_unblocked = {
-        self.DIFF: [(1, 'unblocked asanEnabled'),],
-        self.MATCH: 0,
-    }
-    self.CheckKeyword(test_instance_unblocked)
+    """Test sane term."""
+    self.check_lines([
+        # blocked
+        (1, 'blocked sane '),
+        (2, 'blocked (sane)'),
+        (3, 'blocked .sane'),
+        (4, 'blocked SANE'),
+        (5, 'blocked sane1'),
+        (6, 'blocked insane'),
+        (7, 'blocked .insane'),
+    ], [
+        # unblocked
+        (11, 'unblocked asanEnabled'),
+    ])
 
   def test_whitelist_keyword(self):
-    test_instance_blocked = {
-        self.DIFF: [(1, 'blocked white list '),
-                    (2, 'blocked white-list'),
-                    (3, 'blocked whitelist'),
-                    (4, 'blocked _whitelist'),
-                    (5, 'blocked whitelist1'),
-                    (6, 'blocked whitelisted'),],
-    }
-    test_instance_blocked[self.MATCH] = len(test_instance_blocked[self.DIFF])
-    self.CheckKeyword(test_instance_blocked)
+    """Test whitelist term."""
+    self.check_lines([
+        # blocked
+        (1, 'blocked white list '),
+        (2, 'blocked white-list'),
+        (3, 'blocked whitelist'),
+        (4, 'blocked _whitelist'),
+        (5, 'blocked whitelist1'),
+        (6, 'blocked whitelisted'),
+    ], [
+        # unblocked
+        (11, 'unblocked white dog list'),
+    ])
 
-    test_instance_unblocked = {
-        self.DIFF: [(1, 'unblocked white dog list'),],
-        self.MATCH: 0,
-    }
-    self.CheckKeyword(test_instance_unblocked)
+  def test_sanity_keyword(self):
+    """Test sanity term."""
+    self.check_lines([
+        # blocked
+        (1, 'blocked sanity '),
+        (2, 'blocked (sanity)'),
+        (3, 'blocked struct.sanity'),
+        (4, 'blocked SANITY'),
+        (5, 'blocked AndroidSanityCheck'),
+    ], [
+        # unblocked
+    ])
 
 
 if __name__ == '__main__':
-  cros_test_lib.main(module=__name__)
+  cros_test_lib.main(module='blocked_terms_unittest')
