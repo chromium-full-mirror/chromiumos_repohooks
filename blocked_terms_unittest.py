@@ -46,15 +46,12 @@ class CheckFilesTest(cros_test_lib.MockTestCase, cros_test_lib.TempDirTestCase):
 
   @classmethod
   def setUpClass(cls):
-    """Initialize the class instance mockers."""
-    CheckFilesTest.setup_initialized = True
-    CheckFilesTest.hooks_dir = pre_upload._get_hooks_dir()
-    CheckFilesTest.common_file_terms = pre_upload._read_terms_file(
-        os.path.join(CheckFilesTest.hooks_dir,
-                     pre_upload.BLOCKED_TERMS_FILE))
-    CheckFilesTest.unblocked_file_terms = pre_upload._read_terms_file(
-        os.path.join(CheckFilesTest.hooks_dir,
-                     pre_upload.UNBLOCKED_TERMS_FILE))
+    """Initialize the class instance mocks."""
+    cls.hooks_dir = pre_upload._get_hooks_dir()
+    cls.common_file_terms = pre_upload._read_terms_file(
+        os.path.join(cls.hooks_dir, pre_upload.BLOCKED_TERMS_FILE))
+    cls.unblocked_file_terms = pre_upload._read_terms_file(
+        os.path.join(cls.hooks_dir, pre_upload.UNBLOCKED_TERMS_FILE))
 
   def setUp(self):
     """Initialize the test instance mockers."""
@@ -68,7 +65,7 @@ class CheckFilesTest(cros_test_lib.MockTestCase, cros_test_lib.TempDirTestCase):
     self.desc_mock = self.PatchObject(pre_upload, '_get_commit_desc')
     self.project = pre_upload.Project(name='PROJECT', dir='./', remote=None)
     self.hooks_dir_mock = self.PatchObject(pre_upload, '_get_hooks_dir')
-    self.hooks_dir_mock.return_value = CheckFilesTest.hooks_dir
+    self.hooks_dir_mock.return_value = self.hooks_dir
 
   def CheckKeyword(self, test):
     """Test a particular keyword.
@@ -89,12 +86,12 @@ class CheckFilesTest(cros_test_lib.MockTestCase, cros_test_lib.TempDirTestCase):
         self.assertEqual(failures, [])
 
     # Check blocked terms.
-    self.rf_mock.side_effect = [CheckFilesTest.common_file_terms, set()]
+    self.rf_mock.side_effect = [self.common_file_terms, set()]
     _check_keyword(unblocked=False)
 
     # Check unblocked terms.
-    self.rf_mock.side_effect = [CheckFilesTest.common_file_terms,
-                                CheckFilesTest.unblocked_file_terms]
+    self.rf_mock.side_effect = [self.common_file_terms,
+                                self.unblocked_file_terms]
     _check_keyword(unblocked=True)
 
   def check_lines(self, blocked_lines, unblocked_lines):
@@ -164,4 +161,4 @@ class CheckFilesTest(cros_test_lib.MockTestCase, cros_test_lib.TempDirTestCase):
 
 
 if __name__ == '__main__':
-  cros_test_lib.main(module='blocked_terms_unittest')
+  cros_test_lib.main(module=__name__)
