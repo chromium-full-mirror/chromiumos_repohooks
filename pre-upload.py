@@ -1296,6 +1296,20 @@ def _check_ebuild_licenses(_project, commit):
   return None
 
 
+def _check_ebuild_r0(_project, commit):
+  """Do not allow ebuilds to end with -r0 versions."""
+  ebuilds = _filter_files(
+      _get_affected_files(commit, include_symlinks=True, relative=True),
+      (r'-r0\.ebuild$',))
+  if ebuilds:
+    return HookFailure(
+        'The -r0 in ebuilds is redundant and confusing. Simply remove it.\n'
+        'For example: git mv foo-1.0-r0.ebuild foo-1.0.ebuild',
+        ebuilds)
+
+  return None
+
+
 def _check_ebuild_virtual_pv(project, commit):
   """Enforce the virtual PV policies."""
   # If this is the portage-stable overlay, then ignore the check.
@@ -2070,6 +2084,7 @@ _COMMON_HOOKS = [
     _check_ebuild_eapi,
     _check_ebuild_keywords,
     _check_ebuild_licenses,
+    _check_ebuild_r0,
     _check_ebuild_virtual_pv,
     _check_exec_files,
     _check_for_uprev,

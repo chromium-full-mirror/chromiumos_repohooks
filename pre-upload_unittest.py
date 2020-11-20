@@ -801,6 +801,25 @@ class CheckEbuildKeywords(PreUploadTestCase):
     self._CheckContent(u'# HEADER\nKEYWORDS="~arm x86"\nblah\n', True)
 
 
+class CheckEbuildR0(PreUploadTestCase):
+  """Tests for _check_ebuild_r0."""
+
+  def setUp(self):
+    self.file_mock = self.PatchObject(pre_upload, '_get_affected_files')
+
+  def testNoMatches(self):
+    """Handle no matching files."""
+    self.file_mock.return_value = []
+    ret = pre_upload._check_ebuild_r0('project', 'HEAD')
+    self.assertIsNone(ret)
+
+  def testBadEbuilds(self):
+    """Handle matching r0 files."""
+    self.file_mock.return_value = ['foo-1-r0.ebuild']
+    ret = pre_upload._check_ebuild_r0('project', 'HEAD')
+    self.assertIsNotNone(ret)
+
+
 class CheckEbuildVirtualPv(PreUploadTestCase):
   """Tests for _check_ebuild_virtual_pv."""
 
