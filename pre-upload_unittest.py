@@ -352,13 +352,9 @@ class CheckProjectPrefix(PreUploadTestCase, cros_test_lib.TempDirTestCase):
   """Tests for _check_project_prefix."""
 
   def setUp(self):
-    self.orig_cwd = os.getcwd()
     os.chdir(self.tempdir)
     self.file_mock = self.PatchObject(pre_upload, '_get_affected_files')
     self.desc_mock = self.PatchObject(pre_upload, '_get_commit_desc')
-
-  def tearDown(self):
-    os.chdir(self.orig_cwd)
 
   def _WriteAliasFile(self, filename, project):
     """Writes a project name to a file, creating directories if needed."""
@@ -1507,7 +1503,6 @@ class HelpersTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
   """Various tests for utility functions."""
 
   def setUp(self):
-    self.orig_cwd = os.getcwd()
     os.chdir(self.tempdir)
 
     self.PatchObject(git, 'RawDiff', return_value=[
@@ -1519,9 +1514,6 @@ class HelpersTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
         # A deleted file.
         DiffEntry(src_file='scripts/sync_sonic.py', status='D'),
     ])
-
-  def tearDown(self):
-    os.chdir(self.orig_cwd)
 
   def _WritePresubmitIgnoreFile(self, subdir, data):
     """Writes to a .presubmitignore file in the passed-in subdirectory."""
