@@ -1773,8 +1773,8 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
     ret = pre_upload.direct_main(['--project', 'foooooooooo'])
     self.assertEqual(ret, 0)
     self.hooks_mock.assert_called_once_with(
-        'foooooooooo', proj_dir=os.getcwd(), commit_list=[],
-        presubmit=mock.ANY, config_file=mock.ANY)
+        'foooooooooo', proj_dir=os.path.dirname(os.path.abspath(__file__)),
+        commit_list=[], presubmit=mock.ANY, config_file=mock.ANY)
 
   def testNoGitDir(self):
     """We should die when run on a non-git dir."""

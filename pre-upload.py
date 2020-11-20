@@ -2471,11 +2471,11 @@ def direct_main(argv):
   # Check/normlaize git dir; if unspecified, we'll use the root of the git
   # project from CWD
   if opts.dir is None:
-    git_dir = _run_command(['git', 'rev-parse', '--git-dir'],
+    git_dir = _run_command(['git', 'rev-parse', '--show-toplevel'],
                            stderr=True).strip()
     if not git_dir:
       raise BadInvocation('The current directory is not part of a git project.')
-    opts.dir = os.path.dirname(os.path.abspath(git_dir))
+    opts.dir = git_dir
   elif not os.path.isdir(opts.dir):
     raise BadInvocation('Invalid dir: %s' % opts.dir)
   elif not os.path.isdir(os.path.join(opts.dir, '.git')):
