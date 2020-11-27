@@ -1050,7 +1050,9 @@ def _check_for_uprev(project, commit, project_top=None):
       return obj.dst_file
 
   def AllowedPath(obj):
-    allowed_files = {'ChangeLog', 'Manifest', 'metadata.xml'}
+    allowed_files = {
+        'ChangeLog', 'Manifest', 'metadata.xml', 'OWNERS', 'README.md',
+    }
     allowed_directories = {'profiles'}
 
     affected = pathlib.Path(FinalName(obj))
