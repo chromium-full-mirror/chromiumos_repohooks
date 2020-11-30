@@ -1298,6 +1298,46 @@ def _check_ebuild_licenses(_project, commit):
   return None
 
 
+def _check_ebuild_owners(_project, commit):
+  """Require all new packages include an OWNERS file."""
+  # Look for all adds/removes since we're going to ignore changes that only
+  # update a package.  We only want to flag new package imports for now.
+  affected_files_objs = _get_affected_files(
+      commit, include_deletes=True, include_symlinks=True, relative=True,
+      full_details=True)
+
+  # If this CL doesn't include any ebuilds, don't bother complaining.
+  new_ebuilds = [x for x in affected_files_objs
+                 if x.status == 'A' and x.src_file.endswith('.ebuild')]
+  if not new_ebuilds:
+    return None
+
+  # Check each package dir.
+  packages_missing_owners = []
+  package_dirs = sorted(set(os.path.dirname(x.src_file) for x in new_ebuilds))
+  for package_dir in package_dirs:
+    package_files = [
+        x for x in affected_files_objs
+        if (x.src_file and x.src_file.startswith(f'{package_dir}/')) or
+           (x.dst_file and x.dst_file.startswith(f'{package_dir}/'))]
+
+    # Only complain about new ebuilds, not existing ones.  For now.
+    # We'll assume that "all adds" means it's a new package.
+    if any(x for x in package_files if x.status != 'A'):
+      continue
+
+    # See if there's an OWNERS file in there already.
+    if not _get_file_content(os.path.join(package_dir, 'OWNERS'), commit):
+      packages_missing_owners.append(package_dir)
+
+  if packages_missing_owners:
+    return HookFailure(
+        'All new packages must have an OWNERS file included.',
+        packages_missing_owners)
+
+  return None
+
+
 def _check_ebuild_r0(_project, commit):
   """Do not allow ebuilds to end with -r0 versions."""
   ebuilds = _filter_files(
@@ -2086,6 +2126,7 @@ _COMMON_HOOKS = [
     _check_ebuild_eapi,
     _check_ebuild_keywords,
     _check_ebuild_licenses,
+    _check_ebuild_owners,
     _check_ebuild_r0,
     _check_ebuild_virtual_pv,
     _check_exec_files,
