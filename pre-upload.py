@@ -75,7 +75,7 @@ COMMON_INCLUDED_PATHS = [
     r'(^|.*[\\\/])[^.]+$',
     # Other
     r'.*\.java$', r'.*\.mk$', r'.*\.am$',
-    r'.*\.policy$', r'.*\.conf$', r'.*\.go$',
+    r'.*\.policy$', r'.*\.rules$', r'.*\.conf$', r'.*\.go$',
     r'(^OWNERS|/OWNERS)',
 ]
 
