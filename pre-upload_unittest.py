@@ -2124,8 +2124,7 @@ class ProjectHooksProcessing(PreUploadTestCase, cros_test_lib.TempDirTestCase):
     """Helper to write config and parse it."""
     filename = os.path.join(self.tempdir, 'config')
     osutils.WriteFile(filename, data)
-    return pre_upload._get_project_hooks(project='test', presubmit=True,
-                                         config_file=filename)
+    return pre_upload._get_project_hooks(presubmit=True, config_file=filename)
 
   def testClangFormatCheckDefault(self):
     """Verify clang-format check disabled by default."""

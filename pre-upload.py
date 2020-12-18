@@ -2144,14 +2144,6 @@ _COMMON_HOOKS = [
 ]
 
 
-# A dictionary of project-specific hooks(callbacks), indexed by project name.
-# dict[project] = [callback1, callback2]
-_PROJECT_SPECIFIC_HOOKS = {
-    'chromiumos/third_party/kernel': [_kernel_configcheck],
-    'chromiumos/third_party/kernel-next': [_kernel_configcheck],
-}
-
-
 # A dictionary of flags (keys) that can appear in the config file, and the hook
 # that the flag controls (value).
 _HOOK_FLAGS = {
@@ -2258,13 +2250,12 @@ def _get_project_hook_scripts(config):
   return config.items(SECTION)
 
 
-def _get_project_hooks(project, presubmit, config_file=None):
+def _get_project_hooks(presubmit, config_file=None):
   """Returns a list of hooks that need to be run for a project.
 
   Expects to be called from within the project root.
 
   Args:
-    project: A string, name of the project.
     presubmit: A Boolean, True if the check is run as a git pre-submit script.
     config_file: A string, the config file. Defaults to _CONFIG_FILE.
   """
@@ -2293,10 +2284,6 @@ def _get_project_hooks(project, presubmit, config_file=None):
   hooks = [hook for hook in hooks if hook not in unwrapped_hooks]
 
   hooks = list(enabled_hooks) + hooks
-
-  if project in _PROJECT_SPECIFIC_HOOKS:
-    hooks.extend(hook for hook in _PROJECT_SPECIFIC_HOOKS[project]
-                 if hook not in disabled_hooks)
 
   for name, script in _get_project_hook_scripts(config):
     func = functools.partial(_run_project_hook_script, script)
@@ -2371,7 +2358,7 @@ def _run_project_hooks(project_name, proj_dir=None,
       os.chdir(pwd)
       return True
 
-  hooks = _get_project_hooks(project.name, presubmit, config_file)
+  hooks = _get_project_hooks(presubmit, config_file)
   error_found = False
   commit_count = len(commit_list)
   hook_count = len(hooks)
