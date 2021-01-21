@@ -1272,10 +1272,6 @@ def _check_ebuild_licenses(_project, commit):
   LICENSES_IGNORE = ['||', '(', ')']
 
   for ebuild in touched_ebuilds:
-    # Skip virutal packages.
-    if ebuild.split('/')[-3] == 'virtual':
-      continue
-
     # e.g. path/to/overlay/category/package/package.ebuild -> path/to/overlay
     overlay_path = os.sep.join(ebuild.split(os.sep)[:-3])
 
@@ -1285,6 +1281,12 @@ def _check_ebuild_licenses(_project, commit):
                                                              overlay_path)
     except ValueError as e:
       return HookFailure(str(e), [ebuild])
+
+    # Virtual packages must use "metapackage" license.
+    if ebuild.split('/')[-3] == 'virtual':
+      if license_types != ['metapackage']:
+        return HookFailure('Virtual package must use LICENSE="metapackage".',
+                           [ebuild])
 
     # Also ignore licenses ending with '?'
     for license_type in [x for x in license_types

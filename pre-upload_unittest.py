@@ -801,6 +801,69 @@ class CheckEbuildKeywords(PreUploadTestCase):
     self._CheckContent(u'# HEADER\nKEYWORDS="~arm x86"\nblah\n', True)
 
 
+class CheckEbuildLicense(PreUploadTestCase):
+  """Tests for _check_ebuild_licenses."""
+
+  def setUp(self):
+    self.file_mock = self.PatchObject(pre_upload, '_get_affected_files')
+    self.content_mock = self.PatchObject(pre_upload, '_get_file_content')
+
+  def testNoEbuilds(self):
+    """If no ebuilds are found, do not scan."""
+    self.file_mock.return_value = ['a.file', 'ebuild-is-not.foo']
+
+    ret = pre_upload._check_ebuild_licenses(ProjectNamed('overlay'), 'HEAD')
+    self.assertIsNone(ret)
+
+    self.assertEqual(self.content_mock.call_count, 0)
+
+  def testSomeEbuilds(self):
+    """If ebuilds are found, only scan them."""
+    self.file_mock.return_value = ['a.file', 'blah', 'cow',
+                                   'overlay/category/pkg/pkg.ebuild']
+    self.content_mock.return_value = '# HEADER\nLICENSE="GPL-3"\nblah\n'
+
+    ret = pre_upload._check_ebuild_licenses(ProjectNamed('overlay'), 'HEAD')
+    self.assertIsNone(ret)
+
+    self.assertEqual(self.content_mock.call_count, 1)
+
+  def _CheckContent(self, license_field, ebuild_path, fails):
+    """Test helper for inputs/outputs.
+
+    Args:
+      license_field: Contents of LICENSE variable in the tested ebuild.
+      ebuild_path: The path to the tested ebuild.
+      fails: Whether inputs should trigger a hook failure.
+    """
+    self.file_mock.return_value = [ebuild_path]
+    self.content_mock.return_value = f'# blah\nLICENSE="{license_field}"\nbla\n'
+
+    ret = pre_upload._check_ebuild_licenses(ProjectNamed('overlay'), 'HEAD')
+    if fails:
+      self.assertIsInstance(ret, errors.HookFailure)
+    else:
+      self.assertIsNone(ret)
+
+    self.assertEqual(self.content_mock.call_count, 1)
+
+  def testEmpty(self):
+    """Check empty license is not accepted."""
+    self._CheckContent('', 'overlay/category/pkg/pkg.ebuild', True)
+
+  def testValid(self):
+    """Check valid license is accepted."""
+    self._CheckContent('GPL-3', 'overlay/category/pkg/pkg.ebuild', False)
+
+  def testVirtualNotMetapackage(self):
+    """Check virtual package not using metapackage is not accepted."""
+    self._CheckContent('GPL-3', 'overlay/virtual/pkg/pkg.ebuild', True)
+
+  def testVirtualMetapackage(self):
+    """Check virtual package using metapackage is accepted."""
+    self._CheckContent('metapackage', 'overlay/virtual/pkg/pkg.ebuild', False)
+
+
 class CheckEbuildOwners(PreUploadTestCase):
   """Tests for _check_ebuild_owners."""
 
