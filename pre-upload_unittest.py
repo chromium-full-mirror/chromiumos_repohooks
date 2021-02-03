@@ -875,7 +875,7 @@ class CheckEbuildOwners(PreUploadTestCase):
   def testNoMatches(self):
     """Handle no matching files."""
     self.file_mock.return_value = []
-    ret = pre_upload._check_ebuild_owners('project', 'HEAD')
+    ret = pre_upload._check_ebuild_owners(ProjectNamed('project'), 'HEAD')
     self.assertIsNone(ret)
 
   def testNoEbuilds(self):
@@ -885,7 +885,7 @@ class CheckEbuildOwners(PreUploadTestCase):
         DiffEntry(src_file='dev-util/pkg/README.md', status='A'),
         DiffEntry(src_file='scripts/sync_sonic.py', status='D'),
     ]
-    ret = pre_upload._check_ebuild_owners('project', 'HEAD')
+    ret = pre_upload._check_ebuild_owners(ProjectNamed('project'), 'HEAD')
     self.assertIsNone(ret)
 
   def testMissingOwnersFailure(self):
@@ -899,7 +899,7 @@ class CheckEbuildOwners(PreUploadTestCase):
     )
     for test in TESTS:
       self.file_mock.return_value = test
-      ret = pre_upload._check_ebuild_owners('project', 'HEAD')
+      ret = pre_upload._check_ebuild_owners(ProjectNamed('project'), 'HEAD')
       self.assertIsNotNone(ret)
 
   def testMissingOwnersIgnore(self):
@@ -919,7 +919,7 @@ class CheckEbuildOwners(PreUploadTestCase):
     )
     for test in TESTS:
       self.file_mock.return_value = test
-      ret = pre_upload._check_ebuild_owners('project', 'HEAD')
+      ret = pre_upload._check_ebuild_owners(ProjectNamed('project'), 'HEAD')
       self.assertIsNone(ret)
 
   def testOwnersExist(self):
@@ -932,11 +932,108 @@ class CheckEbuildOwners(PreUploadTestCase):
     self.content_mock.return_value = 'foo'
     for test in TESTS:
       self.file_mock.return_value = test
-      ret = pre_upload._check_ebuild_owners('project', 'HEAD')
+      ret = pre_upload._check_ebuild_owners(ProjectNamed('project'), 'HEAD')
       self.assertIsNone(ret)
     # This should be the # of package dirs across all tests.  This makes sure
     # we actually called the owners check logic and didn't return early.
     self.assertEqual(1, self.content_mock.call_count)
+
+  def testCommonPublicBoardOverlays(self):
+    """Allow an OWNERS in the top of the overlay to satisfy requirements."""
+    # The public repo that has all public overlays.
+    project = ProjectNamed('chromiumos/overlays/board-overlays')
+
+    def _get_content(path, _commit):
+      if path == 'overlay-oak/dev-util/pkg/OWNERS':
+        return None
+      elif path == 'overlay-oak/OWNERS':
+        return overlay_owners
+      else:
+        raise AssertionError(f'Unhandled test path: {path}')
+
+    self.content_mock.side_effect = _get_content
+    self.file_mock.return_value = [
+        DiffEntry(src_file='overlay-oak/dev-util/pkg/pkg-0-r1.ebuild',
+                  status='A'),
+    ]
+
+    # OWNERS doesn't exist.
+    overlay_owners = None
+    ret = pre_upload._check_ebuild_owners(project, 'HEAD')
+    self.assertIsNotNone(ret)
+
+    # OWNERS exists, but is empty.
+    overlay_owners = ''
+    ret = pre_upload._check_ebuild_owners(project, 'HEAD')
+    self.assertIsNotNone(ret)
+
+    # OWNERS exists, but is too permissive.
+    overlay_owners = '# Everyone is an owner!\n*\n'
+    ret = pre_upload._check_ebuild_owners(project, 'HEAD')
+    self.assertIsNotNone(ret)
+
+    # OWNERS exists, and is good.
+    overlay_owners = 'foo@chromium.org'
+    ret = pre_upload._check_ebuild_owners(project, 'HEAD')
+    self.assertIsNone(ret)
+
+  def testCommonPrivateBoardOverlays(self):
+    """Allow an OWNERS in the top of the overlay to satisfy requirements."""
+    # A private repo that holds one board.
+    project = ProjectNamed('chromeos/overlays/baseboard-boo')
+
+    def _get_content(path, _commit):
+      if path == 'dev-util/pkg/OWNERS':
+        return None
+      elif path == 'OWNERS':
+        return overlay_owners
+      else:
+        raise AssertionError(f'Unhandled test path: {path}')
+
+    self.content_mock.side_effect = _get_content
+    self.file_mock.return_value = [
+        DiffEntry(src_file='dev-util/pkg/pkg-0-r1.ebuild', status='A'),
+    ]
+
+    # OWNERS doesn't exist.
+    overlay_owners = None
+    ret = pre_upload._check_ebuild_owners(project, 'HEAD')
+    self.assertIsNotNone(ret)
+
+    # OWNERS exists, but is empty.
+    overlay_owners = ''
+    ret = pre_upload._check_ebuild_owners(project, 'HEAD')
+    self.assertIsNotNone(ret)
+
+    # OWNERS exists, but is too permissive.
+    overlay_owners = '# Everyone is an owner!\n*\n'
+    ret = pre_upload._check_ebuild_owners(project, 'HEAD')
+    self.assertIsNotNone(ret)
+
+    # OWNERS exists, and is good.
+    overlay_owners = 'foo@chromium.org'
+    ret = pre_upload._check_ebuild_owners(project, 'HEAD')
+    self.assertIsNone(ret)
+
+  def testSharedOverlays(self):
+    """Do not allow top-level OWNERS for shared overlays."""
+    project = ProjectNamed('chromiumos/overlays/portage-stable')
+
+    def _get_content(path, _commit):
+      if path == 'dev-util/pkg/OWNERS':
+        return None
+      elif path == 'OWNERS':
+        return '# Global owners.\nfoo@bar\n'
+      else:
+        raise AssertionError(f'Unhandled test path: {path}')
+
+    self.content_mock.side_effect = _get_content
+    self.file_mock.return_value = [
+        DiffEntry(src_file='dev-util/pkg/pkg-0-r1.ebuild', status='A'),
+    ]
+
+    ret = pre_upload._check_ebuild_owners(project, 'HEAD')
+    self.assertIsNotNone(ret)
 
 
 class CheckEbuildR0(PreUploadTestCase):
@@ -948,13 +1045,13 @@ class CheckEbuildR0(PreUploadTestCase):
   def testNoMatches(self):
     """Handle no matching files."""
     self.file_mock.return_value = []
-    ret = pre_upload._check_ebuild_r0('project', 'HEAD')
+    ret = pre_upload._check_ebuild_r0(ProjectNamed('project'), 'HEAD')
     self.assertIsNone(ret)
 
   def testBadEbuilds(self):
     """Handle matching r0 files."""
     self.file_mock.return_value = ['foo-1-r0.ebuild']
-    ret = pre_upload._check_ebuild_r0('project', 'HEAD')
+    ret = pre_upload._check_ebuild_r0(ProjectNamed('project'), 'HEAD')
     self.assertIsNotNone(ret)
 
 
@@ -1240,13 +1337,15 @@ class CheckLayoutConfTestCase(PreUploadTestCase):
     self.file_mock = self.PatchObject(pre_upload, '_get_affected_files')
     self.content_mock = self.PatchObject(pre_upload, '_get_file_content')
 
-  def assertAccepted(self, files, project='project', commit='fake sha1'):
+  def assertAccepted(self, files, project=ProjectNamed('project'),
+                     commit='fake sha1'):
     """Assert _check_layout_conf accepts |files|."""
     self.file_mock.return_value = files
     ret = pre_upload._check_layout_conf(project, commit)
     self.assertIsNone(ret, msg='rejected with:\n%s' % ret)
 
-  def assertRejected(self, files, project='project', commit='fake sha1'):
+  def assertRejected(self, files, project=ProjectNamed('project'),
+                     commit='fake sha1'):
     """Assert _check_layout_conf rejects |files|."""
     self.file_mock.return_value = files
     ret = pre_upload._check_layout_conf(project, commit)

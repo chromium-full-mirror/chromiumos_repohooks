@@ -277,9 +277,10 @@ def _get_file_content(path, commit):
     return cache[path]
 
   if commit == PRE_SUBMIT:
-    content = _run_command(['git', 'diff', 'HEAD', '--', path])
+    content = _run_command(['git', 'diff', 'HEAD', '--', path], stderr=True)
   else:
-    content = _run_command(['git', 'show', '%s:%s' % (commit, path)])
+    content = _run_command(['git', 'show', '%s:%s' % (commit, path)],
+                           stderr=True)
   cache[path] = content
   return content
 
@@ -1300,7 +1301,7 @@ def _check_ebuild_licenses(_project, commit):
   return None
 
 
-def _check_ebuild_owners(_project, commit):
+def _check_ebuild_owners(project, commit):
   """Require all new packages include an OWNERS file."""
   # Look for all adds/removes since we're going to ignore changes that only
   # update a package.  We only want to flag new package imports for now.
@@ -1329,12 +1330,27 @@ def _check_ebuild_owners(_project, commit):
       continue
 
     # See if there's an OWNERS file in there already.
-    if not _get_file_content(os.path.join(package_dir, 'OWNERS'), commit):
+    data = _get_file_content(os.path.join(package_dir, 'OWNERS'), commit)
+    if not data:
+      # Allow specific overlays to declare OWNERS for all packages.
+      if (project.name == 'chromiumos/overlays/board-overlays' or
+          re.match(r'^chromeos/overlays/(baseboard|chipset|project|overlay)-',
+                   project.name)):
+        data = _get_file_content(os.path.join(os.path.dirname(os.path.dirname(
+            package_dir)), 'OWNERS'), commit)
+
+    if not data:
+      packages_missing_owners.append(package_dir)
+      continue
+
+    # Require specific people and not just *.
+    lines = {x for x in data.splitlines() if x.split('#', 1)[0].strip()}
+    if not lines - {'*'}:
       packages_missing_owners.append(package_dir)
 
   if packages_missing_owners:
     return HookFailure(
-        'All new packages must have an OWNERS file included.',
+        'All new packages must have an OWNERS file filled out.',
         packages_missing_owners)
 
   return None
