@@ -83,6 +83,7 @@ COMMON_INCLUDED_PATHS = [
 COMMON_EXCLUDED_PATHS = [
     # For ebuild trees, ignore any caches and manifest data.
     r'.*/Manifest$',
+    r'.*/files/srcuris$',
     r'.*/metadata/[^/]*cache[^/]*/[^/]+/[^/]+$',
 
     # Ignore profiles data (like overlay-tegra2/profiles).
