@@ -136,8 +136,9 @@ non-negligible number of projects.
 Repohook references the global `unblocked_terms.txt` only if a copy doesn't
 exist in a project. Thus, you can copy `unblocked_terms.txt` to your project
 and remove the words which are already cleared locally. That'll allow your
-project to make progress individually in terms of making the language more
-inclusive. This local copy also works as a TO-DO list.
+project to manage keyword-blocking/unblocking individually. Each project can
+have multiple `unblocked_terms.txt`. The parent directories of each file being
+changed are searched. The one nearest to the file has a higher priority.
 
 1.  Copy `unblocked_terms.txt` to the project's root directory.
 2.  List which words are already cleared (or not present):

@@ -99,10 +99,12 @@ class CheckKeywordsTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
     self.PatchObject(pre_upload, '_get_affected_files',
                      return_value=['x.ebuild'])
     self.PatchObject(pre_upload, '_filter_files', return_value=['x.ebuild'])
-    # First call for blocked_terms.txt and second call for unblocked_terms.txt.
+    # First call reads blocked_terms.txt, second call reads unblocked_terms.txt
+    # for _get_file_diff, and third call reads unblocked_terms.txt for
+    # _get_commit_desc.
     self.rf_mock = self.PatchObject(
         osutils, 'ReadFile',
-        side_effect=['scruffy\nmangy\ndog.?pile\ncat.?circle', 'fox'])
+        side_effect=['scruffy\nmangy\ndog.?pile\ncat.?circle', 'fox', 'fox'])
     self.diff_mock = self.PatchObject(pre_upload, '_get_file_diff')
     self.desc_mock = self.PatchObject(pre_upload, '_get_commit_desc')
     self.project = pre_upload.Project(name='PROJECT', dir=self.tempdir,
@@ -120,6 +122,7 @@ class CheckKeywordsTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
     self.rf_mock.assert_has_calls([
         mock.call(os.path.join(pre_upload._get_hooks_dir(),
                                pre_upload.BLOCKED_TERMS_FILE)),
+        mock.call(pre_upload.UNBLOCKED_TERMS_FILE),
         mock.call(os.path.join(pre_upload._get_hooks_dir(),
                                pre_upload.UNBLOCKED_TERMS_FILE)),
     ])

@@ -26,7 +26,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)),
 # The sys.path monkey patching confuses the linter.
 # pylint: disable=wrong-import-position
 from chromite.lib import cros_test_lib
-from chromite.lib import osutils
 
 
 assert sys.version_info >= (3, 6), 'This module requires Python 3.6+'
@@ -86,11 +85,12 @@ class CheckFilesTest(cros_test_lib.MockTestCase, cros_test_lib.TempDirTestCase):
         self.assertEqual(failures, [])
 
     # Check blocked terms.
-    self.rf_mock.side_effect = [self.common_file_terms, set()]
+    self.rf_mock.side_effect = [self.common_file_terms, set(), set()]
     _check_keyword(unblocked=False)
 
     # Check unblocked terms.
     self.rf_mock.side_effect = [self.common_file_terms,
+                                self.unblocked_file_terms,
                                 self.unblocked_file_terms]
     _check_keyword(unblocked=True)
 

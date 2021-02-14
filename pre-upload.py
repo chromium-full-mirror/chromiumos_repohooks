@@ -613,34 +613,24 @@ def _read_terms_file(terms_file):
   return file_terms
 
 
-def _check_keywords(_project, commit, options=()):
-  """Checks there are no blocked keywords in commit content."""
-  # Read options from override list.
-  parser = argparse.ArgumentParser()
-  parser.add_argument('--exclude_regex', action='append', default=[])
-  parser.add_argument('--include_regex', action='append', default=[])
-  parser.add_argument('--block', action='append', default=[])
-  parser.add_argument('--unblock', action='append', default=[])
-  opts = parser.parse_args(options)
+def _check_keywords_in_file(project, commit, file, keywords,
+                            unblocked_terms_file, opts):
+  """Checks there are no blocked keywords in a file being changed."""
+  if file:
+    # Search for UNBLOCKED_TERMS_FILE in the parent directories of the file
+    # being changed.
+    d = os.path.dirname(file)
+    while d != project.dir:
+      terms_file = os.path.join(d, UNBLOCKED_TERMS_FILE)
+      if os.path.isfile(terms_file):
+        unblocked_terms_file = terms_file
+        break
+      d = os.path.dirname(d)
 
-  # Read blocked word list.
-  blocked_terms_file = os.path.join(_get_hooks_dir(), BLOCKED_TERMS_FILE)
-  common_keywords = _read_terms_file(blocked_terms_file)
-
-  # Read unblocked word list. Global list is skipped if local list exists.
-  unblocked_terms_file = os.path.join(_get_hooks_dir(), UNBLOCKED_TERMS_FILE)
-  if os.path.isfile(os.path.join(_project.dir, UNBLOCKED_TERMS_FILE)):
-    unblocked_terms_file = os.path.join(_project.dir, UNBLOCKED_TERMS_FILE)
+  # Read unblocked word list.
   unblocked_words = _read_terms_file(unblocked_terms_file)
   unblocked_words.update(opts.unblock)
-
-  keywords = set(common_keywords | set(opts.block))
   keywords = sorted(keywords - unblocked_words)
-  files = _filter_files(
-      _get_affected_files(commit),
-      opts.include_regex + COMMON_INCLUDED_PATHS + [r'^.*\.md$'],
-      opts.exclude_regex + COMMON_EXCLUDED_PATHS)
-  errors = []
 
   def _check_line(line):
     # Store information about each span matching blocking regex.
@@ -680,10 +670,9 @@ def _check_keywords(_project, commit, options=()):
         return f'Matched "{b["group"]}" with regex of "{b["keyword"]}"'
     return False
 
-  diff_errors = _check_lines_in_diff(commit, files, _check_line,
-                                     'Found a blocked keyword in:')
-  if diff_errors:
-    errors.append(diff_errors)
+  if file:
+    return _check_lines_in_diff(commit, [file], _check_line,
+                                'Found a blocked keyword in:')
 
   line_num = 1
   commit_desc_errors = []
@@ -694,8 +683,50 @@ def _check_keywords(_project, commit, options=()):
                                 (line_num, result))
     line_num += 1
   if commit_desc_errors:
-    errors.append(HookFailure('Found a blocked keyword in:',
-                              commit_desc_errors))
+    return HookFailure('Found a blocked keyword in:', commit_desc_errors)
+
+  return None
+
+
+def _check_keywords(project, commit, options=()):
+  """Checks there are no blocked keywords in commit content."""
+  # Read options from override list.
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--exclude_regex', action='append', default=[])
+  parser.add_argument('--include_regex', action='append', default=[])
+  parser.add_argument('--block', action='append', default=[])
+  parser.add_argument('--unblock', action='append', default=[])
+  opts = parser.parse_args(options)
+
+  # Read blocked word list.
+  blocked_terms_file = os.path.join(_get_hooks_dir(), BLOCKED_TERMS_FILE)
+  common_keywords = _read_terms_file(blocked_terms_file)
+
+  # Find unblocked word list in project root directory. If not found, global
+  # list is used.
+  unblocked_terms_file = os.path.join(_get_hooks_dir(), UNBLOCKED_TERMS_FILE)
+  if os.path.isfile(os.path.join(project.dir, UNBLOCKED_TERMS_FILE)):
+    unblocked_terms_file = os.path.join(project.dir, UNBLOCKED_TERMS_FILE)
+
+  keywords = set(common_keywords | set(opts.block))
+
+  files = _filter_files(
+      _get_affected_files(commit),
+      opts.include_regex + COMMON_INCLUDED_PATHS + [r'^.*\.md$'],
+      opts.exclude_regex + COMMON_EXCLUDED_PATHS)
+
+  errors = []
+  for file in files:
+    errs = _check_keywords_in_file(project, commit, file,
+                                   keywords, unblocked_terms_file, opts)
+    if errs:
+      errors.append(errs)
+
+  errs = _check_keywords_in_file(project, commit, None,
+                                 keywords, unblocked_terms_file, opts)
+  if errs:
+    errors.append(errs)
+
   return errors
 
 
