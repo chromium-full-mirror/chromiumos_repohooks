@@ -1543,9 +1543,16 @@ def _check_commit_message_style(_project, commit):
 
   # The first line cannot be too long.
   MAX_FIRST_LINE_LEN = 100
-  if len(lines[0]) > MAX_FIRST_LINE_LEN:
+  first_line = lines[0]
+  if len(first_line) > MAX_FIRST_LINE_LEN:
     return HookFailure('The first line must be less than %i chars.\n%s' %
                        (MAX_FIRST_LINE_LEN, SEE_ALSO))
+
+  # Don't allow random git keywords.
+  if first_line.startswith('fixup!') or first_line.startswith('squash!'):
+    return HookFailure(
+        'Git fixup/squash commit detected: rebase your local branch, or '
+        'cleanup the commit message')
 
   return None
 

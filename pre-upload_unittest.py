@@ -1731,6 +1731,23 @@ class CheckCommitMessageStyle(CommitMessageTestCase):
     """Reject first lines that are too long."""
     self.assertMessageRejected('o' * 200)
 
+  def testGitKeywords(self):
+    """Reject git special keywords."""
+    BAD_MESSAGES = (
+        'fixup!',
+        'fixup! that old commit',
+        'squash!',
+        'squash! that old commit',
+    )
+    GOOD_MESSAGES = (
+        'this change needs a fixup!',
+        'you should eat your squash!',
+    )
+    for msg in BAD_MESSAGES:
+      self.assertMessageRejected(msg)
+    for msg in GOOD_MESSAGES:
+      self.assertMessageAccepted(msg)
+
 
 def DiffEntry(src_file=None, dst_file=None, src_mode=None, dst_mode='100644',
               status='M'):
