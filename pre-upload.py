@@ -526,7 +526,7 @@ def _check_no_long_lines(_project, commit, options=()):
   MAX_LEN = 80
 
   included, excluded = _parse_common_inclusion_options(options)
-  files = _filter_files(_get_affected_files(commit),
+  files = _filter_files(_get_affected_files(commit, relative=True),
                         included + COMMON_INCLUDED_PATHS,
                         excluded + COMMON_EXCLUDED_PATHS + LONG_LINE_OK_PATHS)
 
