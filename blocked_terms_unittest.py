@@ -1,23 +1,19 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # Copyright 2020 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 """Unit tests for blocked_terms.txt and unblocked_terms.txt.
 
-   Implements unit tests for the blocked terms and unblocked terms
-   regex processed by pre-upload.py.
+Implements unit tests for the blocked terms and unblocked terms
+regex processed by pre-upload.py.
 """
-
-from __future__ import print_function
 
 import os
 import sys
 
-
-# pylint: disable=W0212
 # We access private members of the pre_upload module.
+# pylint: disable=protected-access
 
 # Make sure we can find the chromite paths.
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)),
