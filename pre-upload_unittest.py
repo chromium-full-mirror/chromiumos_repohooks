@@ -1515,10 +1515,10 @@ class CheckCommitMessageBug(CommitMessageTestCase):
 
   def testNotAfterTest(self):
     """Reject any TEST line before any BUG line."""
-    test_field = 'TEST=i did not do it\n'
     middle_field = 'A random between line\n'
-    for project, bug_field in ((self.AOSP_PROJECT, 'Bug:none\n'),
-                               (self.CROS_PROJECT, 'BUG=None\n')):
+    for project, bug_field, test_field in (
+            (self.AOSP_PROJECT, 'Bug:none\n', 'Test: i did not do it\n'),
+            (self.CROS_PROJECT, 'BUG=None\n', 'TEST=i did not do it\n')):
       self.assertMessageRejected(
           '\n' + test_field + middle_field + bug_field, project)
       self.assertMessageRejected(

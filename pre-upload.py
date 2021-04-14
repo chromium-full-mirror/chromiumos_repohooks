@@ -115,11 +115,15 @@ _CONFIG_FILE = 'PRESUBMIT.cfg'
 # excluded from presubmit checks. Lines beginning with '#' are ignored.
 _IGNORE_FILE = '.presubmitignore'
 
-
-TEST_FIELD_RE = r'\nTEST=\S+'
-
 BLOCKED_TERMS_FILE = 'blocked_terms.txt'
 UNBLOCKED_TERMS_FILE = 'unblocked_terms.txt'
+
+# Android internal and external projects use "Bug: " to track bugs in
+# buganizer, so use Bug: and Test: instead of BUG= and TEST=.
+TAG_COLON_REMOTES = {
+    'aosp',
+    'goog',
+}
 
 # Exceptions
 
@@ -885,10 +889,23 @@ def _check_cargo_clippy(project, commit, options=()):
 _check_cargo_clippy.cleaned_root = set()
 
 
-def _check_change_has_test_field(_project, commit):
+def _get_test_field_re(project):
+  """Provide the regular expression that matches the test field.
+
+  Android internal and external projects use "Bug: " in the commit messages to
+  track bugs in buganizer, so "Test: " is used instead of "TEST=".
+  """
+  if project.remote in TAG_COLON_REMOTES:
+    return r'\nTest: \S+'
+  else:
+    return r'\nTEST=\S+'
+
+
+def _check_change_has_test_field(project, commit):
   """Check for a non-empty 'TEST=' field in the commit message."""
   SEE_ALSO = 'Please review the documentation:\n%s' % (DOC_COMMIT_MSG_URL,)
 
+  TEST_FIELD_RE = _get_test_field_re(project)
   if not re.search(TEST_FIELD_RE, _get_commit_desc(commit)):
     msg = ('Changelist description needs TEST field (after first line)\n%s' %
            (SEE_ALSO,))
@@ -945,11 +962,7 @@ def _check_change_has_bug_field(project, commit):
 
   # Android internal and external projects use "Bug: " to track bugs in
   # buganizer.
-  BUG_COLON_REMOTES = (
-      'aosp',
-      'goog',
-  )
-  if project.remote in BUG_COLON_REMOTES:
+  if project.remote in TAG_COLON_REMOTES:
     BUG_RE = r'\nBug: ?([Nn]one|\d+)'
     if not re.search(BUG_RE, _get_commit_desc(commit)):
       msg = ('Changelist description needs BUG field (after first line):\n'
@@ -967,7 +980,7 @@ def _check_change_has_bug_field(project, commit):
              'BUG=None\n%s' % (SEE_ALSO,))
       return HookFailure(msg)
 
-  TEST_BEFORE_BUG_RE = TEST_FIELD_RE + r'.*' + BUG_RE
+  TEST_BEFORE_BUG_RE = _get_test_field_re(project) + r'.*' + BUG_RE
 
   if re.search(TEST_BEFORE_BUG_RE, _get_commit_desc(commit), re.DOTALL):
     msg = ('The BUG field must come before the TEST field.\n%s' %
