@@ -699,6 +699,13 @@ def _check_keywords(project, commit, options=()):
   parser.add_argument('--unblock', action='append', default=[])
   opts = parser.parse_args(options)
 
+  # Leave patches with an upstream source alone, we don't want to have
+  # divergence in these cases so terms can be ignored from such patches.
+  upstream_prefixes = ('UPSTREAM:', 'FROMGIT:', 'BACKPORT:', 'FROMLIST:')
+  desc = _get_commit_desc(commit)
+  if desc.startswith(upstream_prefixes):
+    return ()
+
   # Read blocked word list.
   blocked_terms_file = os.path.join(_get_hooks_dir(), BLOCKED_TERMS_FILE)
   common_keywords = _read_terms_file(blocked_terms_file)

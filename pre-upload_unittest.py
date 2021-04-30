@@ -210,6 +210,27 @@ class CheckKeywordsTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
          r'x.ebuild, line 6: Matched "dogpile" with regex of "dog.?pile"'],
         failures[0].items)
 
+  def test_upstream_prefix_cases(self):
+    """Verify upstream patches skip the keywords test."""
+    self.desc_mock.return_value = 'UPSTREAM: Commit message'
+    self.diff_mock.return_value = [
+        (1, 'Some content with voldemort'),
+    ]
+    # The UPSTREAM: prefix should cause the terms to be ignored.
+    failures = pre_upload._check_keywords(self.project,
+                                          'COMMIT', ['--block', 'voldemort'])
+    self.assertEqual(failures, ())
+    self.desc_mock.return_value = 'UPSTAIRS: Commit message'
+    # The UPSTAIRS: prefix is not recognized so the term should trigger a
+    # failure.
+    failures = pre_upload._check_keywords(self.project,
+                                          'COMMIT', ['--block', 'voldemort'])
+    self.assertNotEqual(failures, ())
+    self.assertEqual('Found a blocked keyword in:', failures[0].msg)
+    self.assertEqual(
+        ['x.ebuild, line 1: Matched "voldemort" with regex of "voldemort"'],
+        failures[0].items)
+
 
 class CheckNoLongLinesTest(PreUploadTestCase):
   """Tests for _check_no_long_lines."""
