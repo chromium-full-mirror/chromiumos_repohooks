@@ -1422,6 +1422,13 @@ def _check_ebuild_virtual_pv(project, commit):
   if project.name in allowlist:
     return None
 
+  # Per-project listings of packages with virtuals known to come from upstream
+  # Gentoo, so we shouldn't complain about them.
+  if project.name == 'chromiumos/overlays/chromiumos':
+    pkg_allowlist = ('rust',)
+  else:
+    pkg_allowlist = ()
+
   # We assume the repo name is the same as the dir name on disk.
   # It would be dumb to not have them match though.
   project_base = os.path.basename(project.name)
@@ -1445,33 +1452,37 @@ def _check_ebuild_virtual_pv(project, commit):
 
   for ebuild in ebuilds:
     m = get_pv.match(ebuild)
-    if m:
-      overlay = m.group(1)
-      if not overlay or not is_special_overlay(overlay):
-        overlay = project_base
+    if not m:
+      continue
 
-      pv = m.group(3).split('-', 1)[0]
+    overlay, package_name, pv = m.groups()
+    if package_name in pkg_allowlist:
+      continue
 
-      # Virtual versions >= 4 are special cases used above the standard
-      # versioning structure, e.g. if one has a board inheriting a board.
-      if pv[0] >= '4':
-        want_pv = pv
+    pv = pv.split('-', 1)[0]
+    if not overlay or not is_special_overlay(overlay):
+      overlay = project_base
+
+    # Virtual versions >= 4 are special cases used above the standard
+    # versioning structure, e.g. if one has a board inheriting a board.
+    if pv[0] >= '4':
+      want_pv = pv
+    elif is_board(overlay):
+      if is_private(overlay):
+        want_pv = '3.5' if is_variant(overlay) else '3'
       elif is_board(overlay):
-        if is_private(overlay):
-          want_pv = '3.5' if is_variant(overlay) else '3'
-        elif is_board(overlay):
-          want_pv = '2.5' if is_variant(overlay) else '2'
-      elif is_baseboard(overlay):
-        want_pv = '1.9.5' if is_private(overlay) else '1.9'
-      elif is_chipset(overlay):
-        want_pv = '1.8.5' if is_private(overlay) else '1.8'
-      elif is_project(overlay):
-        want_pv = '1.7' if is_private(overlay) else '1.5'
-      else:
-        want_pv = '1'
+        want_pv = '2.5' if is_variant(overlay) else '2'
+    elif is_baseboard(overlay):
+      want_pv = '1.9.5' if is_private(overlay) else '1.9'
+    elif is_chipset(overlay):
+      want_pv = '1.8.5' if is_private(overlay) else '1.8'
+    elif is_project(overlay):
+      want_pv = '1.7' if is_private(overlay) else '1.5'
+    else:
+      want_pv = '1'
 
-      if pv != want_pv:
-        bad_ebuilds.append((ebuild, pv, want_pv))
+    if pv != want_pv:
+      bad_ebuilds.append((ebuild, pv, want_pv))
 
   if bad_ebuilds:
     # pylint: disable=C0301

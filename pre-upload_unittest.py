@@ -1085,6 +1085,12 @@ class CheckEbuildVirtualPv(PreUploadTestCase):
     ret = pre_upload._check_ebuild_virtual_pv(self.CHROMIUMOS_OVERLAY, 'H')
     self.assertTrue(isinstance(ret, errors.HookFailure))
 
+  def testKnownUpstreamVirtuals(self):
+    """Known upstream packages should be exempted from these checks."""
+    self.file_mock.return_value = ['virtual/rust/rust-1.47.0-r6.ebuild']
+    ret = pre_upload._check_ebuild_virtual_pv(self.CHROMIUMOS_OVERLAY, 'H')
+    self.assertIsNone(ret)
+
   def testPublicBoardVirtuals(self):
     """Public board overlays should use PV=2."""
     template = 'overlay-lumpy/virtual/foo/foo-%s.ebuild'
