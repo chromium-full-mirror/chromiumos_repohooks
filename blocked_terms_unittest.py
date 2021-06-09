@@ -45,8 +45,10 @@ class CheckFilesTest(cros_test_lib.MockTestCase, cros_test_lib.TempDirTestCase):
     cls.hooks_dir = pre_upload._get_hooks_dir()
     cls.common_file_terms = pre_upload._read_terms_file(
         os.path.join(cls.hooks_dir, pre_upload.BLOCKED_TERMS_FILE))
-    cls.unblocked_file_terms = pre_upload._read_terms_file(
-        os.path.join(cls.hooks_dir, pre_upload.UNBLOCKED_TERMS_FILE))
+    # With the unblocked file effectively empty, to test unblocking we must
+    # have our own list here.
+    cls.unblocked_file_terms = {'\\bmitm(\\b|\\d)', '\\b(in)?sane(\\b|\\d)',
+                                'sanity', 'white.?list'}
 
   def setUp(self):
     """Initialize the test instance mockers."""
