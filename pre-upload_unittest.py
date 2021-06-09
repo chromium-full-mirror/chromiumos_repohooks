@@ -834,7 +834,7 @@ class CheckEbuildLicense(PreUploadTestCase):
     self.file_mock.return_value = ['a.file', 'ebuild-is-not.foo']
 
     ret = pre_upload._check_ebuild_licenses(ProjectNamed('overlay'), 'HEAD')
-    self.assertIsNone(ret)
+    self.assertFalse(ret)
 
     self.assertEqual(self.content_mock.call_count, 0)
 
@@ -845,7 +845,7 @@ class CheckEbuildLicense(PreUploadTestCase):
     self.content_mock.return_value = '# HEADER\nLICENSE="GPL-3"\nblah\n'
 
     ret = pre_upload._check_ebuild_licenses(ProjectNamed('overlay'), 'HEAD')
-    self.assertIsNone(ret)
+    self.assertFalse(ret)
 
     self.assertEqual(self.content_mock.call_count, 1)
 
@@ -862,9 +862,10 @@ class CheckEbuildLicense(PreUploadTestCase):
 
     ret = pre_upload._check_ebuild_licenses(ProjectNamed('overlay'), 'HEAD')
     if fails:
-      self.assertIsInstance(ret, errors.HookFailure)
+      self.assertIsInstance(ret, list)
+      self.assertIsInstance(ret[0], errors.HookFailure)
     else:
-      self.assertIsNone(ret)
+      self.assertFalse(ret)
 
     self.assertEqual(self.content_mock.call_count, 1)
 

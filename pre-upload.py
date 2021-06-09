@@ -1321,6 +1321,7 @@ def _check_ebuild_licenses(_project, commit):
   # A list of licenses to ignore for now.
   LICENSES_IGNORE = ['||', '(', ')']
 
+  errors = []
   for ebuild in touched_ebuilds:
     # e.g. path/to/overlay/category/package/package.ebuild -> path/to/overlay
     overlay_path = os.sep.join(ebuild.split(os.sep)[:-3])
@@ -1330,13 +1331,15 @@ def _check_ebuild_licenses(_project, commit):
       license_types = licenses_lib.GetLicenseTypesFromEbuild(ebuild_content,
                                                              overlay_path)
     except ValueError as e:
-      return HookFailure(str(e), [ebuild])
+      errors.append(HookFailure(str(e), [ebuild]))
+      continue
 
     # Virtual packages must use "metapackage" license.
     if ebuild.split('/')[-3] == 'virtual':
       if license_types != ['metapackage']:
-        return HookFailure('Virtual package must use LICENSE="metapackage".',
-                           [ebuild])
+        errors.append(HookFailure(
+            'Virtual package must use LICENSE="metapackage".', [ebuild]))
+        continue
 
     # Also ignore licenses ending with '?'
     for license_type in [x for x in license_types
@@ -1345,9 +1348,10 @@ def _check_ebuild_licenses(_project, commit):
         licenses_lib.Licensing.FindLicenseType(license_type,
                                                overlay_path=overlay_path)
       except AssertionError as e:
-        return HookFailure(str(e), [ebuild])
+        errors.append(HookFailure(str(e), [ebuild]))
+        continue
 
-  return None
+  return errors
 
 
 def _check_ebuild_owners(project, commit):
