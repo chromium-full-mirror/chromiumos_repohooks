@@ -102,28 +102,32 @@ class CheckFilesTest(cros_test_lib.MockTestCase, cros_test_lib.TempDirTestCase):
     """Test mitm term."""
     self.check_lines([
         # blocked
-        (1, 'blocked mitm '),
-        (2, 'blocked (mitm)'),
-        (3, 'blocked .mitm'),
-        (4, 'blocked MITM'),
-        (5, 'blocked mitm1'),
+        (1, 'blocked mitm '), # nocheck
+        (2, 'blocked (mitm)'), # nocheck
+        (3, 'blocked .mitm'), # nocheck
+        (4, 'blocked MITM'), # nocheck
+        (5, 'blocked mitm1'), # nocheck
+        (6, 'blocked mitm //nocheck'), # nocheck
+        (7, 'blocked mitm nocheck.'), # nocheck
+        (7, 'blocked mitm FLAG_nocheck'), # nocheck
     ], [
         # unblocked
         (11, 'unblocked (commitment)'),
         (12, 'unblocked DailyLimitMins'),
+        (13, 'unblocked mitm // nocheck'), # nocheck
     ])
 
   def test_sane_keyword(self):
     """Test sane term."""
     self.check_lines([
         # blocked
-        (1, 'blocked sane '),
-        (2, 'blocked (sane)'),
-        (3, 'blocked .sane'),
-        (4, 'blocked SANE'),
-        (5, 'blocked sane1'),
-        (6, 'blocked insane'),
-        (7, 'blocked .insane'),
+        (1, 'blocked sane '), # nocheck
+        (2, 'blocked (sane)'), # nocheck
+        (3, 'blocked .sane'), # nocheck
+        (4, 'blocked SANE'), # nocheck
+        (5, 'blocked sane1'), # nocheck
+        (6, 'blocked insane'), # nocheck
+        (7, 'blocked .insane'), # nocheck
     ], [
         # unblocked
         (11, 'unblocked asanEnabled'),
@@ -133,12 +137,12 @@ class CheckFilesTest(cros_test_lib.MockTestCase, cros_test_lib.TempDirTestCase):
     """Test whitelist term."""
     self.check_lines([
         # blocked
-        (1, 'blocked white list '),
-        (2, 'blocked white-list'),
-        (3, 'blocked whitelist'),
-        (4, 'blocked _whitelist'),
-        (5, 'blocked whitelist1'),
-        (6, 'blocked whitelisted'),
+        (1, 'blocked white list '), # nocheck
+        (2, 'blocked white-list'), # nocheck
+        (3, 'blocked whitelist'), # nocheck
+        (4, 'blocked _whitelist'), # nocheck
+        (5, 'blocked whitelist1'), # nocheck
+        (6, 'blocked whitelisted'), # nocheck
     ], [
         # unblocked
         (11, 'unblocked white dog list'),
@@ -148,11 +152,11 @@ class CheckFilesTest(cros_test_lib.MockTestCase, cros_test_lib.TempDirTestCase):
     """Test sanity term."""
     self.check_lines([
         # blocked
-        (1, 'blocked sanity '),
-        (2, 'blocked (sanity)'),
-        (3, 'blocked struct.sanity'),
-        (4, 'blocked SANITY'),
-        (5, 'blocked AndroidSanityCheck'),
+        (1, 'blocked sanity '), # nocheck
+        (2, 'blocked (sanity)'), # nocheck
+        (3, 'blocked struct.sanity'), # nocheck
+        (4, 'blocked SANITY'), # nocheck
+        (5, 'blocked AndroidSanityCheck'), # nocheck
     ], [
         # unblocked
     ])

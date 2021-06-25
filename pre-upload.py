@@ -646,6 +646,11 @@ def _check_keywords_in_file(project, commit, file, keywords,
     # [re.span, ...]
     unblocked_span = []
 
+    # Ignore lines that end with nocheck, typically in a comment.
+    # This enables devs to bypass this check line by line.
+    if line.endswith(' nocheck'):
+      return False
+
     for word in keywords:
       for match in re.finditer(word, line, flags=re.I):
         blocked_span.append({'span' : match.span(),

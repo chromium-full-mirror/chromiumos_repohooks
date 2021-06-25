@@ -130,8 +130,7 @@ cros_license_check: --exclude_regex=\b(checkpatch\.pl|kernel-doc)$
 
 `blocked_terms.txt` contains a default list of words which are blocked by
 keyword_check. `unblocked_terms.txt` is a default list of words which are
-unblocked. Some words appear in both lists because they still appear in a
-non-negligible number of projects.
+unblocked.
 
 Repohook references the global `unblocked_terms.txt` only if a copy doesn't
 exist in a project. Thus, you can copy `unblocked_terms.txt` to your project
@@ -154,6 +153,15 @@ Later you can do:
     ```$ ~/chromiumos/src/platform/dev/contrib/search_blocked_words.sh```
 4.  Remove the word from the project's `unblocked_terms.txt`.
 5.  Test and submit CL.
+
+Additionally for terms that cannot be removed, adding a comment with nocheck at
+the end of the line with the term(s) will skip the keyword_check on that line.
+
+```
+Example line skipping blocked term check. # nocheck
+This line is still checked.
+This line is also checked as nocheck is not on the end of the line.
+```
 
 # Third Party code
 
