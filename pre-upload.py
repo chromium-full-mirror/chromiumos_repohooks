@@ -505,6 +505,19 @@ def _parse_common_inclusion_options(options):
 
 # Common Hooks
 
+def _check_no_extra_blank_lines(_project, commit, options=()):
+  """Checks there are no multiple blank lines at end of file."""
+  included, excluded = _parse_common_inclusion_options(options)
+  files = _filter_files(_get_affected_files(commit, relative=True),
+                        included + COMMON_INCLUDED_PATHS,
+                        excluded + COMMON_EXCLUDED_PATHS)
+  errors = []
+  for afile in files:
+    with open(afile, 'r') as f:
+      last_bytes = f.read()[-2:]
+    if last_bytes == '\n\n':
+      errors.append(afile)
+  return HookFailure('Found extra blank line at end of file:', errors)
 
 def _check_no_long_lines(_project, commit, options=()):
   """Checks there are no lines longer than MAX_LEN in any of the text files."""
@@ -2246,6 +2259,7 @@ _HOOK_FLAGS = {
     'kerneldoc_check': _run_kerneldoc,
     'stray_whitespace_check': _check_no_stray_whitespace,
     'json_check': _run_json_check,
+    'blank_line_check': _check_no_extra_blank_lines,
     'long_line_check': _check_no_long_lines,
     'cros_license_check': _check_cros_license,
     'aosp_license_check': _check_aosp_license,

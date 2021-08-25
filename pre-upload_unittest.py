@@ -232,6 +232,33 @@ class CheckKeywordsTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
         failures[0].items)
 
 
+class CheckNoBlankLinesTest(PreUploadTestCase):
+  """Tests for _check_no_extra_blank_lines."""
+
+  MOCK_FILE_CONTENT = {
+    'x0.cc': '',            # Good
+    'x1.cc': 'y',           # Good
+    'x2.cc': 'z\n',         # Good
+    'x3.cc': '\n\n',        # Bad
+    'x4.cc': 'y\n\n',       # Bad
+    'x5.cc': 'z\nz\n\n\n',  # Bad
+  }
+
+  @classmethod
+  def _open_side_effect(cls, name, *_args, **_kwargs):
+    return mock.mock_open(read_data=cls.MOCK_FILE_CONTENT[name])()
+
+  def test_check(self):
+    self.PatchObject(pre_upload, '_get_affected_files',
+                     return_value=list(self.MOCK_FILE_CONTENT.keys()))
+    with mock.patch('builtins.open', side_effect=self._open_side_effect):
+      failure = pre_upload._check_no_extra_blank_lines(
+          ProjectNamed('PROJECT'), 'COMMIT')
+    self.assertTrue(failure)
+    self.assertEqual('Found extra blank line at end of file:', failure.msg)
+    self.assertEqual(['x3.cc', 'x4.cc', 'x5.cc'], failure.items)
+
+
 class CheckNoLongLinesTest(PreUploadTestCase):
   """Tests for _check_no_long_lines."""
 
