@@ -248,12 +248,19 @@ class CheckNoBlankLinesTest(PreUploadTestCase):
   def _open_side_effect(cls, name, *_args, **_kwargs):
     return mock.mock_open(read_data=cls.MOCK_FILE_CONTENT[name])()
 
-  def test_check(self):
-    self.PatchObject(pre_upload, '_get_affected_files',
-                     return_value=list(self.MOCK_FILE_CONTENT.keys()))
+  def _run_check(self, files):
+    self.PatchObject(pre_upload, '_get_affected_files', return_value=files)
     with mock.patch('builtins.open', side_effect=self._open_side_effect):
       failure = pre_upload._check_no_extra_blank_lines(
           ProjectNamed('PROJECT'), 'COMMIT')
+    return failure
+
+  def test_good_cases(self):
+    failure = self._run_check(['x0.cc', 'x1.cc', 'x2.cc'])
+    self.assertIsNone(failure)
+
+  def test_bad_cases(self):
+    failure = self._run_check(['x3.cc', 'x4.cc', 'x5.cc'])
     self.assertTrue(failure)
     self.assertEqual('Found extra blank line at end of file:', failure.msg)
     self.assertEqual(['x3.cc', 'x4.cc', 'x5.cc'], failure.items)

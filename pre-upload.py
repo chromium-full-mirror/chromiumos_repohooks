@@ -517,7 +517,9 @@ def _check_no_extra_blank_lines(_project, commit, options=()):
       last_bytes = f.read()[-2:]
     if last_bytes == '\n\n':
       errors.append(afile)
-  return HookFailure('Found extra blank line at end of file:', errors)
+  if errors:
+    return HookFailure('Found extra blank line at end of file:', errors)
+  return None
 
 def _check_no_long_lines(_project, commit, options=()):
   """Checks there are no lines longer than MAX_LEN in any of the text files."""
@@ -2241,6 +2243,7 @@ _COMMON_HOOKS = [
     _check_gofmt,
     _check_keywords,
     _check_layout_conf,
+    _check_no_extra_blank_lines,
     _check_no_long_lines,
     _check_no_new_gyp,
     _check_no_stray_whitespace,
