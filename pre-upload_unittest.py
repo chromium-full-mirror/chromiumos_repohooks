@@ -266,6 +266,39 @@ class CheckNoBlankLinesTest(PreUploadTestCase):
     self.assertEqual(['x3.cc', 'x4.cc', 'x5.cc'], failure.items)
 
 
+class CheckNoHandleEintrCloseTest(PreUploadTestCase):
+  """Tests for _check_no_handle_eintr_close."""
+
+  def setUp(self):
+    self.diff_mock = self.PatchObject(pre_upload, '_get_file_diff')
+
+  def testGoodCase(self):
+    path = 'x.cc'
+    self.PatchObject(pre_upload, '_get_affected_files', return_value=[path])
+    self.diff_mock.return_value = [
+        (1, '  int fd = HANDLE_EINTR(open(path, 0));'),  # Good
+        (2, '  IGNORE_EINTR(close(fd));'),               # Good
+    ]
+    failure = pre_upload._check_no_handle_eintr_close(ProjectNamed('PROJECT'),
+                                                      'COMMIT')
+    self.assertIsNone(failure)
+
+  def testBadCase(self):
+    path = 'x.cc'
+    self.PatchObject(pre_upload, '_get_affected_files', return_value=[path])
+    self.diff_mock.return_value = [
+        (1, '  int fd = HANDLE_EINTR(open(path, 0));'),  # Good
+        (2, '  HANDLE_EINTR(close(fd));'),               # Bad
+    ]
+    failure = pre_upload._check_no_handle_eintr_close(ProjectNamed('PROJECT'),
+                                                      'COMMIT')
+    self.assertTrue(failure)
+    self.assertEqual(
+        'HANDLE_EINTR(close) is invalid. See http://crbug.com/269623.',
+        failure.msg)
+    self.assertEqual(['x.cc, line 2'], failure.items)
+
+
 class CheckNoLongLinesTest(PreUploadTestCase):
   """Tests for _check_no_long_lines."""
 

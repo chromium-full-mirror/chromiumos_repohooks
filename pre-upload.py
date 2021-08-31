@@ -61,10 +61,14 @@ DOC_COMMIT_MSG_URL = ('https://chromium.googlesource.com/chromiumos/docs/+/HEAD'
                       '/contributing.md#commit-messages')
 
 
-COMMON_INCLUDED_PATHS = [
+CPP_PATHS = [
     # C++ and friends
     r'.*\.c$', r'.*\.cc$', r'.*\.cpp$', r'.*\.h$', r'.*\.m$', r'.*\.mm$',
     r'.*\.inl$', r'.*\.asm$', r'.*\.hxx$', r'.*\.hpp$', r'.*\.s$', r'.*\.S$',
+]
+
+
+COMMON_INCLUDED_PATHS = CPP_PATHS + [
     # Scripts
     r'.*\.js$', r'.*\.py$', r'.*\.sh$', r'.*\.rb$', r'.*\.pl$', r'.*\.pm$',
     # No extension at all, note that ALL CAPS files are excluded by
@@ -520,6 +524,19 @@ def _check_no_extra_blank_lines(_project, commit, options=()):
   if errors:
     return HookFailure('Found extra blank line at end of file:', errors)
   return None
+
+
+def _check_no_handle_eintr_close(_project, commit, options=()):
+  """Checks that there is no HANDLE_EINTR(close(...))."""
+  included, excluded = _parse_common_inclusion_options(options)
+  files = _filter_files(_get_affected_files(commit),
+                        included + CPP_PATHS,
+                        excluded + COMMON_EXCLUDED_PATHS)
+  return _check_lines_in_diff(
+      commit, files,
+      lambda line: 'HANDLE_EINTR(close(' in line,
+      'HANDLE_EINTR(close) is invalid. See http://crbug.com/269623.')
+
 
 def _check_no_long_lines(_project, commit, options=()):
   """Checks there are no lines longer than MAX_LEN in any of the text files."""
@@ -2244,6 +2261,7 @@ _COMMON_HOOKS = [
     _check_keywords,
     _check_layout_conf,
     _check_no_extra_blank_lines,
+    _check_no_handle_eintr_close,
     _check_no_long_lines,
     _check_no_new_gyp,
     _check_no_stray_whitespace,
@@ -2281,6 +2299,7 @@ _HOOK_FLAGS = {
     'cargo_clippy_check': _check_cargo_clippy,
     'exec_files_check': _check_exec_files,
     'kernel_splitconfig_check': _kernel_configcheck,
+    'handle_eintr_close_check': _check_no_handle_eintr_close,
 }
 
 
