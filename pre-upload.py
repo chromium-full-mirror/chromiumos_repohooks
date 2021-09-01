@@ -913,7 +913,7 @@ def _check_cargo_clippy(project, commit, options=()):
                    stderr=subprocess.STDOUT)
       _check_cargo_clippy.cleaned_root.add(root)
 
-    cmd = ['cargo', 'clippy', '--all-features', '--all-targets',
+    cmd = ['cargo', 'clippy', '--all-features', '--all-targets', '--workspace',
            f'--manifest-path={root}/Cargo.toml',
            '--', '-D', 'warnings']
     # Overwrite the clippy command if a project-specific script is specified.
