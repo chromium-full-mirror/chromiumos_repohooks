@@ -904,15 +904,6 @@ def _check_cargo_clippy(project, commit, options=()):
     if not modified:
       continue
 
-    # Clean cargo's cache when we run clippy for this `root` for the first time.
-    # We don't want to clean the cache between commits to save time when
-    # multiple commits are checked.
-    if root not in _check_cargo_clippy.cleaned_root:
-      _run_command(['cargo', 'clean',
-                    f'--manifest-path={root}/Cargo.toml'],
-                   stderr=subprocess.STDOUT)
-      _check_cargo_clippy.cleaned_root.add(root)
-
     cmd = ['cargo', 'clippy', '--all-features', '--all-targets', '--workspace',
            f'--manifest-path={root}/Cargo.toml',
            '--', '-D', 'warnings']
