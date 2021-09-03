@@ -517,8 +517,8 @@ def _check_no_extra_blank_lines(_project, commit, options=()):
                         excluded + COMMON_EXCLUDED_PATHS)
   errors = []
   for afile in files:
-    with open(afile, 'r') as f:
-      last_bytes = f.read()[-2:]
+    file_content = _get_file_content(afile, commit)
+    last_bytes = file_content[-2:]
     if last_bytes == '\n\n':
       errors.append(afile)
   if errors:

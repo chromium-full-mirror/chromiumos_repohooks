@@ -245,14 +245,15 @@ class CheckNoBlankLinesTest(PreUploadTestCase):
   }
 
   @classmethod
-  def _open_side_effect(cls, name, *_args, **_kwargs):
-    return mock.mock_open(read_data=cls.MOCK_FILE_CONTENT[name])()
+  def _get_file_content(cls, path, _commit):
+    return cls.MOCK_FILE_CONTENT[path]
 
   def _run_check(self, files):
     self.PatchObject(pre_upload, '_get_affected_files', return_value=files)
-    with mock.patch('builtins.open', side_effect=self._open_side_effect):
-      failure = pre_upload._check_no_extra_blank_lines(
-          ProjectNamed('PROJECT'), 'COMMIT')
+    self.PatchObject(pre_upload, '_get_file_content',
+                     new=self._get_file_content)
+    failure = pre_upload._check_no_extra_blank_lines(
+        ProjectNamed('PROJECT'), 'COMMIT')
     return failure
 
   def test_good_cases(self):
