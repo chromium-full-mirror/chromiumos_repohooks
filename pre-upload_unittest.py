@@ -954,6 +954,150 @@ class CheckEbuildLicense(PreUploadTestCase):
     self._CheckContent('metapackage', 'overlay/virtual/pkg/pkg.ebuild', False)
 
 
+class CheckEbuildLocalnameExists(PreUploadTestCase,
+                                 cros_test_lib.MockTempDirTestCase):
+  """Tests for _check_ebuild_localname_exists."""
+
+  def setUp(self):
+    self.file_mock = self.PatchObject(pre_upload, '_get_affected_files')
+    self.content_mock = self.PatchObject(pre_upload, '_get_file_content')
+    self.PatchObject(constants, 'SOURCE_ROOT', new=self.tempdir)
+
+    src = os.path.join(self.tempdir, 'src')
+    src_exists = os.path.join(src, 'src_exists')
+    osutils.SafeMakedirs(src_exists)
+
+    third_party = os.path.join(src, 'third_party')
+    third_party_exists = os.path.join(third_party, 'tp_exists')
+    osutils.SafeMakedirs(third_party_exists)
+
+  def testNoEbuilds(self):
+    """If no ebuilds are found, do not scan."""
+    self.file_mock.return_value = ['a.file', 'ebuild-is-not.foo']
+
+    ret = pre_upload._check_ebuild_localname_exists(ProjectNamed('overlay'),
+                                                    'HEAD')
+
+    self.assertIsNone(ret)
+    self.assertEqual(self.content_mock.call_count, 0)
+
+  def testStableEbuilds(self):
+    """If stable ebuilds are found, do not scan."""
+    self.file_mock.return_value = ['a.file', 'blah', 'foo.ebuild', 'cow']
+    self.content_mock.return_value = ''
+
+    ret = pre_upload._check_ebuild_localname_exists(ProjectNamed('overlay'),
+                                                    'HEAD')
+
+    self.assertIsNone(ret)
+    self.assertEqual(self.content_mock.call_count, 0)
+
+  def testRevision9999Ebuilds(self):
+    """If stable ebuilds are found, do not scan."""
+    self.file_mock.return_value = ['a.file', 'foo-1.0-r9999.ebuild', 'cow']
+    self.content_mock.return_value = ''
+
+    ret = pre_upload._check_ebuild_localname_exists(ProjectNamed('overlay'),
+                                                    'HEAD')
+
+    self.assertIsNone(ret)
+    self.assertEqual(self.content_mock.call_count, 0)
+
+  def testUnstableEbuilds(self):
+    """If unstable ebuilds are found, scan them."""
+    self.file_mock.return_value = ['a.file', 'blah', 'foo-9999.ebuild', 'cow']
+    self.content_mock.return_value = ''
+
+    ret = pre_upload._check_ebuild_localname_exists(ProjectNamed('overlay'),
+                                                    'HEAD')
+
+    self.assertIsNone(ret)
+    self.assertEqual(self.content_mock.call_count, 1)
+
+  def _CheckContent(self, ebuild, content, fails):
+    """Test helper for inputs/outputs.
+
+    Args:
+      ebuild: The ebuild path.
+      content: The ebuild content to test.
+      fails: Whether |content| should trigger a hook failure.
+    """
+    self.file_mock.return_value = [ebuild]
+    self.content_mock.return_value = content
+
+    ret = pre_upload._check_ebuild_localname_exists(ProjectNamed('overlay'),
+                                                    'HEAD')
+    if fails:
+      self.assertTrue(isinstance(ret, errors.HookFailure))
+    else:
+      self.assertIsNone(ret)
+
+    self.assertEqual(self.content_mock.call_count, 1)
+
+  def testNotSet(self):
+    """Check not set is not an error."""
+    self._CheckContent('overlay/chromeos-base/a/a-9999.ebuild',
+                       '# HEADER\nEAPI=7\nKEYWORDS="*"',
+                       False)
+
+  def testNoValue(self):
+    """Check no value is not an error."""
+    self._CheckContent('overlay/chromeos-base/a/a-9999.ebuild',
+                       '# HEADER\nCROS_WORKON_PROJECT=\nCROS_WORKON_LOCALNAME=',
+                       False)
+
+  def testChromeosBaseExists(self):
+    """Check a chromeos-base package localname that does exist."""
+    self._CheckContent('overlay/chromeos-base/a/a-9999.ebuild',
+                       '# HEADER\nCROS_WORKON_PROJECT="project"\n'
+                       'CROS_WORKON_LOCALNAME="src_exists"',
+                       False)
+
+  def testChromeosBaseDoesNotExist(self):
+    """Check a chromeos-base package localname that does not exist."""
+    self._CheckContent('overlay/chromeos-base/a/a-9999.ebuild',
+                       '# HEADER\nCROS_WORKON_PROJECT="project"\n'
+                       'CROS_WORKON_LOCALNAME="does_not_exist"',
+                       True)
+
+  def testOtherCategoryExists(self):
+    """Check a non chromeos-base package localname that does exist."""
+    self._CheckContent('overlay/category/a/a-9999.ebuild',
+                       '# HEADER\nCROS_WORKON_PROJECT="project"\n'
+                       'CROS_WORKON_LOCALNAME="tp_exists"',
+                       False)
+
+  def testOtherCategoryDoesNotExist(self):
+    """Check a non chromeos-base package localname that does not exist."""
+    self._CheckContent('overlay/category/a/a-9999.ebuild',
+                       '# HEADER\nCROS_WORKON_PROJECT="project"\n'
+                       'CROS_WORKON_LOCALNAME="does_not_exist"',
+                       False)
+
+  def testNestedPathExists(self):
+    """Check a nested package localname that does exist."""
+    self._CheckContent('overlay/chromeos-base/a/a-9999.ebuild',
+                       '# HEADER\nCROS_WORKON_PROJECT="project"\n'
+                       'CROS_WORKON_LOCALNAME="third_party/tp_exists"',
+                       False)
+
+  def testMultipleExists(self):
+    """Check multiple values that exist."""
+    localname = '("src_exists" "third_party/tp_exists")'
+    self._CheckContent('overlay/chromeos-base/a/a-9999.ebuild',
+                       f'# HEADER\nCROS_WORKON_PROJECT=("project" "project2")\n'
+                       f'CROS_WORKON_LOCALNAME={localname}',
+                       False)
+
+  def testMultipleDoesNotExist(self):
+    """Check multiple values where one does not exist."""
+    localname = '("src_exists" "does_not_exist")'
+    self._CheckContent('overlay/chromeos-base/a/a-9999.ebuild',
+                       f'# HEADER\nCROS_WORKON_PROJECT=("project" "project2")\n'
+                       f'CROS_WORKON_LOCALNAME={localname}',
+                       True)
+
+
 class CheckEbuildOwners(PreUploadTestCase):
   """Tests for _check_ebuild_owners."""
 

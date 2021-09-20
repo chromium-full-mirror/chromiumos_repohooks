@@ -47,12 +47,14 @@ elif __name__ == '__main__':
 # The sys.path monkey patching confuses the linter.
 # pylint: disable=wrong-import-position
 from chromite.lib import commandline
+from chromite.lib import constants
 from chromite.lib import cros_build_lib
 from chromite.lib import gerrit
 from chromite.lib import git
 from chromite.lib import gob_util
 from chromite.lib import osutils
 from chromite.lib import patch
+from chromite.lib import portage_util
 from chromite.lib import terminal
 from chromite.licensing import licenses_lib
 
@@ -1548,6 +1550,74 @@ def _check_ebuild_virtual_pv(project, commit):
   return None
 
 
+def _check_ebuild_localname_exists(_project, commit):
+  """Validate CROS_WORKON_LOCALNAME values."""
+  ebuilds_re = [r'-9999\.ebuild$']
+  ebuilds = _filter_files(_get_affected_files(commit, relative=True),
+                          ebuilds_re)
+
+  bad_localnames = []
+  tempdir = osutils.TempDir()
+  for ebuild in ebuilds:
+    ebuild_path = os.path.join(tempdir.tempdir, ebuild)
+    osutils.WriteFile(ebuild_path, _get_file_content(ebuild, commit),
+                      makedirs=True)
+
+    try:
+      ebuild_obj = portage_util.EBuild(ebuild_path)
+      workon_vars = portage_util.EBuild.GetCrosWorkonVars(ebuild_path,
+                                                          ebuild_obj.pkgname)
+    except portage_util.EbuildFormatIncorrectError:
+      # Skip ebuilds we can't read for now.
+      continue
+
+    if ebuild_obj.category != 'chromeos-base':
+      # Only checking chromeos-base until we remove the implicit third-party
+      # from non-chromeos-base packages.
+      continue
+    if not workon_vars.localname:
+      # This is a problem itself, but not what we're checking for here.
+      continue
+
+    # Localnames are relative to src/.
+    src_path = Path('src')
+    base_path = Path(constants.SOURCE_ROOT) / src_path
+    for path in workon_vars.localname:
+      full_path = base_path / path
+      if full_path.exists():
+        # Exists, move to the next one.
+        continue
+
+      # Check the manifest for an entry at the given path.
+      checkout = git.ManifestCheckout.Cached(__file__)
+      pkg_path = src_path / path
+      if str(pkg_path) in checkout.checkouts_by_path:
+        # Found the exact path.
+        continue
+
+      # Check if the LOCALNAME entry is in any of the manifest's project paths.
+      for checkout_path in checkout.checkouts_by_path:
+        try:
+          pkg_path.relative_to(checkout_path)
+          break
+        except ValueError:
+          continue
+      else:
+        # Never hit the break, not in any of the manifest projects.
+        bad_localnames.append((ebuild, path, pkg_path))
+
+  if bad_localnames:
+    return HookFailure(
+        'The following ebuilds have the given CROS_WORKON_LOCALNAME values '
+        'that do not exist at the expected location.\n'
+        'chromeos-base packages should be relative to src/.\n\n'
+        '%s' % '\n'.join(
+            f'\t{e}: "{p}" not found at "{f}"' for e, p, f in bad_localnames)
+    )
+
+  return None
+
+
 def _check_portage_make_use_var(_project, commit):
   """Verify that $USE is set correctly in make.conf and make.defaults."""
   files = _filter_files(_get_affected_files(commit, relative=True),
@@ -2252,6 +2322,7 @@ _COMMON_HOOKS = [
     _check_ebuild_eapi,
     _check_ebuild_keywords,
     _check_ebuild_licenses,
+    _check_ebuild_localname_exists,
     _check_ebuild_owners,
     _check_ebuild_r0,
     _check_ebuild_virtual_pv,
