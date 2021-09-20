@@ -942,8 +942,9 @@ def _check_change_has_test_field(project, commit):
 
   TEST_FIELD_RE = _get_test_field_re(project)
   if not re.search(TEST_FIELD_RE, _get_commit_desc(commit)):
-    msg = ('Changelist description needs TEST field (after first line)\n%s' %
-           (SEE_ALSO,))
+    tag = 'Test:' if project.remote in TAG_COLON_REMOTES else 'TEST='
+    msg = ('Changelist description needs %s field (after first line)\n%s' %
+          (tag, SEE_ALSO,))
     return HookFailure(msg)
   return None
 
@@ -1000,10 +1001,10 @@ def _check_change_has_bug_field(project, commit):
   if project.remote in TAG_COLON_REMOTES:
     BUG_RE = r'\nBug: ?([Nn]one|\d+)'
     if not re.search(BUG_RE, _get_commit_desc(commit)):
-      msg = ('Changelist description needs BUG field (after first line):\n'
+      msg = ('Changelist description needs Bug field (after first line):\n'
              'Examples:\n'
              'Bug: 9999 (for buganizer)\n'
-             'BUG=None\n%s' % (SEE_ALSO,))
+             'Bug: None\n%s' % (SEE_ALSO,))
       return HookFailure(msg)
   else:
     BUG_RE = r'\nBUG=([Nn]one|(chromium|b):\d+)'
