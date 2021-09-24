@@ -1007,6 +1007,16 @@ def _check_change_has_bug_field(project, commit):
              'Bug: None\n%s' % (SEE_ALSO,))
       return HookFailure(msg)
   else:
+    BUG_BARE_NUMBER_RE = r'\nBUG=(\d+)'
+    bare_bug = re.search(BUG_BARE_NUMBER_RE, _get_commit_desc(commit))
+    if bare_bug:
+      msg = ('BUG field in changelist description missing chromium: or b: '
+             'prefix.\nExamples:\n'
+             'BUG=chromium:%s (for public tracker)\n'
+             'BUG=b:%s (for buganizer)\n%s' %
+             (bare_bug[1], bare_bug[1], SEE_ALSO,))
+      return HookFailure(msg)
+
     BUG_RE = r'\nBUG=([Nn]one|(chromium|b):\d+)'
     if not re.search(BUG_RE, _get_commit_desc(commit)):
       msg = ('Changelist description needs BUG field (after first line):\n'
