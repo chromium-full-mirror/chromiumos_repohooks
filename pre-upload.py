@@ -16,7 +16,7 @@ import fnmatch
 import functools
 import json
 import os
-import pathlib
+from pathlib import Path
 import re
 import sys
 import stat
@@ -24,6 +24,11 @@ import subprocess
 
 from errors import (VerifyException, HookFailure, PrintErrorForProject,
                     PrintErrorsForCommit)
+
+
+# Path to the repohooks dir itself.
+REPOHOOKS_DIR = Path(__file__).resolve().parent
+
 
 if __name__ in ('__builtin__', 'builtins'):
   # If repo imports us, the __name__ will be __builtin__, and the cwd will be in
@@ -37,13 +42,15 @@ if __name__ in ('__builtin__', 'builtins'):
 elif __name__ == '__main__':
   # If we're run directly, we'll find chromite relative to the repohooks dir in
   # $CHROMEOS_CHECKOUT/src/repohooks, so go up two dirs.
-  sys.path.insert(0, os.path.join(os.path.dirname(sys.argv[0]), '..', '..'))
+  sys.path.insert(0, str(REPOHOOKS_DIR.parent.parent))
 
 # The sys.path monkey patching confuses the linter.
 # pylint: disable=wrong-import-position
 from chromite.lib import commandline
 from chromite.lib import cros_build_lib
+from chromite.lib import gerrit
 from chromite.lib import git
+from chromite.lib import gob_util
 from chromite.lib import osutils
 from chromite.lib import patch
 from chromite.lib import terminal
@@ -944,7 +951,7 @@ def _check_change_has_test_field(project, commit):
   if not re.search(TEST_FIELD_RE, _get_commit_desc(commit)):
     tag = 'Test:' if project.remote in TAG_COLON_REMOTES else 'TEST='
     msg = ('Changelist description needs %s field (after first line)\n%s' %
-          (tag, SEE_ALSO,))
+           (tag, SEE_ALSO,))
     return HookFailure(msg)
   return None
 
@@ -1144,7 +1151,7 @@ def _check_for_uprev(project, commit, project_top=None):
     }
     allowed_directories = {'profiles'}
 
-    affected = pathlib.Path(FinalName(obj))
+    affected = Path(FinalName(obj))
     if affected.name in allowed_files:
       return True
 
@@ -1413,8 +1420,8 @@ def _check_ebuild_owners(project, commit):
   for package_dir in package_dirs:
     package_files = [
         x for x in affected_files_objs
-        if (x.src_file and x.src_file.startswith(f'{package_dir}/')) or
-           (x.dst_file and x.dst_file.startswith(f'{package_dir}/'))]
+        if ((x.src_file and x.src_file.startswith(f'{package_dir}/')) or
+            (x.dst_file and x.dst_file.startswith(f'{package_dir}/')))]
 
     # Only complain about new ebuilds, not existing ones.  For now.
     # We'll assume that "all adds" means it's a new package.
@@ -2461,6 +2468,10 @@ def _run_project_hooks(project_name, proj_dir=None,
   # hooks assume they are run from the root of the project
   os.chdir(proj_dir)
 
+  # Check the CLA here as we might be uploading multiple projects with each to a
+  # different remote which have independent CLA settings.
+  check_cla()
+
   color = terminal.Color()
 
   remote_branch = _run_command(['git', 'rev-parse', '--abbrev-ref',
@@ -2521,6 +2532,49 @@ def _run_project_hooks(project_name, proj_dir=None,
 
   os.chdir(pwd)
   return error_found
+
+
+def check_cla() -> None:
+  """See if the user has signed the Google CLA yet."""
+  # Find the current remote.
+  branch = _run_command(['git', 'symbolic-ref', 'HEAD']).strip()
+  branch = branch.replace('refs/heads/', '')
+  if not branch:
+    raise VerifyException('Need to be on a tracking branch')
+
+  remote = _run_command(['git', 'config', f'branch.{branch}.remote']).strip()
+  if not remote:
+    raise VerifyException('Need to be on a tracking branch')
+
+  # Only enforce CLA on some hosts.
+  if remote not in ('cros', 'cros-internal'):
+    return
+
+  # See if the CLA check has been cached for this remote.
+  config = f'repo.hooks.pre-upload.fsigncla.{remote}'
+  result = _run_command(['git', 'config', config], cwd=REPOHOOKS_DIR)
+  if result:
+    # We have a cached result.  We only cache positive hits, so return.
+    return
+
+  # Check with the server to see if it's been signed in the meantime.
+  gob = {
+      'cros': 'chromium',
+      'cros-internal': 'chrome-internal',
+  }[remote]
+  helper = gerrit.GetGerritHelper(gob=gob, print_cmd=False)
+  data = gob_util.FetchUrlJson(helper.host, 'accounts/self/groups')
+  for group in data:
+    if group.get('name') == 'google/google-union:signcla':
+      # They're in the magic group, so cache the result.
+      _run_command(['git', 'config', config, 'true'], cwd=REPOHOOKS_DIR)
+      return
+
+  # They haven't signed yet, so issue a warning.
+  print('WARNING: You have not yet signed the Google CLA.  '
+        'This will become a requirement for uploads soon.', file=sys.stderr)
+  print(f'Visit https://{helper.host}/settings/#Agreements to sign.',
+        file=sys.stderr)
 
 
 # Main
