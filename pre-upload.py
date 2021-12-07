@@ -1431,12 +1431,16 @@ def _check_ebuild_owners(project, commit):
     # See if there's an OWNERS file in there already.
     data = _get_file_content(os.path.join(package_dir, 'OWNERS'), commit)
     if not data:
-      # Allow specific overlays to declare OWNERS for all packages.
-      if (project.name == 'chromiumos/overlays/board-overlays' or
-          re.match(r'^chromeos/overlays/(baseboard|chipset|project|overlay)-',
-                   project.name)):
-        data = _get_file_content(os.path.join(os.path.dirname(os.path.dirname(
-            package_dir)), 'OWNERS'), commit)
+      # Allow categories to declare OWNERS.  Some are owned by entire teams.
+      category = os.path.dirname(package_dir)
+      data = _get_file_content(os.path.join(category, 'OWNERS'), commit)
+      if not data:
+        # Allow specific overlays to declare OWNERS for all packages.
+        if (project.name == 'chromiumos/overlays/board-overlays' or
+            re.match(r'^chromeos/overlays/(baseboard|chipset|project|overlay)-',
+                     project.name)):
+          overlay = os.path.dirname(category)
+          data = _get_file_content(os.path.join(overlay, 'OWNERS'), commit)
 
     if not data:
       packages_missing_owners.append(package_dir)

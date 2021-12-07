@@ -236,12 +236,12 @@ class CheckNoBlankLinesTest(PreUploadTestCase):
   """Tests for _check_no_extra_blank_lines."""
 
   MOCK_FILE_CONTENT = {
-    'x0.cc': '',            # Good
-    'x1.cc': 'y',           # Good
-    'x2.cc': 'z\n',         # Good
-    'x3.cc': '\n\n',        # Bad
-    'x4.cc': 'y\n\n',       # Bad
-    'x5.cc': 'z\nz\n\n\n',  # Bad
+      'x0.cc': '',            # Good
+      'x1.cc': 'y',           # Good
+      'x2.cc': 'z\n',         # Good
+      'x3.cc': '\n\n',        # Bad
+      'x4.cc': 'y\n\n',       # Bad
+      'x5.cc': 'z\nz\n\n\n',  # Bad
   }
 
   @classmethod
@@ -1036,6 +1036,8 @@ class CheckEbuildOwners(PreUploadTestCase):
     def _get_content(path, _commit):
       if path == 'overlay-oak/dev-util/pkg/OWNERS':
         return None
+      elif path == 'overlay-oak/dev-util/OWNERS':
+        return None
       elif path == 'overlay-oak/OWNERS':
         return overlay_owners
       else:
@@ -1075,6 +1077,8 @@ class CheckEbuildOwners(PreUploadTestCase):
     def _get_content(path, _commit):
       if path == 'dev-util/pkg/OWNERS':
         return None
+      elif path == 'dev-util/OWNERS':
+        return None
       elif path == 'OWNERS':
         return overlay_owners
       else:
@@ -1112,6 +1116,8 @@ class CheckEbuildOwners(PreUploadTestCase):
     def _get_content(path, _commit):
       if path == 'dev-util/pkg/OWNERS':
         return None
+      elif path == 'dev-util/OWNERS':
+        return None
       elif path == 'OWNERS':
         return '# Global owners.\nfoo@bar\n'
       else:
@@ -1124,6 +1130,26 @@ class CheckEbuildOwners(PreUploadTestCase):
 
     ret = pre_upload._check_ebuild_owners(project, 'HEAD')
     self.assertIsNotNone(ret)
+
+  def testCategoryOwners(self):
+    """Allow OWNERS in categories."""
+    project = ProjectNamed('chromiumos/overlays/portage-stable')
+
+    def _get_content(path, _commit):
+      if path == 'dev-util/pkg/OWNERS':
+        return None
+      elif path == 'dev-util/OWNERS':
+        return '# Global owners.\nfoo@bar\n'
+      else:
+        raise AssertionError(f'Unhandled test path: {path}')
+
+    self.content_mock.side_effect = _get_content
+    self.file_mock.return_value = [
+        DiffEntry(src_file='dev-util/pkg/pkg-0-r1.ebuild', status='A'),
+    ]
+
+    ret = pre_upload._check_ebuild_owners(project, 'HEAD')
+    self.assertIsNone(ret)
 
 
 class CheckEbuildR0(PreUploadTestCase):
@@ -1613,8 +1639,8 @@ class CheckCommitMessageBug(CommitMessageTestCase):
     """Reject any TEST line before any BUG line."""
     middle_field = 'A random between line\n'
     for project, bug_field, test_field in (
-            (self.AOSP_PROJECT, 'Bug:none\n', 'Test: i did not do it\n'),
-            (self.CROS_PROJECT, 'BUG=None\n', 'TEST=i did not do it\n')):
+        (self.AOSP_PROJECT, 'Bug:none\n', 'Test: i did not do it\n'),
+        (self.CROS_PROJECT, 'BUG=None\n', 'TEST=i did not do it\n')):
       self.assertMessageRejected(
           '\n' + test_field + middle_field + bug_field, project)
       self.assertMessageRejected(
