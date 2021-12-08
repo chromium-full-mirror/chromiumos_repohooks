@@ -1205,28 +1205,15 @@ def _check_for_uprev(project, commit, project_top=None):
 
   # Look through each directory.  If it's got an ebuild in it then we'll
   # consider this as a case when we need a revbump.
-  affected_paths = set(os.path.join(project_top, FinalName(x))
-                       for x in affected_path_objs)
   for dir_path in dirs_to_check:
     contents = os.listdir(dir_path)
     ebuilds = [os.path.join(dir_path, path)
                for path in contents if path.endswith('.ebuild')]
     ebuilds_9999 = [path for path in ebuilds if path.endswith('-9999.ebuild')]
 
-    affected_paths_under_9999_ebuilds = set()
-    for affected_path in affected_paths:
-      for ebuild_9999 in ebuilds_9999:
-        ebuild_dir = os.path.dirname(ebuild_9999)
-        if affected_path.startswith(ebuild_dir):
-          affected_paths_under_9999_ebuilds.add(affected_path)
-
-    # If every file changed exists under a 9999 ebuild, then skip
-    if len(affected_paths_under_9999_ebuilds) == len(affected_paths):
-      continue
-
-    # If the -9999.ebuild file was touched the bot will uprev for us.
-    # ...we'll use a simple intersection here as a heuristic...
-    if set(ebuilds_9999) & affected_paths:
+    # If we're touching things in the same directory as a -9999.ebuild, the bot
+    # will uprev for us.
+    if ebuilds_9999:
       continue
 
     if ebuilds:

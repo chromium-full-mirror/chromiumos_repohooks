@@ -2115,9 +2115,18 @@ class CheckForUprev(PreUploadTestCase, cros_test_lib.TempDirTestCase):
   def testModifiedFilesIn9999SubDirWithout9999Change(self):
     """Accept changes in files/ with a parent 9999 ebuild"""
     ebuild_9999_file = os.path.join(self.tempdir, 'c/p/p-9999.ebuild')
-    os.makedirs(os.path.dirname(ebuild_9999_file))
-    osutils.WriteFile(ebuild_9999_file, 'fake')
+    osutils.WriteFile(ebuild_9999_file, 'fake', makedirs=True)
     self.assertAccepted([DiffEntry(src_file='c/p/files/f', status='M')])
+
+  def testModifiedFilesIn9999SubDirsWithout9999Change(self):
+    """Accept changes in multiple files/ with parent 9999 ebuilds"""
+    EBUILDS = (os.path.join(self.tempdir, 'c/p/p-9999.ebuild'),
+               os.path.join(self.tempdir, 'c/p2/p2-9999.ebuild'))
+    for ebuild_9999_file in EBUILDS:
+      osutils.WriteFile(ebuild_9999_file, 'fake', makedirs=True)
+    self.assertAccepted([
+        DiffEntry(src_file='c/p/files/f', status='M'),
+        DiffEntry(src_file='c/p2/files/g', status='M')])
 
   def testModifiedFilesAndProfilesWith9999(self):
     """Accept changes in files/ with a parent 9999 ebuild and profile change"""
