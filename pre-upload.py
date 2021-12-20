@@ -1101,6 +1101,34 @@ def _check_change_no_include_oem(project, commit):
   return None
 
 
+def match_board_phases(line):
+  """Helper function to identify lines that contain board phases."""
+
+  BOARD_PHASES = [r'proto\d+', 'evt', 'dvt', 'pvt']
+
+  # Construct regex.
+  name_re = r'\b(%s)\b' % '|'.join(BOARD_PHASES)
+  matches = [x[0] for x in re.findall(name_re, line, re.IGNORECASE)]
+
+  return ''.join(matches)
+
+
+def _check_change_no_include_board_phase(_project, commit):
+  """Check that the change does not reference board phases."""
+
+  commit_message = _get_commit_desc(commit).replace('\n', ' ')
+  commit_message = re.sub(r'[\s_-]+', ' ', commit_message)
+
+  matches = match_board_phases(commit_message)
+  if matches:
+    # If there's a match, throw an error.
+    error_msg = ('Changelist description contains the name of a'
+                 f' board phase: {matches}.')
+    return HookFailure(error_msg)
+
+  return None
+
+
 def _check_for_uprev(project, commit, project_top=None):
   """Check that we're not missing a revbump of an ebuild in the given commit.
 
@@ -2313,6 +2341,7 @@ _PATCH_DESCRIPTION_HOOKS = [
     _check_commit_message_style,
     _check_change_is_contribution,
     _check_change_no_include_oem,
+    _check_change_no_include_board_phase,
 ]
 
 # A list of hooks that are not project-specific

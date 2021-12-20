@@ -1972,6 +1972,27 @@ class CheckCommitMessageNoOEM(CommitMessageTestCase):
         'Bad-tag: partner@asus.corp-partner.google.com')
 
 
+class CheckCommitMessageNoBoardPhase(CommitMessageTestCase):
+  """Tests for _check_change_no_include_board_phase."""
+
+  @staticmethod
+  def CheckMessage(project, commit):
+    return pre_upload._check_change_no_include_board_phase(project, commit)
+
+  def testNormal(self):
+    """Accept a commit message w/o reference to an board phase."""
+    self.assertMessageAccepted('foo\n')
+
+  def testContainsBoardPhase(self):
+    """Catch commit messages referencing board phase."""
+    self.assertMessageAccepted('proto')
+    self.assertMessageRejected('proTo33')
+    self.assertMessageRejected('evt')
+    self.assertMessageRejected('DVT\n')
+    self.assertMessageRejected('PvT')
+    self.assertMessageAccepted('mp')
+
+
 class CheckCommitMessageStyle(CommitMessageTestCase):
   """Tests for _check_commit_message_style."""
 
