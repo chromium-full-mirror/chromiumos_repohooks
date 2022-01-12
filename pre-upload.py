@@ -2642,7 +2642,7 @@ def check_cla() -> None:
     return
 
   # See if the CLA check has been cached for this remote.
-  config = f'repo.hooks.pre-upload.fsigncla.{remote}'
+  config = f'repo.hooks.pre-upload.signcla.{remote}'
   result = _run_command(['git', 'config', config], cwd=REPOHOOKS_DIR)
   if result:
     # We have a cached result.  We only cache positive hits, so return.
