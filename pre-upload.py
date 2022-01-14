@@ -885,6 +885,48 @@ def _get_cargo_clippy_parser():
   return parser
 
 
+def _check_for_cargo():
+  """Return true if cargo is available"""
+  try:
+    cmd = ['cargo', '-V']
+    _run_command(cmd, stderr=subprocess.STDOUT)
+  except cros_build_lib.RunCommandError:
+    return False
+  return True
+
+
+def _run_clippy_on_dir(root, cmd, errors):
+  """Runs clippy with cargo clean if needed.
+
+  If clippy fails with E0460, cargo clean is run, and clippy is run again.
+
+  If cmd is empty the default is used.
+  If clippy fails, a HookFailure will be appended to errors.
+  """
+  # Overwrite the clippy command if a project-specific script is specified.
+  if not cmd:
+    cmd = ['cargo', 'clippy', '--all-features', '--all-targets', '--workspace',
+           f'--manifest-path={root}/Cargo.toml',
+           '--', '-D', 'warnings']
+
+  tries = 0
+  while tries < 2:
+    output = _run_command(cmd, stderr=subprocess.STDOUT)
+    error = re.search(r'^error(\[E[0-9]+\])?:', output, flags=re.MULTILINE)
+    tries += 1
+    if error:
+      # E0460 indicates the build is stale and clean needs to be run, but only
+      # act on it for the first try.
+      if tries < 2 and error.group(1) == '[E0460]':
+        _run_command(['cargo', 'clean', f'--manifest-path={root}/Cargo.toml'])
+        continue
+      else:
+        # An unexpected error so return it without retrying.
+        msg = output[error.start():]
+        errors.append(HookFailure(msg))
+    return
+
+
 def _check_cargo_clippy(project, commit, options=()):
   """Checks that a change doesn't produce cargo-clippy errors."""
 
@@ -900,6 +942,7 @@ def _check_cargo_clippy(project, commit, options=()):
                         f' Please check PRESUBMIT.cfg is correct: {e}')]
   files = _get_affected_files(commit)
 
+  cargo_checked = False
   errors = []
   for clippy in opts.project:
     root = os.path.normpath(os.path.join(project.dir, clippy.root))
@@ -913,18 +956,16 @@ def _check_cargo_clippy(project, commit, options=()):
     if not modified:
       continue
 
-    cmd = ['cargo', 'clippy', '--all-features', '--all-targets', '--workspace',
-           f'--manifest-path={root}/Cargo.toml',
-           '--', '-D', 'warnings']
-    # Overwrite the clippy command if a project-specific script is specified.
-    if clippy.script:
-      cmd = [os.path.join(project.dir, clippy.script)]
+    # Check that cargo is available and if not fail with an actionable message.
+    if not cargo_checked:
+      cargo_checked = True
+      if not _check_for_cargo():
+        return [HookFailure('The cargo command was not found. '
+                            'Please run repo inside the chroot or run '
+                            'update_chroot and try again.')]
 
-    output = _run_command(cmd, stderr=subprocess.STDOUT)
-    error = re.search(r'^error: ', output, flags=re.MULTILINE)
-    if error:
-      msg = output[error.start():]
-      errors.append(HookFailure(msg))
+    cmd = [os.path.join(project.dir, clippy.script)] if clippy.script else []
+    _run_clippy_on_dir(root, cmd, errors)
 
   return errors
 
