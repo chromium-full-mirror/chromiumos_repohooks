@@ -2602,7 +2602,14 @@ def _run_project_hooks(project_name, proj_dir=None,
 
   # Check the CLA here as we might be uploading multiple projects with each to a
   # different remote which have independent CLA settings.
-  check_cla()
+  try:
+    check_cla()
+  except VerifyException as e:
+    PrintErrorForProject(
+        project_name,
+        HookFailure(f'unable to check cla: {e}'))
+    os.chdir(pwd)
+    return True
 
   color = terminal.Color()
 
@@ -2672,11 +2679,12 @@ def check_cla() -> None:
   branch = _run_command(['git', 'symbolic-ref', 'HEAD']).strip()
   branch = branch.replace('refs/heads/', '')
   if not branch:
-    raise VerifyException('Need to be on a tracking branch')
+    raise VerifyException('Need to be on a branch')
 
   remote = _run_command(['git', 'config', f'branch.{branch}.remote']).strip()
   if not remote:
-    raise VerifyException('Need to be on a tracking branch')
+    raise VerifyException('Need to be on a tracking branch; '
+                          f'fix branch.{branch}.remote')
 
   # Only enforce CLA on some hosts.
   if remote not in ('cros', 'cros-internal'):
