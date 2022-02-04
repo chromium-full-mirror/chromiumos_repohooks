@@ -689,7 +689,7 @@ def _check_keywords_in_file(project, commit, file, keywords,
 
     # Ignore lines that end with nocheck, typically in a comment.
     # This enables devs to bypass this check line by line.
-    if line.endswith(' nocheck'):
+    if line.endswith(' nocheck') or line.endswith(' nocheck */'):
       return False
 
     for word in keywords:
