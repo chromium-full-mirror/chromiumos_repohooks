@@ -2591,6 +2591,25 @@ branch_check: true
     self.assertIn(pre_upload._check_change_has_branch_field, enabled)
     self.assertNotIn(pre_upload._check_change_has_branch_field, disabled)
 
+  def testBoardPhase(self):
+    """Verify board phase name disabling."""
+    # Should be disabled by default.
+    enabled, disabled = self.parse('')
+    self.assertNotIn(pre_upload._check_change_no_include_board_phase, enabled)
+    self.assertNotIn(pre_upload._check_change_no_include_board_phase, disabled)
+    enabled, disabled = self.parse("""
+[Hook Overrides]
+check_change_no_include_board_phase: false
+""")
+    self.assertIn(pre_upload._check_change_no_include_board_phase, disabled)
+    self.assertNotIn(pre_upload._check_change_no_include_board_phase, enabled)
+    enabled, disabled = self.parse("""
+[Hook Overrides]
+check_change_no_include_board_phase: true
+""")
+    self.assertIn(pre_upload._check_change_no_include_board_phase, enabled)
+    self.assertNotIn(pre_upload._check_change_no_include_board_phase, disabled)
+
 
 class ProjectHooksProcessing(PreUploadTestCase, cros_test_lib.TempDirTestCase):
   """Verify _get_project_hooks processing."""

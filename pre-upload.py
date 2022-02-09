@@ -2421,6 +2421,7 @@ _HOOK_FLAGS = {
     'branch_check': _check_change_has_branch_field,
     'bug_field_check': _check_change_has_bug_field,
     'cargo_clippy_check': _check_cargo_clippy,
+    'check_change_no_include_board_phase': _check_change_no_include_board_phase,
     'checkpatch_check': _run_checkpatch,
     'clang_format_check': _check_clang_format,
     'contribution_check': _check_change_is_contribution,
