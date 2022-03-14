@@ -1149,16 +1149,19 @@ def match_board_phases(line):
 
   # Construct regex.
   name_re = r'\b(%s)\b' % '|'.join(BOARD_PHASES)
-  matches = [x[0] for x in re.findall(name_re, line, re.IGNORECASE)]
+  # Some examples:
+  # 'Enabling ABC on XYZ EVT and PVT boards'      -> ['EVT', 'PVT']
+  # 'Rename acpi_gpio_evt_pin to acpi_gpio_event' -> []
+  matches = [x for x in re.findall(name_re, line, re.IGNORECASE)]
 
-  return ''.join(matches)
+  return ','.join(matches)
 
 
 def _check_change_no_include_board_phase(_project, commit):
   """Check that the change does not reference board phases."""
 
   commit_message = _get_commit_desc(commit).replace('\n', ' ')
-  commit_message = re.sub(r'[\s_-]+', ' ', commit_message)
+  commit_message = re.sub(r'[\s-]+', ' ', commit_message)
 
   matches = match_board_phases(commit_message)
   if matches:

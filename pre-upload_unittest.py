@@ -1991,6 +1991,8 @@ class CheckCommitMessageNoBoardPhase(CommitMessageTestCase):
     self.assertMessageRejected('DVT\n')
     self.assertMessageRejected('PvT')
     self.assertMessageAccepted('mp')
+    self.assertMessageAccepted('hci_sync_conn_complete_evt')
+    self.assertMessageAccepted('skip virtio_net_hdr_set_proto')
 
 
 class CheckCommitMessageStyle(CommitMessageTestCase):
