@@ -101,7 +101,11 @@ def main(argv):
 
   opts = parser.parse_args(argv)
 
-  cmd = [opts.git_clang_format, '--binary', opts.clang_format, '--diff']
+  # Upstream uses `python` in its shebang.  This doesn't work on newer Debian
+  # systems which dropped /usr/bin/python.  Run through vpython manually to
+  # match what depot_tools does.  b/220165980
+  cmd = ['vpython', opts.git_clang_format,
+         '--binary', opts.clang_format, '--diff']
   if opts.style:
     cmd.extend(['--style', opts.style])
   if opts.extensions:
