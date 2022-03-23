@@ -2248,10 +2248,24 @@ class CheckForUprev(PreUploadTestCase, cros_test_lib.TempDirTestCase):
     """Reject ebuilds missing uprevs."""
     self.assertRejected([DiffEntry(src_file='c/p/p-0.ebuild', status='M')])
 
+  def testRejectBasicRevision(self):
+    """Reject -rN ebuilds missing uprevs."""
+    self.assertRejected([DiffEntry(src_file='c/p/p-0-r1.ebuild', status='M')])
+
   def testNewPackage(self):
     """Accept new ebuilds w/out uprevs."""
     self.assertAccepted([DiffEntry(src_file='c/p/p-0.ebuild', status='A')])
     self.assertAccepted([DiffEntry(src_file='c/p/p-0-r12.ebuild', status='A')])
+
+  def testNewPackageNoSymlink(self):
+    """Accept new ebuilds w/out symlinks."""
+    self.assertAccepted([DiffEntry(src_file='c/p/p-0.ebuild', status='A')])
+
+  def testUprevNoSymlink(self):
+    """Accept uprev'd ebuilds w/out symlinks."""
+    self.assertAccepted([
+        DiffEntry(src_file='c/p/p-0.ebuild', src_mode='120000',
+                  dst_file='c/p/p-1.ebuild', dst_mode='120000', status='R')])
 
   def testModifiedFilesOnly(self):
     """Reject ebuilds w/out uprevs and changes in files/."""

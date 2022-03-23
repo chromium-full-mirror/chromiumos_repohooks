@@ -1178,22 +1178,8 @@ def _check_for_uprev(project, commit, project_top=None):
 
   If the given commit touches files in a directory that has ebuilds somewhere
   up the directory hierarchy, it's very likely that we need an ebuild revbump
-  in order for those changes to take effect.
-
-  It's not totally trivial to detect a revbump, so at least detect that an
-  ebuild with a revision number in it was touched.  This should handle the
-  common case where we use a symlink to do the revbump.
-
-  TODO: it would be nice to enhance this hook to:
-  * Handle cases where people revbump with a slightly different syntax.  I see
-    one ebuild (puppy) that revbumps with _pN.  This is a false positive.
-  * Catches cases where people aren't using symlinks for revbumps.  If they
-    edit a revisioned file directly (and are expected to rename it for revbump)
-    we'll miss that.  Perhaps we could detect that the file touched is a
-    symlink?
-
-  If a project doesn't use symlinks we'll potentially miss a revbump, but we're
-  still better off than without this check.
+  in order for those changes to take effect. Try to detect those situations and
+  warn if there wasn't a version or revision bump.
 
   Args:
     project: The Project to look at
@@ -1245,17 +1231,11 @@ def _check_for_uprev(project, commit, project_top=None):
   if not affected_path_objs:
     return None
 
-  # If we've touched any file named with a -rN.ebuild then we'll say we're
-  # OK right away.  See TODO above about enhancing this.
-  touched_revved_ebuild = any(re.search(r'-r\d*\.ebuild$', FinalName(x))
-                              for x in affected_path_objs)
-  if touched_revved_ebuild:
-    return None
-
-  # If we're creating new ebuilds from scratch, then we don't need an uprev.
-  # Find all the dirs that new ebuilds and ignore their files/.
+  # If we're creating new ebuilds from scratch or renaming them, then we don't
+  # need an uprev. Find all the dirs with new or renamed ebuilds and ignore
+  # their files/.
   ebuild_dirs = [os.path.dirname(FinalName(x)) + '/' for x in affected_path_objs
-                 if FinalName(x).endswith('.ebuild') and x.status == 'A']
+                 if FinalName(x).endswith('.ebuild') and x.status in ('A', 'R')]
   affected_path_objs = [obj for obj in affected_path_objs
                         if not any(FinalName(obj).startswith(x)
                                    for x in ebuild_dirs)]
@@ -1291,8 +1271,7 @@ def _check_for_uprev(project, commit, project_top=None):
       continue
 
     if ebuilds:
-      return HookFailure('Changelist probably needs a revbump of an ebuild, '
-                         'or a -r1.ebuild symlink if this is a new ebuild:\n'
+      return HookFailure('Changelist probably needs a revbump of an ebuild:\n'
                          '%s' % dir_path)
 
   return None
