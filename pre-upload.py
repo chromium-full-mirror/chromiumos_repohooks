@@ -1540,6 +1540,7 @@ def _check_ebuild_virtual_pv(project, commit):
   is_chipset = lambda x: x.startswith('chipset-')
   is_project = lambda x: x.startswith('project-')
   is_private = lambda x: x.endswith('-private')
+  is_chromeos = lambda x: x == 'chromeos-overlay'
 
   is_special_overlay = lambda x: (is_board(x) or is_chipset(x) or
                                   is_baseboard(x) or is_project(x))
@@ -1579,6 +1580,8 @@ def _check_ebuild_virtual_pv(project, commit):
       want_pv = '1.8.5' if is_private(overlay) else '1.8'
     elif is_project(overlay):
       want_pv = '1.7' if is_private(overlay) else '1.5'
+    elif is_chromeos(overlay):
+      want_pv = '1.3'
     else:
       want_pv = '1'
 

@@ -1319,6 +1319,7 @@ class CheckEbuildVirtualPv(PreUploadTestCase):
   """Tests for _check_ebuild_virtual_pv."""
 
   PORTAGE_STABLE = ProjectNamed('chromiumos/overlays/portage-stable')
+  CHROMEOS_OVERLAY = ProjectNamed('chromeos/overlays/chromeos-overlay')
   CHROMIUMOS_OVERLAY = ProjectNamed('chromiumos/overlays/chromiumos')
   BOARD_OVERLAY = ProjectNamed('chromiumos/overlays/board-overlays')
   PRIVATE_OVERLAY = ProjectNamed('chromeos/overlays/overlay-link-private')
@@ -1350,6 +1351,17 @@ class CheckEbuildVirtualPv(PreUploadTestCase):
     self.file_mock.return_value = ['virtual/rust/rust-1.47.0-r6.ebuild']
     ret = pre_upload._check_ebuild_virtual_pv(self.CHROMIUMOS_OVERLAY, 'H')
     self.assertIsNone(ret)
+
+  def testChromeVirtuals(self):
+    """ChromeOS overlays should use PV=1.3."""
+    template = 'virtual/foo/foo-%s.ebuild'
+    self.file_mock.return_value = [template % '1.3']
+    ret = pre_upload._check_ebuild_virtual_pv(self.CHROMEOS_OVERLAY, 'H')
+    self.assertIsNone(ret)
+
+    self.file_mock.return_value = [template % '1.5']
+    ret = pre_upload._check_ebuild_virtual_pv(self.CHROMEOS_OVERLAY, 'H')
+    self.assertTrue(isinstance(ret, errors.HookFailure))
 
   def testPublicBoardVirtuals(self):
     """Public board overlays should use PV=2."""
