@@ -85,7 +85,7 @@ COMMON_INCLUDED_PATHS = CPP_PATHS + [
     r'(^|.*[\\\/])[^.]+$',
     # Other
     r'.*\.java$', r'.*\.mk$', r'.*\.am$',
-    r'.*\.policy$', r'.*\.rules$', r'.*\.conf$', r'.*\.go$',
+    r'.*\.policy$', r'.*\.rules$', r'.*\.conf$', r'.*\.go$', r'.*\.rs$',
     r'(^OWNERS|/OWNERS)',
 ]
 
