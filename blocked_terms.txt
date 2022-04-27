@@ -41,8 +41,8 @@ man.?in.?the.?middle
 master
 # MITM
 \bmitm(\b|\d)
-# Native
-\bnative
+# Natives (formerly singular 'native')
+\bnatives
 # Red Line
 \bred.?line
 # RTFM

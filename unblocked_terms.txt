@@ -27,7 +27,7 @@
 # man.?in.?the.?middle
 # master
 # \bmitm(\b|\d)
-# \bnative
+# \bnatives
 # \bred.?line
 # rtfm
 # \b(in)?sane(\b|\d)
