@@ -8,17 +8,19 @@
 import configparser
 import datetime
 import os
+from pathlib import Path
 import sys
 from unittest import mock
 
 import errors
 
+
 # We access private members of the pre_upload module.
 # pylint: disable=protected-access
 
 # Make sure we can find the chromite paths.
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                '..', '..'))
+DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(DIR.parent.parent))
 
 # The sys.path monkey patching confuses the linter.
 # pylint: disable=wrong-import-position
@@ -961,14 +963,14 @@ class CheckEbuildLocalnameExists(PreUploadTestCase,
   def setUp(self):
     self.file_mock = self.PatchObject(pre_upload, '_get_affected_files')
     self.content_mock = self.PatchObject(pre_upload, '_get_file_content')
-    self.PatchObject(constants, 'SOURCE_ROOT', new=self.tempdir)
+    self.PatchObject(constants, 'SOURCE_ROOT', new=str(self.tempdir))
 
-    src = os.path.join(self.tempdir, 'src')
-    src_exists = os.path.join(src, 'src_exists')
+    src = self.tempdir / 'src'
+    src_exists = src / 'src_exists'
     osutils.SafeMakedirs(src_exists)
 
-    third_party = os.path.join(src, 'third_party')
-    third_party_exists = os.path.join(third_party, 'tp_exists')
+    third_party = src / 'third_party'
+    third_party_exists = third_party / 'tp_exists'
     osutils.SafeMakedirs(third_party_exists)
 
   def testNoEbuilds(self):
@@ -2091,14 +2093,12 @@ class HelpersTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
 
   def _WritePresubmitIgnoreFile(self, subdir, data):
     """Writes to a .presubmitignore file in the passed-in subdirectory."""
-    directory = os.path.join(self.tempdir, subdir)
-    if not os.path.exists(directory):
-      os.makedirs(directory)
-    osutils.WriteFile(os.path.join(directory, pre_upload._IGNORE_FILE), data)
+    osutils.WriteFile(self.tempdir / subdir / pre_upload._IGNORE_FILE, data,
+                      makedirs=True)
 
   def testGetAffectedFilesNoDeletesNoRelative(self):
     """Verify _get_affected_files() works w/no delete & not relative."""
-    path = os.getcwd()
+    path = Path.cwd()
     files = pre_upload._get_affected_files('HEAD', include_deletes=False,
                                            relative=False)
     exp_files = [os.path.join(path, 'buildbot/constants.py')]
@@ -2106,7 +2106,7 @@ class HelpersTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
 
   def testGetAffectedFilesDeletesNoRelative(self):
     """Verify _get_affected_files() works w/delete & not relative."""
-    path = os.getcwd()
+    path = Path.cwd()
     files = pre_upload._get_affected_files('HEAD', include_deletes=True,
                                            relative=False)
     exp_files = [os.path.join(path, 'buildbot/constants.py'),
@@ -2227,7 +2227,7 @@ class CheckForUprev(PreUploadTestCase, cros_test_lib.TempDirTestCase):
         f = obj.src_file
       else:
         f = obj.dst_file
-      osutils.Touch(os.path.join(self.tempdir, f), makedirs=True)
+      osutils.Touch(self.tempdir / f, makedirs=True)
     return files
 
   def assertAccepted(self, files, project='project', commit='fake sha1'):
@@ -2281,8 +2281,7 @@ class CheckForUprev(PreUploadTestCase, cros_test_lib.TempDirTestCase):
 
   def testModifiedFilesOnly(self):
     """Reject ebuilds w/out uprevs and changes in files/."""
-    osutils.Touch(os.path.join(self.tempdir, 'cat/pkg/pkg-0.ebuild'),
-                  makedirs=True)
+    osutils.Touch(self.tempdir / 'cat/pkg/pkg-0.ebuild', makedirs=True)
     self.assertRejected([DiffEntry(src_file='cat/pkg/files/f', status='A')])
     self.assertRejected([DiffEntry(src_file='cat/pkg/files/g', status='M')])
 
@@ -2307,14 +2306,14 @@ class CheckForUprev(PreUploadTestCase, cros_test_lib.TempDirTestCase):
 
   def testModifiedFilesIn9999SubDirWithout9999Change(self):
     """Accept changes in files/ with a parent 9999 ebuild"""
-    ebuild_9999_file = os.path.join(self.tempdir, 'c/p/p-9999.ebuild')
+    ebuild_9999_file = self.tempdir / 'c/p/p-9999.ebuild'
     osutils.WriteFile(ebuild_9999_file, 'fake', makedirs=True)
     self.assertAccepted([DiffEntry(src_file='c/p/files/f', status='M')])
 
   def testModifiedFilesIn9999SubDirsWithout9999Change(self):
     """Accept changes in multiple files/ with parent 9999 ebuilds"""
-    EBUILDS = (os.path.join(self.tempdir, 'c/p/p-9999.ebuild'),
-               os.path.join(self.tempdir, 'c/p2/p2-9999.ebuild'))
+    EBUILDS = (self.tempdir / 'c/p/p-9999.ebuild',
+               self.tempdir / 'c/p2/p2-9999.ebuild')
     for ebuild_9999_file in EBUILDS:
       osutils.WriteFile(ebuild_9999_file, 'fake', makedirs=True)
     self.assertAccepted([
@@ -2323,8 +2322,8 @@ class CheckForUprev(PreUploadTestCase, cros_test_lib.TempDirTestCase):
 
   def testModifiedFilesAndProfilesWith9999(self):
     """Accept changes in files/ with a parent 9999 ebuild and profile change"""
-    ebuild_9999_file = os.path.join(self.tempdir, 'c/p/p-9999.ebuild')
-    os.makedirs(os.path.dirname(ebuild_9999_file))
+    ebuild_9999_file = self.tempdir / 'c/p/p-9999.ebuild'
+    os.makedirs(ebuild_9999_file.parent)
     osutils.WriteFile(ebuild_9999_file, 'fake')
     self.assertAccepted([
         DiffEntry(src_file='c/p/files/f', status='M'),
@@ -2343,7 +2342,7 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
     ret = pre_upload.direct_main([])
     self.assertEqual(ret, 0)
     self.hooks_mock.assert_called_once_with(
-        mock.ANY, proj_dir=os.getcwd(), commit_list=[], presubmit=mock.ANY,
+        mock.ANY, proj_dir=str(Path.cwd()), commit_list=[], presubmit=mock.ANY,
         config_file=mock.ANY)
 
   def testExplicitDir(self):
@@ -2370,18 +2369,18 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
     ret = pre_upload.direct_main(['--project', 'foooooooooo'])
     self.assertEqual(ret, 0)
     self.hooks_mock.assert_called_once_with(
-        'foooooooooo', proj_dir=os.path.dirname(os.path.abspath(__file__)),
+        'foooooooooo', proj_dir=str(DIR),
         commit_list=[], presubmit=mock.ANY, config_file=mock.ANY)
 
   def testNoGitDir(self):
     """We should die when run on a non-git dir."""
     self.assertRaises(pre_upload.BadInvocation, pre_upload.direct_main,
-                      ['--dir', self.tempdir])
+                      ['--dir', str(self.tempdir)])
 
   def testNoDir(self):
     """We should die when run on a missing dir."""
     self.assertRaises(pre_upload.BadInvocation, pre_upload.direct_main,
-                      ['--dir', os.path.join(self.tempdir, 'foooooooo')])
+                      ['--dir', str(self.tempdir / 'foooooooo')])
 
   def testCommitList(self):
     """Any args on the command line should be treated as commits."""
@@ -2644,7 +2643,7 @@ class ProjectHooksProcessing(PreUploadTestCase, cros_test_lib.TempDirTestCase):
 
   def parse(self, data):
     """Helper to write config and parse it."""
-    filename = os.path.join(self.tempdir, 'config')
+    filename = self.tempdir / 'config'
     osutils.WriteFile(filename, data)
     return pre_upload._get_project_hooks(presubmit=True, config_file=filename)
 
