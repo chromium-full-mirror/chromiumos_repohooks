@@ -10,6 +10,7 @@ import io
 import os
 import sys
 
+
 _path = os.path.realpath(__file__ + '/../../..')
 if sys.path[0] != _path:
   sys.path.insert(0, _path)
@@ -62,7 +63,7 @@ def _GetDefaultClangFormatPath():
     cmd = [os.path.join(constants.DEPOT_TOOLS_DIR,
                         'download_from_google_storage.py'), '-b',
            'chromium-clang-format', '-s', hash_file_path]
-    cros_build_lib.run(cmd, print_cmd=False)
+    cros_build_lib.dbg_run(cmd)
   return clang_format_path
 
 
@@ -116,8 +117,8 @@ def main(argv):
 
   # Fail gracefully if clang-format itself aborts/fails.
   try:
-    result = cros_build_lib.run(cmd, print_cmd=False, stdout=True,
-                                encoding='utf-8', errors='replace')
+    result = cros_build_lib.dbg_run(
+        cmd, stdout=True, encoding='utf-8', errors='replace')
   except cros_build_lib.RunCommandError as e:
     print('clang-format failed:\n' + str(e), file=sys.stderr)
     print('\nPlease report this to the clang team.', file=sys.stderr)
@@ -136,7 +137,7 @@ def main(argv):
 
   if diff_filenames:
     if opts.fix:
-      cros_build_lib.run(['git', 'apply'], print_cmd=False, input=stdout)
+      cros_build_lib.dbg_run(['git', 'apply'], input=stdout)
     else:
       print('The following files have formatting errors:')
       for filename in diff_filenames:
