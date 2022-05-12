@@ -1790,28 +1790,28 @@ def _check_cros_license(_project, commit, options=()):
   http://dev.chromium.org/developers/coding-style#TOC-File-headers
   """
   # For older years, be a bit more flexible as our policy says leave them be.
+  # Change references.
+  # b/230609017: Chromium OS -> ChromiumOS and remove all rights reserved.
   LICENSE_HEADER = (
-      r'.*Copyright(?: \(c\))? (20[0-9]{2})(?:-20[0-9]{2})? The Chromium OS '
-      r'Authors\. All rights reserved\.\n'
+      # Line 1 - copyright.
+      r'.*Copyright(?P<copyright> \(c\))? (?P<year>20[0-9]{2})(?:-20[0-9]{2})? '
+      r'The Chromium(?P<chromium_space_os> )?OS Authors\.'
+      r'(?P<rights_reserved> All rights reserved\.)?\n'
+      # Line 2 - License.
       r'.*Use of this source code is governed by a BSD-style license that can '
       r'be\n'
-      r'.*found in the LICENSE file\.'
-      r'\n'
+      # Line 3 - License continuation.
+      r'.*found in the LICENSE file\.\n'
   )
   license_re = re.compile(LICENSE_HEADER, re.MULTILINE)
-
-  # For newer years, be stricter.
-  BAD_COPYRIGHT_LINE = (
-      r'.*Copyright \(c\) 20(1[5-9]|[2-9][0-9]) The Chromium OS Authors\. '
-      r'All rights reserved\.' r'\n'
-  )
-  bad_copyright_re = re.compile(BAD_COPYRIGHT_LINE)
 
   included, excluded = _parse_common_inclusion_options(options)
 
   bad_files = []
   bad_copyright_files = []
   bad_year_files = []
+  bad_chromiumos_files = []
+  bad_rights_reserved_files = []
 
   files = _filter_files(
       _get_affected_files(commit, relative=True),
@@ -1820,23 +1820,30 @@ def _check_cros_license(_project, commit, options=()):
   existing_files = set(_get_affected_files(commit, relative=True,
                                            include_adds=False))
 
-  current_year = str(datetime.datetime.now().year)
+  current_year = datetime.datetime.now().year
   for f in files:
     contents = _get_file_content(f, commit)
     if not contents:
       # Ignore empty files.
       continue
 
-    m = license_re.search(contents)
-    if not m:
+    license_match = license_re.search(contents)
+    if not license_match:
       bad_files.append(f)
-    elif bad_copyright_re.search(contents):
-      bad_copyright_files.append(f)
-
-    if m and f not in existing_files:
-      year = m.group(1)
-      if year != current_year:
+    else:
+      new_file = f not in existing_files
+      year = int(license_match.group('year'))
+      if license_match.group('copyright') and year >= 2015:
+        # Forbid "(c)" in all files since 2015.
+        bad_copyright_files.append(f)
+      if new_file and year != current_year:
         bad_year_files.append(f)
+      if (license_match.group('chromium_space_os') and
+          (new_file or year >= 2023)):
+        bad_chromiumos_files.append(f)
+      if (license_match.group('rights_reserved') and
+          (new_file or year >= 2023)):
+        bad_rights_reserved_files.append(f)
 
   errors = []
   if bad_files:
@@ -1851,6 +1858,12 @@ def _check_cros_license(_project, commit, options=()):
     msg = 'Use current year (%s) in copyright headers in new files:' % (
         current_year)
     errors.append(HookFailure(msg, bad_year_files))
+  if bad_chromiumos_files:
+    msg = 'Use ChromiumOS instead of Chromium OS in new files:'
+    errors.append(HookFailure(msg, bad_chromiumos_files))
+  if bad_rights_reserved_files:
+    msg = 'Do not include "All rights reserved." in new files:'
+    errors.append(HookFailure(msg, bad_rights_reserved_files))
 
   return errors
 

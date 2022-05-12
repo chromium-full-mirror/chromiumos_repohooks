@@ -1445,11 +1445,11 @@ class CheckCrosLicenseCopyrightHeader(PreUploadTestCase):
     """Added files should have the current year in license header."""
     year = datetime.datetime.now().year
     HEADERS = (
-        ('// Copyright 2016 The Chromium OS Authors. All rights reserved.\n'
+        ('// Copyright 2016 The ChromiumOS Authors.\n'
          '// Use of this source code is governed by a BSD-style license that'
          ' can be\n'
          '// found in the LICENSE file.\n'),
-        ('// Copyright %d The Chromium OS Authors. All rights reserved.\n'
+        ('// Copyright %d The ChromiumOS Authors.\n'
          '// Use of this source code is governed by a BSD-style license that'
          ' can be\n'
          '// found in the LICENSE file.\n') % year,
@@ -1480,6 +1480,40 @@ class CheckCrosLicenseCopyrightHeader(PreUploadTestCase):
          '// found in the LICENSE file.\n'),
         ('// Copyright (c) 2020 The Chromium OS Authors. All rights reserved.'
          '\n'
+         '// Use of this source code is governed by a BSD-style license that'
+         ' can be\n'
+         '// found in the LICENSE file.\n'),
+    )
+    self.file_mock.return_value = ['file']
+    for header in HEADERS:
+      self.content_mock.return_value = header
+      self.assertTrue(pre_upload._check_cros_license('proj', 'sha1'))
+
+  def testRejectChromiumSpaceOs(self):
+    """Reject Chromium OS in newer headers."""
+    HEADERS = (
+        ('// Copyright 2023 The Chromium OS Authors.\n'
+         '// Use of this source code is governed by a BSD-style license that'
+         ' can be\n'
+         '// found in the LICENSE file.\n'),
+        ('// Copyright 2030 The Chromium OS Authors.\n'
+         '// Use of this source code is governed by a BSD-style license that'
+         ' can be\n'
+         '// found in the LICENSE file.\n'),
+    )
+    self.file_mock.return_value = ['file']
+    for header in HEADERS:
+      self.content_mock.return_value = header
+      self.assertTrue(pre_upload._check_cros_license('proj', 'sha1'))
+
+  def testRejectAllRightsReserved(self):
+    """Reject all rights reserved in newer headers."""
+    HEADERS = (
+        ('// Copyright 2023 The ChromiumOS Authors. All rights reserved.\n'
+         '// Use of this source code is governed by a BSD-style license that'
+         ' can be\n'
+         '// found in the LICENSE file.\n'),
+        ('// Copyright 2030 The ChromiumOS Authors. All rights reserved.\n'
          '// Use of this source code is governed by a BSD-style license that'
          ' can be\n'
          '// found in the LICENSE file.\n'),
