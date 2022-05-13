@@ -1322,7 +1322,7 @@ class CheckEbuildVirtualPv(PreUploadTestCase):
 
   PORTAGE_STABLE = ProjectNamed('chromiumos/overlays/portage-stable')
   CHROMEOS_OVERLAY = ProjectNamed('chromeos/overlays/chromeos-overlay')
-  CHROMIUMOS_OVERLAY = ProjectNamed('chromiumos/overlays/chromiumos')
+  CHROMIUMOS_OVERLAY = ProjectNamed('chromiumos/overlays/chromiumos-overlay')
   BOARD_OVERLAY = ProjectNamed('chromiumos/overlays/board-overlays')
   PRIVATE_OVERLAY = ProjectNamed('chromeos/overlays/overlay-link-private')
   PRIVATE_VARIANT_OVERLAY = ProjectNamed('chromeos/overlays/'

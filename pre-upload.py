@@ -18,12 +18,14 @@ import json
 import os
 from pathlib import Path
 import re
-import sys
 import stat
 import subprocess
+import sys
 
-from errors import (VerifyException, HookFailure, PrintErrorForProject,
-                    PrintErrorsForCommit)
+from errors import HookFailure
+from errors import PrintErrorForProject
+from errors import PrintErrorsForCommit
+from errors import VerifyException
 
 
 # Path to the repohooks dir itself.
@@ -1525,7 +1527,7 @@ def _check_ebuild_virtual_pv(project, commit):
 
   # Per-project listings of packages with virtuals known to come from upstream
   # Gentoo, so we shouldn't complain about them.
-  if project.name == 'chromiumos/overlays/chromiumos':
+  if project.name == 'chromiumos/overlays/chromiumos-overlay':
     pkg_allowlist = ('rust',)
   else:
     pkg_allowlist = ()
