@@ -18,12 +18,6 @@
 # grandfathered
 # gr[ae]y.?hat
 # gr[ae]y.?list
-# \bhe\b
-# \bshe\b
-# \bhim\b
-# \bher\b
-# \bhis\b
-# \bhers\b
 # man.?in.?the.?middle
 # master
 # \bmitm(\b|\d)

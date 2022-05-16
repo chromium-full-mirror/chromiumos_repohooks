@@ -23,18 +23,21 @@ grandfathered
 gr[ae]y.?hat
 # Gray List
 gr[ae]y.?list
+# Gendered pronouns are not recommended for general use, but have legitimate
+# uses when referring to a specific individual, and thus do not need to be
+# blocked globally.
 # He
-\bhe\b
+# \bhe\b
 # She
-\bshe\b
+# \bshe\b
 # Him
-\bhim\b
+# \bhim\b
 # Her
-\bher\b
+# \bher\b
 # His
-\bhis\b
+# \bhis\b
 # Hers
-\bhers\b
+# \bhers\b
 # Man in the middle
 man.?in.?the.?middle
 # Master
