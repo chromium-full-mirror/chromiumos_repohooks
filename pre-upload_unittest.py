@@ -1295,6 +1295,17 @@ class CheckEbuildOwners(PreUploadTestCase):
                 DiffEntry(src_file="dev-util/pkg/README.md", status="A"),
                 DiffEntry(src_file="dev-util/pkg/Manifest", status="A"),
             ],
+            [
+                DiffEntry(src_file="dev-util/pkg/foo-9999.ebuild", status="M"),
+            ],
+            [
+                DiffEntry(src_file="dev-util/pkg/foo-0.ebuild", status="M"),
+                DiffEntry(src_file="dev-util/pkg/foo-0-r1.ebuild", status="A"),
+            ],
+            [
+                DiffEntry(src_file="dev-util/pkg/foo-0-r1.ebuild", status="D"),
+                DiffEntry(src_file="dev-util/pkg/foo-0-r2.ebuild", status="A"),
+            ],
         )
         for test in TESTS:
             self.file_mock.return_value = test
@@ -1307,15 +1318,7 @@ class CheckEbuildOwners(PreUploadTestCase):
         """Test cases that should ignore missing OWNERS."""
         TESTS = (
             [
-                DiffEntry(src_file="dev-util/pkg/foo-9999.ebuild", status="M"),
-            ],
-            [
-                DiffEntry(src_file="dev-util/pkg/foo-0.ebuild", status="M"),
-                DiffEntry(src_file="dev-util/pkg/foo-0-r1.ebuild", status="A"),
-            ],
-            [
-                DiffEntry(src_file="dev-util/pkg/foo-0-r1.ebuild", status="D"),
-                DiffEntry(src_file="dev-util/pkg/foo-0-r2.ebuild", status="A"),
+                DiffEntry(src_file="dev-util/pkg/metadata.xml", status="M"),
             ],
         )
         for test in TESTS:

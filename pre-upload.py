@@ -1737,44 +1737,22 @@ def _check_ebuild_licenses(_project, commit):
 
 
 def _check_ebuild_owners(project, commit):
-    """Require all new packages include an OWNERS file."""
+    """Require all packages include an OWNERS file."""
     # Look for all adds/removes since we're going to ignore changes that only
     # update a package.  We only want to flag new package imports for now.
     affected_files_objs = _get_affected_files(
-        commit,
-        include_deletes=True,
-        include_symlinks=True,
-        relative=True,
-        full_details=True,
+        commit, include_symlinks=True, relative=True, full_details=True
     )
 
     # If this CL doesn't include any ebuilds, don't bother complaining.
-    new_ebuilds = [
-        x
-        for x in affected_files_objs
-        if x.status == "A" and x.src_file.endswith(".ebuild")
-    ]
-    if not new_ebuilds:
+    ebuilds = [x for x in affected_files_objs if x.src_file.endswith(".ebuild")]
+    if not ebuilds:
         return None
 
     # Check each package dir.
     packages_missing_owners = []
-    package_dirs = sorted(set(os.path.dirname(x.src_file) for x in new_ebuilds))
+    package_dirs = sorted(set(os.path.dirname(x.src_file) for x in ebuilds))
     for package_dir in package_dirs:
-        package_files = [
-            x
-            for x in affected_files_objs
-            if (
-                (x.src_file and x.src_file.startswith(f"{package_dir}/"))
-                or (x.dst_file and x.dst_file.startswith(f"{package_dir}/"))
-            )
-        ]
-
-        # Only complain about new ebuilds, not existing ones.  For now.
-        # We'll assume that "all adds" means it's a new package.
-        if any(x for x in package_files if x.status != "A"):
-            continue
-
         # See if there's an OWNERS file in there already.
         data = _get_file_content(os.path.join(package_dir, "OWNERS"), commit)
         if not data:
