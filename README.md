@@ -171,8 +171,8 @@ See the reference above for which checks you probably want to disable.
 
 # Reporting issues
 
-You can file bugs at https://crbug.com/new with
-Component=Infra>ChromeOS>Build>Platform.
+You can file bugs
+[here](https://issuetracker.google.com/issues/new?component=1037860).
 
 If you want to ask questions, use our normal
 [development groups](https://chromium.googlesource.com/chromiumos/docs/+/HEAD/contact.md).
