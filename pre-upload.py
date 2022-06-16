@@ -911,6 +911,16 @@ def _run_clippy_on_dir(root, cmd, errors):
            f'--manifest-path={root}/Cargo.toml',
            '--', '-D', 'warnings']
 
+  # If Cargo.lock isn't tracked by git, regenerate it. This fixes the case a
+  # dependency has been updated since the last time the presubmit checks
+  # were executed. The errors look like:
+  #   "error: failed to select a version for the requirement ..."
+  try:
+    _run_command(['git', 'ls-files', '--error-unmatch', 'Cargo.lock'], cwd=root,
+                 stderr=subprocess.STDOUT)
+  except cros_build_lib.RunCommandError:
+    _run_command(['cargo', 'generate-lockfile'], cwd=root)
+
   tries = 0
   while tries < 2:
     output = _run_command(cmd, stderr=subprocess.STDOUT)
