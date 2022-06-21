@@ -832,6 +832,7 @@ def _check_rustfmt(_project, commit):
   for rustfile in files:
     contents = _get_file_content(rustfile, commit)
     output = _run_command(cmd=['rustfmt', '--edition', '2018'],
+                          enter_chroot=True,
                           input=contents.encode('utf-8'),
                           stderr=subprocess.STDOUT)
     if output != contents:
@@ -887,16 +888,6 @@ def _get_cargo_clippy_parser():
   return parser
 
 
-def _check_for_cargo():
-  """Return true if cargo is available"""
-  try:
-    cmd = ['cargo', '-V']
-    _run_command(cmd, stderr=subprocess.STDOUT)
-  except cros_build_lib.RunCommandError:
-    return False
-  return True
-
-
 def _run_clippy_on_dir(root, cmd, errors):
   """Runs clippy with cargo clean if needed.
 
@@ -908,7 +899,6 @@ def _run_clippy_on_dir(root, cmd, errors):
   # Overwrite the clippy command if a project-specific script is specified.
   if not cmd:
     cmd = ['cargo', 'clippy', '--all-features', '--all-targets', '--workspace',
-           f'--manifest-path={root}/Cargo.toml',
            '--', '-D', 'warnings']
 
   # If Cargo.lock isn't tracked by git, regenerate it. This fixes the case a
@@ -916,21 +906,22 @@ def _run_clippy_on_dir(root, cmd, errors):
   # were executed. The errors look like:
   #   "error: failed to select a version for the requirement ..."
   try:
-    _run_command(['git', 'ls-files', '--error-unmatch', 'Cargo.lock'], cwd=root,
-                 stderr=subprocess.STDOUT)
+    _run_command(['git', 'ls-files', '--error-unmatch', 'Cargo.lock'],
+                 check=True, cwd=root, stderr=subprocess.STDOUT)
   except cros_build_lib.RunCommandError:
-    _run_command(['cargo', 'generate-lockfile'], cwd=root)
+    _run_command(['cargo', 'generate-lockfile'], cwd=root, enter_chroot=True)
 
   tries = 0
   while tries < 2:
-    output = _run_command(cmd, stderr=subprocess.STDOUT)
+    output = _run_command(cmd, cwd=root, enter_chroot=True,
+                          stderr=subprocess.STDOUT)
     error = re.search(r'^error(\[E[0-9]+\])?:', output, flags=re.MULTILINE)
     tries += 1
     if error:
       # E0460 indicates the build is stale and clean needs to be run, but only
       # act on it for the first try.
       if tries < 2 and error.group(1) == '[E0460]':
-        _run_command(['cargo', 'clean', f'--manifest-path={root}/Cargo.toml'])
+        _run_command(['cargo', 'clean'], cwd=root, enter_chroot=True)
         continue
       else:
         # An unexpected error so return it without retrying.
@@ -954,7 +945,6 @@ def _check_cargo_clippy(project, commit, options=()):
                         f' Please check PRESUBMIT.cfg is correct: {e}')]
   files = _get_affected_files(commit)
 
-  cargo_checked = False
   errors = []
   for clippy in opts.project:
     root = os.path.normpath(os.path.join(project.dir, clippy.root))
@@ -967,14 +957,6 @@ def _check_cargo_clippy(project, commit, options=()):
         break
     if not modified:
       continue
-
-    # Check that cargo is available and if not fail with an actionable message.
-    if not cargo_checked:
-      cargo_checked = True
-      if not _check_for_cargo():
-        return [HookFailure('The cargo command was not found. '
-                            'Please run repo inside the chroot or run '
-                            'update_chroot and try again.')]
 
     cmd = [os.path.join(project.dir, clippy.script)] if clippy.script else []
     _run_clippy_on_dir(root, cmd, errors)
