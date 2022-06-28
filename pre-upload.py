@@ -56,6 +56,7 @@ from chromite.lib import git
 from chromite.lib import gob_util
 from chromite.lib import osutils
 from chromite.lib import patch
+from chromite.lib import path_util
 from chromite.lib import portage_util
 from chromite.lib import terminal
 from chromite.licensing import licenses_lib
@@ -896,10 +897,19 @@ def _run_clippy_on_dir(root, cmd, errors):
   If cmd is empty the default is used.
   If clippy fails, a HookFailure will be appended to errors.
   """
+  # The cwd kwarg for run_command is replaced with src/scripts when entering the
+  # chroot, so specify the manifest path to cargo as a workaround since it works
+  # both inside and outside the chroot.
+  manifest_flag = f'--manifest-path={path_util.ToChrootPath(root)}/Cargo.toml'
+
   # Overwrite the clippy command if a project-specific script is specified.
   if not cmd:
     cmd = ['cargo', 'clippy', '--all-features', '--all-targets', '--workspace',
-           '--', '-D', 'warnings']
+           manifest_flag, '--', '-D', 'warnings']
+
+  if not cros_build_lib.IsInsideChroot():
+    print('\nRunning cargo commands inside the chroot.')
+    print('You may be prompted to authenticate by sudo.')
 
   # If Cargo.lock isn't tracked by git, regenerate it. This fixes the case a
   # dependency has been updated since the last time the presubmit checks
@@ -909,7 +919,8 @@ def _run_clippy_on_dir(root, cmd, errors):
     _run_command(['git', 'ls-files', '--error-unmatch', 'Cargo.lock'],
                  check=True, cwd=root, stderr=subprocess.STDOUT)
   except cros_build_lib.RunCommandError:
-    _run_command(['cargo', 'generate-lockfile'], cwd=root, enter_chroot=True)
+    _run_command(['cargo', 'generate-lockfile', manifest_flag],
+                 enter_chroot=True)
 
   tries = 0
   while tries < 2:
@@ -921,7 +932,7 @@ def _run_clippy_on_dir(root, cmd, errors):
       # E0460 indicates the build is stale and clean needs to be run, but only
       # act on it for the first try.
       if tries < 2 and error.group(1) == '[E0460]':
-        _run_command(['cargo', 'clean'], cwd=root, enter_chroot=True)
+        _run_command(['cargo', 'clean', manifest_flag], enter_chroot=True)
         continue
       else:
         # An unexpected error so return it without retrying.

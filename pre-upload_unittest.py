@@ -29,6 +29,7 @@ from chromite.lib import cros_build_lib
 from chromite.lib import cros_test_lib
 from chromite.lib import git
 from chromite.lib import osutils
+from chromite.lib import path_util
 
 
 assert sys.version_info >= (3, 6), 'This module requires Python 3.6+'
@@ -2485,6 +2486,9 @@ class CheckCargoClippyTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
   def setUp(self):
     self.project = pre_upload.Project(name='PROJECT', dir=self.tempdir,
                                       remote=None)
+
+    # Ugly hack since self.tempdir is not in the chroot.
+    self.PatchObject(path_util, 'ToChrootPath', side_effect=lambda x: x)
 
   def testClippy(self):
     """Verify clippy is called when a monitored file was changed."""
