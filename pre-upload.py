@@ -2022,6 +2022,62 @@ def _check_no_new_gyp(_project, commit):
 # Project-specific hooks
 
 
+def _check_black(project, commit, options=()):
+  """Validate that all Python code is formatted with black."""
+  included, excluded = _parse_common_inclusion_options(options)
+  included += [re.compile(r'\.pyi?$')]
+  excluded += [re.compile(r'third_party/')]
+  files = _filter_files(_get_affected_files(commit, relative=True),
+                        included, excluded)
+
+  # Detect if the repo has their own black config.  If not, we want to
+  # use the one here.
+  config_path = REPOHOOKS_DIR / 'pyproject.toml'
+  their_config = None
+  if project.dir:
+    their_config = Path(project.dir) / 'pyproject.toml'
+    if their_config.is_file() and 'tool.black' in their_config.read_text():
+      config_path = their_config
+
+  black_tool = Path(constants.DEPOT_TOOLS_DIR) / 'black'
+  files_need_formatting = []
+  for file in files:
+    contents = _get_file_content(file, commit)
+    result = cros_build_lib.run(
+        [
+            black_tool,
+            f'--config={config_path}',
+            '--quiet',
+            '--check',
+            '--diff',
+            f'--stdin-filename={file}',
+            '-',
+        ],
+        input=contents,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    if result.returncode:
+      files_need_formatting.append((file, result.stdout))
+
+  if files_need_formatting:
+    black_cmd = [black_tool]
+    if config_path != their_config:
+      black_cmd.extend(['--config', config_path])
+    for file, _ in files_need_formatting:
+      black_cmd.append(file)
+    black_cmd_repr = cros_build_lib.CmdToStr(black_cmd)
+    return HookFailure(
+        f'Files need formatted with black.\n'
+        f'Run this command to fix automatically:\n'
+        f'  {black_cmd_repr}',
+        [f'{file}\n{diff}' for file, diff in files_need_formatting],
+    )
+
+  return None
+
+
 def _check_clang_format(_project, commit, options=()):
   """Runs clang-format on the given project"""
   hooks_dir = _get_hooks_dir()
@@ -2440,6 +2496,7 @@ _COMMON_HOOKS = [
 # that the flag controls (value).
 _HOOK_FLAGS = {
     'aosp_license_check': _check_aosp_license,
+    'black_check': _check_black,
     'blank_line_check': _check_no_extra_blank_lines,
     'branch_check': _check_change_has_branch_field,
     'bug_field_check': _check_change_has_bug_field,
