@@ -14,6 +14,7 @@ import configparser
 import datetime
 import fnmatch
 import functools
+import itertools
 import json
 import os
 from pathlib import Path
@@ -149,6 +150,24 @@ class BadInvocation(Exception):
 
 
 # General Helpers
+
+def _in_chromiumos_tree(path: Path) -> bool:
+  """Returns True if the given path is within a Chromium OS source tree.
+
+  This is distinct from being *within* the chroot.
+  """
+
+  result = False
+  for p in itertools.chain([path], path.parents):
+    version_script = (
+        p
+        / 'src/third_party/chromiumos-overlay'
+        / 'chromeos/config/chromeos_version.sh'
+    )
+    if version_script.exists():
+      result = True
+      break
+  return result
 
 
 class Cache(object):
@@ -824,16 +843,17 @@ def _check_gofmt(_project, commit, options=()):
   return None
 
 
-def _check_rustfmt(_project, commit):
+def _check_rustfmt(project, commit):
   """Checks that Rust files are formatted with rustfmt."""
   errors = []
   files = _filter_files(_get_affected_files(commit, relative=True),
                         [r'\.rs$'])
 
+  enter_chroot = _in_chromiumos_tree(Path(project.dir))
   for rustfile in files:
     contents = _get_file_content(rustfile, commit)
     output = _run_command(cmd=['rustfmt', '--edition', '2018'],
-                          enter_chroot=True,
+                          enter_chroot=enter_chroot,
                           input=contents.encode('utf-8'),
                           stderr=subprocess.STDOUT)
     if output != contents:
