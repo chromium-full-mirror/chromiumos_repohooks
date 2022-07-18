@@ -2057,6 +2057,7 @@ def _check_black(project, commit, options=()):
         check=False,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
+        encoding='utf-8',
     )
     if result.returncode:
       files_need_formatting.append((file, result.stdout))
