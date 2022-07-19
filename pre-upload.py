@@ -940,19 +940,20 @@ def _run_clippy_on_dir(root, cmd, errors):
                  check=True, cwd=root, stderr=subprocess.STDOUT)
   except cros_build_lib.RunCommandError:
     _run_command(['cargo', 'generate-lockfile', manifest_flag],
-                 enter_chroot=True)
+                 enter_chroot=True, input='')
 
   tries = 0
   while tries < 2:
     output = _run_command(cmd, cwd=root, enter_chroot=True,
-                          stderr=subprocess.STDOUT)
+                          stderr=subprocess.STDOUT, input='')
     error = re.search(r'^error(\[E[0-9]+\])?:', output, flags=re.MULTILINE)
     tries += 1
     if error:
       # E0460 indicates the build is stale and clean needs to be run, but only
       # act on it for the first try.
       if tries < 2 and error.group(1) == '[E0460]':
-        _run_command(['cargo', 'clean', manifest_flag], enter_chroot=True)
+        _run_command(['cargo', 'clean', manifest_flag], enter_chroot=True,
+                     input='')
         continue
       else:
         # An unexpected error so return it without retrying.
