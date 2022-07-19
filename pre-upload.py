@@ -206,7 +206,7 @@ def _run_command(cmd, **kwargs):
   result = cros_build_lib.run(cmd, **kwargs)
   # NB: We decode this directly rather than through kwargs as our tests rely
   # on this post-processing behavior currently.
-  return result.output.decode('utf-8', 'replace')
+  return result.stdout.decode('utf-8', 'replace')
 
 
 def _get_hooks_dir():

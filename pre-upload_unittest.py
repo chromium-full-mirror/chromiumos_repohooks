@@ -59,7 +59,7 @@ class TryUTF8DecodeTest(PreUploadTestCase):
   def _run(self, content):
     """Helper for round tripping through _run_command."""
     self.rc_mock.return_value = cros_build_lib.CommandResult(
-        output=content, returncode=0)
+        stdout=content, returncode=0)
     return pre_upload._run_command([])
 
   def testEmpty(self):
