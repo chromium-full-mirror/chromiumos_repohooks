@@ -90,6 +90,7 @@ COMMON_INCLUDED_PATHS = CPP_PATHS + [
     # Other
     r'.*\.java$', r'.*\.mk$', r'.*\.am$',
     r'.*\.policy$', r'.*\.rules$', r'.*\.conf$', r'.*\.go$', r'.*\.rs$',
+    r'.*\.ebuild$', r'.*\.eclass$',
     r'(^OWNERS|/OWNERS)',
 ]
 
@@ -579,6 +580,8 @@ def _check_no_long_lines(_project, commit, options=()):
       r'.*\.go$',
       # Python does its own long line checks via pylint.
       r'.*\.py$',
+      # Gentoo has its own style.
+      r'.*\.(ebuild|eclass)$',
   ]
 
   DEFAULT_MAX_LENGTHS = [
