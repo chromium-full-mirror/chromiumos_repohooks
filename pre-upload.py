@@ -2834,9 +2834,10 @@ def main(project_list, worktree_list=None, **_kwargs):
   if found_error:
     msg = ('%s: Preupload failed due to above error(s).\n'
            '- To disable some source style checks, and for other hints, see '
-           '<checkout_dir>/src/repohooks/README.md\n'
-           "- To upload only current project, run 'repo upload .'" %
-           (color.Color(color.RED, 'FATAL'),))
+           '%s/src/repohooks/README.md' %
+           (color.Color(color.RED, 'FATAL'), constants.SOURCE_ROOT))
+    if len(project_list) > 1:
+      msg += "\n- To upload only current project, run 'repo upload .'"
     print(msg, file=sys.stderr)
     sys.exit(1)
   else:
