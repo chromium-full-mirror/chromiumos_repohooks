@@ -83,7 +83,8 @@ CPP_PATHS = [
 
 COMMON_INCLUDED_PATHS = CPP_PATHS + [
     # Scripts
-    r'.*\.js$', r'.*\.py$', r'.*\.sh$', r'.*\.rb$', r'.*\.pl$', r'.*\.pm$',
+    r'.*\.js$', r'.*\.ts$', r'.*\.py$', r'.*\.sh$', r'.*\.rb$', r'.*\.pl$',
+    r'.*\.pm$',
     # No extension at all, note that ALL CAPS files are excluded by
     # COMMON_EXCLUDED_LIST below.
     r'(^|.*[\\\/])[^.]+$',
@@ -580,6 +581,9 @@ def _check_no_long_lines(_project, commit, options=()):
       r'.*\.go$',
       # Python does its own long line checks via pylint.
       r'.*\.py$',
+      # Google TypeScript Style Guide has no line length limit.
+      # https://google.github.io/styleguide/tsguide.html
+      r'.*\.ts$',
       # Gentoo has its own style.
       r'.*\.(ebuild|eclass)$',
   ]
