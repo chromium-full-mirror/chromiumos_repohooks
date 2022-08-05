@@ -125,6 +125,8 @@ COMMON_EXCLUDED_PATHS = [
 LICENSE_EXCLUDED_PATHS = [
     r'^(.*/)?OWNERS(\..*)?$',
     r'^(.*/)?DIR_METADATA(\..*)?$',
+    # We pull a lot of Gentoo copyrighted files, so we can't enforce this.
+    r'.*\.ebuild$', r'.*\.eclass$',
 ]
 
 _CONFIG_FILE = 'PRESUBMIT.cfg'
