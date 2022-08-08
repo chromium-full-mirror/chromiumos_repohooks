@@ -69,6 +69,10 @@ assert sys.version_info >= (3, 6), 'This module requires Python 3.6+'
 PRE_SUBMIT = 'pre-submit'
 
 
+# Terminal escape sequence to erase the current line after the cursor.
+CSI_ERASE_LINE_AFTER = '\x1b[K'
+
+
 # Link to commit message documentation for users.
 DOC_COMMIT_MSG_URL = ('https://chromium.googlesource.com/chromiumos/docs/+/HEAD'
                       '/contributing.md#commit-messages')
@@ -2751,11 +2755,9 @@ def _run_project_hooks(project_name, proj_dir=None,
       output = ('[%s %i/%i PRESUBMIT.cfg] %s' %
                 (color.Color(color.YELLOW, 'RUNNING'), h + 1, hook_count,
                  hook.__name__))
-      print(output, end='\r')
-      sys.stdout.flush()
+      print(output, end='', flush=True)
       hook_error = hook(project, commit)
-      print(' ' * len(output), end='\r')
-      sys.stdout.flush()
+      print(f'\r{CSI_ERASE_LINE_AFTER}', end='', flush=True)
       if hook_error:
         if not isinstance(hook_error, list):
           hook_error = [hook_error]
