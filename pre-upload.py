@@ -61,6 +61,7 @@ from chromite.lib import path_util
 from chromite.lib import portage_util
 from chromite.lib import terminal
 from chromite.licensing import licenses_lib
+from chromite.utils import pformat
 
 
 assert sys.version_info >= (3, 6), 'This module requires Python 3.6+'
@@ -2756,7 +2757,10 @@ def _run_project_hooks(project_name, proj_dir=None,
                 (color.Color(color.YELLOW, 'RUNNING'), h + 1, hook_count,
                  hook.__name__))
       print(output, end='', flush=True)
+      start_time = datetime.datetime.utcnow()
       hook_error = hook(project, commit)
+      end_time = datetime.datetime.utcnow()
+      print(' ' + pformat.timedelta(end_time - start_time), end='')
       if sys.stdout.isatty():
         print(f'\r{CSI_ERASE_LINE_AFTER}', end='', flush=True)
       else:
