@@ -2757,7 +2757,10 @@ def _run_project_hooks(project_name, proj_dir=None,
                  hook.__name__))
       print(output, end='', flush=True)
       hook_error = hook(project, commit)
-      print(f'\r{CSI_ERASE_LINE_AFTER}', end='', flush=True)
+      if sys.stdout.isatty():
+        print(f'\r{CSI_ERASE_LINE_AFTER}', end='', flush=True)
+      else:
+        print()
       if hook_error:
         if not isinstance(hook_error, list):
           hook_error = [hook_error]
