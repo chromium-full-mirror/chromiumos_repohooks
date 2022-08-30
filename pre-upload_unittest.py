@@ -40,7 +40,7 @@ pre_upload = __import__('pre-upload')
 
 def ProjectNamed(project_name):
   """Wrapper to create a Project with just the name"""
-  return pre_upload.Project(project_name, None, None)
+  return pre_upload.Project(project_name, '/does/not/exist', None)
 
 
 class PreUploadTestCase(cros_test_lib.MockTestCase):
@@ -58,7 +58,7 @@ class TryUTF8DecodeTest(PreUploadTestCase):
 
   def _run(self, content):
     """Helper for round tripping through _run_command."""
-    self.rc_mock.return_value = cros_build_lib.CommandResult(
+    self.rc_mock.return_value = cros_build_lib.CompletedProcess(
         stdout=content, returncode=0)
     return pre_upload._run_command([])
 
