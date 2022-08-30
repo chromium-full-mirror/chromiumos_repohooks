@@ -242,10 +242,7 @@ def _match_regex_list(subject, expressions):
   Returns:
     Whether the passed in subject matches any of the passed in regexes.
   """
-  for expr in expressions:
-    if re.search(expr, subject):
-      return True
-  return False
+  return any(x.search(subject) for x in expressions)
 
 
 def _filter_files(files, include_list, exclude_list=()):
@@ -265,9 +262,11 @@ def _filter_files(files, include_list, exclude_list=()):
     in the exclude_list.
   """
   filtered = []
+  include_list_comp = [re.compile(x) for x in include_list]
+  exclude_list_comp = [re.compile(x) for x in exclude_list]
   for f in files:
-    if (_match_regex_list(f, include_list) and
-        not _match_regex_list(f, exclude_list)):
+    if (_match_regex_list(f, include_list_comp) and
+        not _match_regex_list(f, exclude_list_comp)):
       filtered.append(f)
   return filtered
 
