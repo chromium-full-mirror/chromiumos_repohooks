@@ -1424,33 +1424,15 @@ class CheckCrosLicenseCopyrightHeader(PreUploadTestCase):
     self.file_mock = self.PatchObject(pre_upload, '_get_affected_files')
     self.content_mock = self.PatchObject(pre_upload, '_get_file_content')
 
-  def testOldHeaders(self):
-    """Accept old header styles."""
-    HEADERS = (
-        ('#!/bin/sh\n'
-         '# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.\n'
-         '# Use of this source code is governed by a BSD-style license that'
-         ' can be\n'
-         '# found in the LICENSE file.\n'),
-        ('// Copyright 2010-2013 The Chromium OS Authors. All rights reserved.'
-         '\n// Use of this source code is governed by a BSD-style license that'
-         ' can be\n'
-         '// found in the LICENSE file.\n'),
-    )
-    self.file_mock.return_value = ['file']
-    for header in HEADERS:
-      self.content_mock.return_value = header
-      self.assertFalse(pre_upload._check_cros_license('proj', 'sha1'))
-
   def testNewFileYear(self):
     """Added files should have the current year in license header."""
     year = datetime.datetime.now().year
     HEADERS = (
-        ('// Copyright 2016 The ChromiumOS Authors.\n'
+        ('// Copyright 2016 The ChromiumOS Authors\n'
          '// Use of this source code is governed by a BSD-style license that'
          ' can be\n'
          '// found in the LICENSE file.\n'),
-        ('// Copyright %d The ChromiumOS Authors.\n'
+        ('// Copyright %d The ChromiumOS Authors\n'
          '// Use of this source code is governed by a BSD-style license that'
          ' can be\n'
          '// found in the LICENSE file.\n') % year,
@@ -1472,7 +1454,7 @@ class CheckCrosLicenseCopyrightHeader(PreUploadTestCase):
         self.assertFalse(pre_upload._check_cros_license('proj', 'sha1'))
 
   def testRejectC(self):
-    """Reject the (c) in newer headers."""
+    """Reject the (c) in headers."""
     HEADERS = (
         ('// Copyright (c) 2015 The Chromium OS Authors. All rights reserved.'
          '\n'
@@ -1491,13 +1473,13 @@ class CheckCrosLicenseCopyrightHeader(PreUploadTestCase):
       self.assertTrue(pre_upload._check_cros_license('proj', 'sha1'))
 
   def testRejectChromiumSpaceOs(self):
-    """Reject Chromium OS in newer headers."""
+    """Reject Chromium OS in headers."""
     HEADERS = (
-        ('// Copyright 2023 The Chromium OS Authors.\n'
+        ('// Copyright 2023 The Chromium OS Authors\n'
          '// Use of this source code is governed by a BSD-style license that'
          ' can be\n'
          '// found in the LICENSE file.\n'),
-        ('// Copyright 2030 The Chromium OS Authors.\n'
+        ('// Copyright 2030 The Chromium OS Authors\n'
          '// Use of this source code is governed by a BSD-style license that'
          ' can be\n'
          '// found in the LICENSE file.\n'),
@@ -1508,7 +1490,7 @@ class CheckCrosLicenseCopyrightHeader(PreUploadTestCase):
       self.assertTrue(pre_upload._check_cros_license('proj', 'sha1'))
 
   def testRejectAllRightsReserved(self):
-    """Reject all rights reserved in newer headers."""
+    """Reject all rights reserved in headers."""
     HEADERS = (
         ('// Copyright 2023 The ChromiumOS Authors. All rights reserved.\n'
          '// Use of this source code is governed by a BSD-style license that'
@@ -1523,19 +1505,6 @@ class CheckCrosLicenseCopyrightHeader(PreUploadTestCase):
     for header in HEADERS:
       self.content_mock.return_value = header
       self.assertTrue(pre_upload._check_cros_license('proj', 'sha1'))
-
-  def testNoLeadingSpace(self):
-    """Allow headers without leading space (e.g., not a source comment)"""
-    HEADERS = (
-        ('Copyright 2018 The Chromium OS Authors. All rights reserved.\n'
-         'Use of this source code is governed by a BSD-style license that '
-         'can be\n'
-         'found in the LICENSE file.\n'),
-    )
-    self.file_mock.return_value = ['file']
-    for header in HEADERS:
-      self.content_mock.return_value = header
-      self.assertFalse(pre_upload._check_cros_license('proj', 'sha1'))
 
   def testNoExcludedGolang(self):
     """Don't exclude .go files for license checks."""

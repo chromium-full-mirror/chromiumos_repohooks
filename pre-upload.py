@@ -1833,7 +1833,7 @@ def _check_cros_license(_project, commit, options=()):
   LICENSE_HEADER = (
       # Line 1 - copyright.
       r'.*Copyright(?P<copyright> \(c\))? (?P<year>20[0-9]{2})(?:-20[0-9]{2})? '
-      r'The Chromium(?P<chromium_space_os> )?OS Authors\.'
+      r'The Chromium(?P<chromium_space_os> )?OS Authors(?P<period>\.)?'
       r'(?P<rights_reserved> All rights reserved\.)?\n'
       # Line 2 - License.
       r'.*Use of this source code is governed by a BSD-style license that can '
@@ -1850,6 +1850,7 @@ def _check_cros_license(_project, commit, options=()):
   bad_year_files = []
   bad_chromiumos_files = []
   bad_rights_reserved_files = []
+  bad_period_files = []
 
   files = _filter_files(
       _get_affected_files(commit, relative=True),
@@ -1871,17 +1872,16 @@ def _check_cros_license(_project, commit, options=()):
     else:
       new_file = f not in existing_files
       year = int(license_match.group('year'))
-      if license_match.group('copyright') and year >= 2015:
-        # Forbid "(c)" in all files since 2015.
+      if license_match.group('copyright'):
         bad_copyright_files.append(f)
       if new_file and year != current_year:
         bad_year_files.append(f)
-      if (license_match.group('chromium_space_os') and
-          (new_file or year >= 2023)):
+      if license_match.group('chromium_space_os'):
         bad_chromiumos_files.append(f)
-      if (license_match.group('rights_reserved') and
-          (new_file or year >= 2023)):
+      if license_match.group('rights_reserved'):
         bad_rights_reserved_files.append(f)
+      if license_match.group('period'):
+        bad_period_files.append(f)
 
   errors = []
   if bad_files:
@@ -1890,17 +1890,20 @@ def _check_cros_license(_project, commit, options=()):
         'Found a bad header in these files:')
     errors.append(HookFailure(msg, bad_files))
   if bad_copyright_files:
-    msg = 'Do not use (c) in copyright headers in new files:'
+    msg = 'Do not use (c) in copyright headers:'
     errors.append(HookFailure(msg, bad_copyright_files))
   if bad_year_files:
     msg = 'Use current year (%s) in copyright headers in new files:' % (
         current_year)
     errors.append(HookFailure(msg, bad_year_files))
   if bad_chromiumos_files:
-    msg = 'Use ChromiumOS instead of Chromium OS in new files:'
+    msg = 'Use ChromiumOS instead of Chromium OS:'
     errors.append(HookFailure(msg, bad_chromiumos_files))
   if bad_rights_reserved_files:
-    msg = 'Do not include "All rights reserved." in new files:'
+    msg = 'Do not include "All rights reserved.":'
+    errors.append(HookFailure(msg, bad_rights_reserved_files))
+  if bad_period_files:
+    msg = 'Do not include period after "ChromiumOS Authors":'
     errors.append(HookFailure(msg, bad_rights_reserved_files))
 
   return errors
