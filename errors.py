@@ -9,72 +9,75 @@ import sys
 
 
 class VerifyException(Exception):
-  """Basic sanity checks failed."""
+    """Basic checks failed."""
 
 
 class HookFailure(object):
-  """Contains an error message and a list of error details."""
-  def __init__(self, msg, items=None):
-    self.msg = msg
-    self.items = items
+    """Contains an error message and a list of error details."""
 
-  def __str__(self):
-    return _FormatHookFailure(self)
+    def __init__(self, msg, items=None):
+        self.msg = msg
+        self.items = items
+
+    def __str__(self):
+        return _FormatHookFailure(self)
 
 
-_INDENT = ' ' * 4
-_PROJECT_INFO = 'Errors in PROJECT *%s*!'
+_INDENT = " " * 4
+_PROJECT_INFO = "Errors in PROJECT *%s*!"
 
 
 def _PrintWithIndent(msg, indent_level):
-  """Print a block of text with a specified indent level to stderr.
+    """Print a block of text with a specified indent level to stderr.
 
-  Args:
-    msg: A string to print (may contain newlines).
-    indent_level: The number of indents to prefix each line with.  Each indent
-        is four characters wide.
-  """
-  regex = re.compile(r'^', re.M)
-  msg = regex.sub(_INDENT * indent_level, msg)
-  print(msg, file=sys.stderr)
+    Args:
+        msg: A string to print (may contain newlines).
+        indent_level: The number of indents to prefix each line with.  Each
+            indent is four characters wide.
+    """
+    regex = re.compile(r"^", re.M)
+    msg = regex.sub(_INDENT * indent_level, msg)
+    print(msg, file=sys.stderr)
 
 
 def _FormatHookFailure(hook_failure):
-  """Returns the properly formatted VerifyException as a string."""
-  item_prefix = '\n%s* ' % _INDENT
-  formatted_items = ''
-  if hook_failure.items:
-    formatted_items = item_prefix + item_prefix.join(hook_failure.items)
-  return '* ' + hook_failure.msg + formatted_items
+    """Returns the properly formatted VerifyException as a string."""
+    item_prefix = "\n%s* " % _INDENT
+    formatted_items = ""
+    if hook_failure.items:
+        formatted_items = item_prefix + item_prefix.join(hook_failure.items)
+    return "* " + hook_failure.msg + formatted_items
 
 
 def PrintErrorForProject(project, error):
-  """Prints the project and its error.
+    """Prints the project and its error.
 
-  Args:
-    project: project name
-    error: An instance of the HookFailure class
-  """
-  _PrintWithIndent(_PROJECT_INFO % project, 0)
-  _PrintWithIndent(_FormatHookFailure(error), 1)
-  print('', file=sys.stderr)
+    Args:
+        project: project name
+        error: An instance of the HookFailure class
+    """
+    _PrintWithIndent(_PROJECT_INFO % project, 0)
+    _PrintWithIndent(_FormatHookFailure(error), 1)
+    print("", file=sys.stderr)
 
 
 def PrintErrorsForCommit(color, hook, project, error_list):
-  """Prints the hook error to stderr with project and commit context
+    """Prints the hook error to stderr with project and commit context
 
-  Args:
-    color: terminal.Color object for colorizing output.
-    hook: Hook function that generated these errors.
-    project: project name
-    error_list: a list of HookFailure instances
-  """
-  print('[%s] %s: %s' %
-        (color.Color(color.RED, 'FAILED'), project, hook.__name__))
+    Args:
+        color: terminal.Color object for colorizing output.
+        hook: Hook function that generated these errors.
+        project: project name
+        error_list: a list of HookFailure instances
+    """
+    print(
+        "[%s] %s: %s"
+        % (color.Color(color.RED, "FAILED"), project, hook.__name__)
+    )
 
-  for error in error_list:
-    _PrintWithIndent(error.msg.strip(), 1)
-    if error.items:
-      for item in error.items:
-        _PrintWithIndent(item.strip(), 1)
-    print('', file=sys.stderr)
+    for error in error_list:
+        _PrintWithIndent(error.msg.strip(), 1)
+        if error.items:
+            for item in error.items:
+                _PrintWithIndent(item.strip(), 1)
+        print("", file=sys.stderr)
