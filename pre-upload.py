@@ -1904,7 +1904,7 @@ def _check_cros_license(_project, commit, options=()):
     errors.append(HookFailure(msg, bad_rights_reserved_files))
   if bad_period_files:
     msg = 'Do not include period after "ChromiumOS Authors":'
-    errors.append(HookFailure(msg, bad_rights_reserved_files))
+    errors.append(HookFailure(msg, bad_period_files))
 
   return errors
 
