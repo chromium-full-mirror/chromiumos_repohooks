@@ -111,6 +111,8 @@ COMMON_INCLUDED_PATHS = CPP_PATHS + [
     # COMMON_EXCLUDED_LIST below.
     r"(^|.*[\\\/])[^.]+$",
     # Other
+    r".*\.gn",
+    r".*\.gni",
     r".*\.java$",
     r".*\.mk$",
     r".*\.am$",
