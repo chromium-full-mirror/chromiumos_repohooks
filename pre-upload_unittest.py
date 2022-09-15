@@ -1838,6 +1838,7 @@ class CheckLayoutConfTestCase(PreUploadTestCase):
     def GetLayoutConf(self, filters=()):
         """Return a valid layout.conf with |filters| lines removed."""
         all_lines = [
+            "cache-format = md5-dict",
             "masters = portage-stable chromiumos",  # nocheck
             "profile-formats = portage-2 profile-default-eapi",
             "profile_eapi_when_unspecified = 5-progress",

@@ -2265,8 +2265,7 @@ def _check_layout_conf(_project, commit):
 
         # Require people to set specific values all the time.
         settings = (
-            # TODO: Enable this for everyone.  http://crbug.com/408038
-            # ('fast caching', 'cache-format = md5-dict'),
+            ('fast caching', 'cache-format = md5-dict'),
             ("fast manifests", "thin-manifests = true"),
             (
                 "extra features",
