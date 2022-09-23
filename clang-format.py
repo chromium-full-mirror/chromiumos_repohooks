@@ -155,15 +155,11 @@ def main(argv):
         cmd.extend(["%s^" % opts.commit, opts.commit])
     cmd.extend(["--"] + opts.files)
 
-    # Fail gracefully if clang-format itself aborts/fails.
-    try:
-        result = cros_build_lib.dbg_run(
-            cmd, stdout=True, encoding="utf-8", errors="replace"
-        )
-    except cros_build_lib.RunCommandError as e:
-        print("clang-format failed:\n" + str(e), file=sys.stderr)
-        print("\nPlease report this to the clang team.", file=sys.stderr)
-        return 1
+    # `git-clang-format --diff` exits non-zero when formatting changes
+    # are required (hence, check=False).
+    result = cros_build_lib.dbg_run(
+        cmd, stdout=True, encoding="utf-8", errors="replace", check=False
+    )
 
     stdout = result.stdout
     if stdout.rstrip("\n") == "no modified files to format":
@@ -191,6 +187,14 @@ def main(argv):
                 )
             )
             return 1
+    elif result.returncode != 0:
+        print(
+            f"git-clang-format exited {result.returncode}, but did not report "
+            f"any files that needed reformatted.  Please report this bug to "
+            f"the clang team.",
+            file=sys.stderr,
+        )
+        return 1
 
     return 0
 
