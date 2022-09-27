@@ -660,7 +660,7 @@ def _check_no_long_lines(_project, commit, options=()):
         # https://google.github.io/styleguide/tsguide.html
         r".*\.ts$",
         # Gentoo has its own style.
-        r".*\.(ebuild|eclass)$",
+        r".*(\.ebuild|\.eclass|metadata\/layout.conf)$",
     ]
 
     DEFAULT_MAX_LENGTHS = [
