@@ -1733,8 +1733,10 @@ def _check_ebuild_owners(project, commit):
                 if (
                     project.name == "chromiumos/overlays/board-overlays"
                     or re.match(
-                        (r"^chromeos/overlays/"
-                         r"(baseboard|chipset|project|overlay)-"),
+                        (
+                            r"^chromeos/overlays/"
+                            r"(baseboard|chipset|project|overlay)-"
+                        ),
                         project.name,
                     )
                 ):
@@ -2267,7 +2269,7 @@ def _check_layout_conf(_project, commit):
 
         # Require people to set specific values all the time.
         settings = (
-            ('fast caching', 'cache-format = md5-dict'),
+            ("fast caching", "cache-format = md5-dict"),
             ("fast manifests", "thin-manifests = true"),
             (
                 "extra features",
