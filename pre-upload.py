@@ -1190,6 +1190,11 @@ def _check_change_has_valid_cq_depend(_project, commit):
         ):
             return HookFailure(msg)
 
+    # Check that Cq-Depend is not multi-line.
+    msg = "Cq-Depend cannot span across multiple lines."
+    if re.search(r"^Cq-Depend:.*,\s*\n", desc, re.M):
+        return HookFailure(msg)
+
     # We no longer support CQ-DEPEND= lines.
     if re.search(r"^CQ-DEPEND[=:]", desc, re.M):
         return HookFailure(
