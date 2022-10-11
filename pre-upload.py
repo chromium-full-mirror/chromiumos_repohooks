@@ -3003,6 +3003,7 @@ def _run_project_hooks(
     commit_list=None,
     presubmit=False,
     config_file=None,
+    cla_check=True,
 ):
     """For each project run its project specific hook from the hooks dictionary.
 
@@ -3017,6 +3018,7 @@ def _run_project_hooks(
             script.
         config_file: A string, the presubmit config file. If not specified,
             defaults to PRESUBMIT.cfg in the project directory.
+        cla_check: A Boolean, True if CLA check is to be run.
 
     Returns:
         Boolean value of whether any errors were ecountered while running the
@@ -3048,14 +3050,15 @@ def _run_project_hooks(
 
     # Check the CLA here as we might be uploading multiple projects with each to
     # a different remote which have independent CLA settings.
-    try:
-        check_cla()
-    except VerifyException as e:
-        PrintErrorForProject(
-            project_name, HookFailure(f"unable to check cla: {e}")
-        )
-        os.chdir(pwd)
-        return True
+    if cla_check:
+        try:
+            check_cla()
+        except VerifyException as e:
+            PrintErrorForProject(
+                project_name, HookFailure(f"unable to check cla: {e}")
+            )
+            os.chdir(pwd)
+            return True
 
     color = terminal.Color()
 
@@ -3298,6 +3301,14 @@ def direct_main(argv):
         "--presubmit-config", help="Specify presubmit config file to be used."
     )
     parser.add_argument("commits", nargs="*", help="Check specific commits")
+    parser.add_argument(
+        "--no-cla-check",
+        dest="cla_check",
+        action="store_false",
+        help="Skip the CLA check.  Useful for running in the "
+        "context of a rebase as the CLA check requires being "
+        "on a branch.",
+    )
     opts = parser.parse_args(argv)
 
     if opts.rerun_since:
@@ -3369,6 +3380,7 @@ def direct_main(argv):
         commit_list=opts.commits,
         presubmit=opts.pre_submit,
         config_file=opts.presubmit_config,
+        cla_check=opts.cla_check,
     )
     if found_error:
         return 1
