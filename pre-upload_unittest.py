@@ -2659,7 +2659,7 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
             commit_list=[],
             presubmit=mock.ANY,
             config_file=mock.ANY,
-            cla_check=mock.ANY,
+            cla_check=True,
         )
 
     def testExplicitDir(self):
