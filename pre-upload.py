@@ -538,7 +538,7 @@ def _get_affected_files(
             return [os.path.join(path, x) for x in files]
 
 
-def _get_commits():
+def _get_commits(ignore_merged_commits=False):
     """Returns a list of commits for this review."""
     cmd = [
         "git",
@@ -547,6 +547,8 @@ def _get_commits():
         "--format=%H",
         "%s.." % _get_upstream_branch(),
     ]
+    if ignore_merged_commits:
+        cmd.append("--first-parent")
     return _run_command(cmd).split()
 
 
@@ -2954,7 +2956,7 @@ def _get_project_hook_scripts(config):
     return config.items(SECTION)
 
 
-def _get_project_hooks(presubmit, config_file=None):
+def _get_project_hooks(presubmit, config):
     """Returns a list of hooks that need to be run for a project.
 
     Expects to be called from within the project root.
@@ -2962,17 +2964,8 @@ def _get_project_hooks(presubmit, config_file=None):
     Args:
         presubmit: A Boolean, True if the check is run as a git pre-submit
             script.
-        config_file: A string, the config file. Defaults to _CONFIG_FILE.
+        config: A configparse.ConfigParser instance.
     """
-    config = configparser.RawConfigParser()
-    if config_file is None:
-        config_file = _CONFIG_FILE
-    if not os.path.exists(config_file):
-        # Just use an empty config file
-        config = configparser.RawConfigParser()
-    else:
-        config.read(config_file)
-
     if presubmit:
         hooks = _COMMON_HOOKS
     else:
@@ -2996,6 +2989,63 @@ def _get_project_hooks(presubmit, config_file=None):
         hooks.append(func)
 
     return hooks
+
+
+OPTION_IGNORE_MERGED_COMMITS = "ignore_merged_commits"
+_DEFAULT_OPTIONS = {
+    OPTION_IGNORE_MERGED_COMMITS: False,
+}
+
+
+def _get_project_options(config):
+    """Returns a dictionary of options controlled by the project's config file.
+
+    Use the default value for each option unless specified in the config.
+
+    Args:
+        config: A configparse.ConfigParser instance.
+    """
+    SECTION = "Options"
+
+    options = _DEFAULT_OPTIONS.copy()
+
+    if not config.has_section(SECTION):
+        return options
+
+    valid_keys = set(_DEFAULT_OPTIONS.keys())
+    config_options = set(config.options(SECTION))
+    unknown_keys = config_options - valid_keys
+    if unknown_keys:
+        raise ValueError(
+            f"{_CONFIG_FILE}: [{SECTION}]: unknown keys: {unknown_keys}"
+        )
+
+    for flag in config_options:
+        try:
+            options[flag] = config.getboolean(SECTION, flag)
+        except ValueError as e:
+            raise ValueError(
+                f'Error: parsing flag {flag} in "{_CONFIG_FILE}" failed: {e}'
+            )
+
+    return options
+
+
+def _get_project_config(config_file=None):
+    """Returns a configparse.ConfigParser instance for a project.
+
+    Args:
+        config_file: A string, the config file. Defaults to _CONFIG_FILE.
+    """
+    config = configparser.RawConfigParser()
+    if config_file is None:
+        config_file = _CONFIG_FILE
+    if not os.path.exists(config_file):
+        # Just use an empty config file
+        config = configparser.RawConfigParser()
+    else:
+        config.read(config_file)
+    return config
 
 
 def _run_project_hooks(
@@ -3087,15 +3137,18 @@ def _run_project_hooks(
 
     project = Project(name=project_name, dir=proj_dir, remote=remote)
 
+    config = _get_project_config(config_file)
+    options = _get_project_options(config)
+
     if not commit_list:
         try:
-            commit_list = _get_commits()
+            commit_list = _get_commits(options[OPTION_IGNORE_MERGED_COMMITS])
         except VerifyException as e:
             PrintErrorForProject(project.name, HookFailure(str(e)))
             os.chdir(pwd)
             return True
 
-    hooks = _get_project_hooks(presubmit, config_file)
+    hooks = _get_project_hooks(presubmit, config)
     error_found = False
     commit_count = len(commit_list)
     hook_count = len(hooks)

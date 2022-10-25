@@ -3140,9 +3140,8 @@ class ProjectHooksProcessing(PreUploadTestCase, cros_test_lib.TempDirTestCase):
         """Helper to write config and parse it."""
         filename = self.tempdir / "config"
         osutils.WriteFile(filename, data)
-        return pre_upload._get_project_hooks(
-            presubmit=True, config_file=filename
-        )
+        config = pre_upload._get_project_config(filename)
+        return pre_upload._get_project_hooks(presubmit=True, config=config)
 
     def testClangFormatCheckDefault(self):
         """Verify clang-format check disabled by default."""
@@ -3197,6 +3196,45 @@ clang_format_check:
                 break
         else:
             self.fail('could not find "clang_format_check" enabled hook')
+
+
+class ProjectOptionsProcessing(
+    PreUploadTestCase, cros_test_lib.TempDirTestCase
+):
+    """Verify _get_project_hooks processing."""
+
+    def parse(self, data):
+        """Helper to write config and parse it."""
+        filename = self.tempdir / "config"
+        osutils.WriteFile(filename, data)
+        config = pre_upload._get_project_config(filename)
+        return pre_upload._get_project_options(config=config)
+
+    def testIgnoreMergedCommitsDefault(self):
+        """Verify ignore_merged_commits option disabled by default."""
+        options = self.parse("")
+        self.assertFalse(options["ignore_merged_commits"])
+
+    def testIgnoreMergedCommitsDisabled(self):
+        """Verify ignore_merged_commits option disabled when requested."""
+        options = self.parse(
+            """
+[Options]
+ignore_merged_commits: false
+"""
+        )
+        self.assertFalse(options["ignore_merged_commits"])
+
+    def testIgnoreMergedCommitsEnabled(self):
+        """Verify ignore_merged_commits option enabled when requested."""
+        options = self.parse(
+            """
+[Options]
+ignore_merged_commits: true
+"""
+        )
+        self.assertIn("ignore_merged_commits", options)
+        self.assertTrue(options["ignore_merged_commits"])
 
 
 if __name__ == "__main__":
