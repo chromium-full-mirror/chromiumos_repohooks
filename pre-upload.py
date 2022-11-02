@@ -2360,6 +2360,7 @@ def _check_black(project, commit, options=()):
                 f"--stdin-filename={file}",
                 "-",
             ],
+            print_cmd=False,
             input=contents,
             check=False,
             stdout=subprocess.PIPE,
