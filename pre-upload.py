@@ -10,10 +10,12 @@ You can add new checks by adding a function to the HOOKS constants.
 
 import argparse
 import collections
+import concurrent.futures
 import configparser
 import datetime
 import fnmatch
 import functools
+import itertools
 import json
 import os
 from pathlib import Path
@@ -3097,6 +3099,7 @@ def _run_project_hooks(
     presubmit=False,
     config_file=None,
     cla_check=True,
+    jobs=None,
 ):
     """For each project run its project specific hook from the hooks dictionary.
 
@@ -3112,6 +3115,8 @@ def _run_project_hooks(
         config_file: A string, the presubmit config file. If not specified,
             defaults to PRESUBMIT.cfg in the project directory.
         cla_check: A Boolean, True if CLA check is to be run.
+        jobs: Maximum number of tasks to run in parallel, or choose
+            automatically if None.
 
     Returns:
         Boolean value of whether any errors were ecountered while running the
@@ -3196,59 +3201,86 @@ def _run_project_hooks(
     error_found = False
     commit_count = len(commit_list)
     hook_count = len(hooks)
-    for i, commit in enumerate(commit_list):
-        CACHE.clear()
 
-        # If run with --pre-submit, then commit is PRE_SUBMIT, and not a commit.
-        # Use that as the description.
-        desc = commit if commit == PRE_SUBMIT else _get_commit_desc(commit)
-        print(
-            "[%s %i/%i %s] %s"
-            % (
-                color.Color(color.CYAN, "COMMIT"),
-                i + 1,
-                commit_count,
-                commit[0:12],
-                desc.splitlines()[0],
-            )
-        )
+    def _run_hook(hook, project, commit):
+        with timer.Timer() as delta:
+            result = hook(project, commit)
+        return (hook, result, delta)
 
-        pending = [x.__name__ for x in hooks]
-        for h, hook in enumerate(hooks):
-            output_prefix = "[%s %i/%i] " % (
-                color.Color(color.YELLOW, "RUNNING"),
-                h + 1,
-                hook_count,
-            )
-            output = output_prefix + ", ".join(pending)
-            if isatty:
-                cols = shutil.get_terminal_size()[0] + yellow_len
-                output = f"\r{output[0:cols]}{CSI_ERASE_LINE_AFTER}"
-            print(output, end="", flush=True)
-            with timer.Timer() as delta:
-                hook_error = hook(project, commit)
-            hook_name = pending.pop(0)
-            if isatty:
-                output = f"{output_prefix}{hook_name} {delta}"
-                print(
-                    f"\r{output[0:cols]}{CSI_ERASE_LINE_AFTER}",
-                    end="",
-                    flush=True,
+    with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as executor:
+        for i, commit in enumerate(commit_list):
+            CACHE.clear()
+
+            # If run with --pre-submit, then commit is PRE_SUBMIT, and not a
+            # commit. Use that as the description.
+            desc = commit if commit == PRE_SUBMIT else _get_commit_desc(commit)
+            print(
+                "[%s %i/%i %s] %s"
+                % (
+                    color.Color(color.CYAN, "COMMIT"),
+                    i + 1,
+                    commit_count,
+                    commit[0:12],
+                    desc.splitlines()[0],
                 )
-            else:
-                print(f" {delta}", flush=True)
-            if hook_error:
-                # Clear status line before showing errors.
-                if isatty:
-                    print(f"\r{CSI_ERASE_LINE_AFTER}", end="")
-                if not isinstance(hook_error, list):
-                    hook_error = [hook_error]
-                PrintErrorsForCommit(color, hook, project.name, hook_error)
-                error_found = True
+            )
 
-        # Clear status line after running all hooks for this commit.
-        if isatty:
-            print(f"\r{CSI_ERASE_LINE_AFTER}", end="")
+            pending = set(hooks) | {None}
+            futures = (
+                executor.submit(_run_hook, hook, project, commit)
+                for hook in hooks
+            )
+            future_results = (
+                future.result()
+                for future in concurrent.futures.as_completed(futures)
+            )
+
+            for h, (hook, hook_error, runtime) in enumerate(
+                itertools.chain(
+                    # First is a do-nothing hook allowing us to display some
+                    # progress before the first future completes. It never gets
+                    # reported in progress output and never fails.
+                    ((None, None, datetime.timedelta(0)),),
+                    # Then handle the results of hooks executed on the thread
+                    # pool, in the order in which they complete.
+                    future_results,
+                )
+            ):
+                pending.remove(hook)
+
+                # Display progress.
+                output_prefix = "[%s %i/%i] " % (
+                    color.Color(color.YELLOW, "RUNNING"),
+                    h,
+                    hook_count,
+                )
+                hook_names = (hook.__name__ for hook in pending)
+                output = output_prefix + ", ".join(hook_names)
+                if isatty:
+                    cols = shutil.get_terminal_size()[0] + yellow_len
+                    output = f"\r{output[0:cols]}{CSI_ERASE_LINE_AFTER}"
+                print(output, end="", flush=True)
+
+                # Display the time the hook took to run, but only if not using
+                # a status line: otherwise this would hide the pending list
+                # (which would flash momentarily on the next iteration) or be
+                # immediately replaced by the error output.
+                if not isatty:
+                    print(f" {runtime}")
+
+                # Display error returned from hook, if any.
+                if hook_error:
+                    # Clear status line before showing errors.
+                    if isatty:
+                        print(f"\r{CSI_ERASE_LINE_AFTER}", end="")
+                    if not isinstance(hook_error, list):
+                        hook_error = [hook_error]
+                    PrintErrorsForCommit(color, hook, project.name, hook_error)
+                    error_found = True
+
+            # Clear status line after running all hooks for this commit.
+            if isatty:
+                print(f"\r{CSI_ERASE_LINE_AFTER}", end="")
 
     os.chdir(pwd)
     return error_found
@@ -3422,6 +3454,14 @@ def direct_main(argv):
         "context of a rebase as the CLA check requires being "
         "on a branch.",
     )
+    parser.add_argument(
+        "-j",
+        "--jobs",
+        type=int,
+        help="Run up to this many hooks in parallel. Setting to 1 forces "
+        "serial execution, and the default automatically chooses an "
+        "appropriate number for the current system.",
+    )
     opts = parser.parse_args(argv)
 
     if opts.rerun_since:
@@ -3494,6 +3534,7 @@ def direct_main(argv):
         presubmit=opts.pre_submit,
         config_file=opts.presubmit_config,
         cla_check=opts.cla_check,
+        jobs=opts.jobs,
     )
     if found_error:
         return 1

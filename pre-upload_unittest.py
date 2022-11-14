@@ -2709,6 +2709,7 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
             presubmit=mock.ANY,
             config_file=mock.ANY,
             cla_check=True,
+            jobs=mock.ANY,
         )
 
     def testExplicitDir(self):
@@ -2723,6 +2724,7 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
             presubmit=mock.ANY,
             config_file=mock.ANY,
             cla_check=mock.ANY,
+            jobs=mock.ANY,
         )
 
     def testBogusProject(self):
@@ -2739,6 +2741,7 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
             presubmit=mock.ANY,
             config_file=mock.ANY,
             cla_check=mock.ANY,
+            jobs=mock.ANY,
         )
 
     def testBogustProjectNoDir(self):
@@ -2752,6 +2755,7 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
             presubmit=mock.ANY,
             config_file=mock.ANY,
             cla_check=mock.ANY,
+            jobs=mock.ANY,
         )
 
     def testNoGitDir(self):
@@ -2782,6 +2786,7 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
             presubmit=mock.ANY,
             config_file=mock.ANY,
             cla_check=mock.ANY,
+            jobs=mock.ANY,
         )
 
     def testNoClaCheck(self):
@@ -2795,6 +2800,21 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
             presubmit=mock.ANY,
             config_file=mock.ANY,
             cla_check=False,
+            jobs=mock.ANY,
+        )
+
+    def testJobs(self):
+        """--jobs flag should be passed through."""
+        ret = pre_upload.direct_main(["-j", "1"])
+        self.assertEqual(ret, 0)
+        self.hooks_mock.assert_called_once_with(
+            mock.ANY,
+            proj_dir=mock.ANY,
+            commit_list=[],
+            presubmit=mock.ANY,
+            config_file=mock.ANY,
+            cla_check=mock.ANY,
+            jobs=1,
         )
 
 
