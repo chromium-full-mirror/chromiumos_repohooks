@@ -93,6 +93,38 @@ class TryUTF8DecodeTest(PreUploadTestCase):
         self.assertEqual("hi \ufffd there", ret)
 
 
+class CacheTest(cros_test_lib.MockTestCase):
+    """Tests for Cache."""
+
+    def setUp(self):
+        self.cache = pre_upload.Cache()
+
+    def testDistinctScopes(self):
+        """Keys are separated between scopes."""
+
+        @self.cache.cache_function
+        def s1(_):
+            return 1
+
+        @self.cache.cache_function
+        def s2(_):
+            return 2
+
+        self.assertEqual(1, s1("value"))
+        # cache_function doesn't return the value from s1
+        self.assertEqual(2, s2("value"))
+
+    def testDecorator(self):
+        """Cached functions return cached values when present."""
+        mock_fn = mock.Mock(return_value=123)
+        mock_fn.__name__ = "decorated"
+
+        cached_fn = self.cache.cache_function(mock_fn)
+        self.assertEqual(123, cached_fn("a"))
+        self.assertEqual(123, cached_fn("a"))
+        mock_fn.assert_called_once_with("a")
+
+
 class CheckKeywordsTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
     """Tests for _check_keywords."""
 

@@ -23,6 +23,8 @@ import shutil
 import stat
 import subprocess
 import sys
+import threading
+from typing import Tuple
 
 from errors import HookFailure
 from errors import PrintErrorForProject
@@ -209,11 +211,61 @@ class Cache(object):
     def __init__(self):
         self._cache = {}
 
-    def get_subcache(self, scope):
-        return self._cache.setdefault(scope, {})
-
     def clear(self):
-        self._cache.clear()
+        # Retain existing scopes (and their locks) while clearing all keys.
+        for (lock, scope) in self._cache.values():
+            with lock:
+                scope.clear()
+
+    def _get_or_compute(self, scope, key, fn) -> Tuple[threading.RLock, dict]:
+        """Get the current value of a key, or compute its value.
+
+        The provided scope must already exist.
+
+        This is thread-safe and the first thread to request the
+        value for a given key will block all other threads accessing the same
+        scope until the value is computed, avoiding duplicate work when values
+        for the same input are requested concurrently.
+        """
+        (lock, items) = self._cache[scope]
+        with lock:
+            if key not in items:
+                items[key] = fn()
+            return items[key]
+
+    def cache_function(self, f):
+        """Decorator to cache the return value of a function.
+
+        The first positional argument to the function is used as the cache key.
+        All other parameters are ignored and passed through.
+
+        Cached values are partitioned by the name of the wrapped function;
+        functions with unique names will never see cached values from other
+        functions.
+
+        >>> cache = Cache()
+        >>> @cache.cache_function
+        ... def fact(n):
+        ...     if n == 1:
+        ...         return 1
+        ...     else:
+        ...         return n * fact(n - 1)
+        >>> fact(4)
+        24
+        >>> cache._get_or_compute('fact', 4, lambda: None)
+        24
+        """
+        scope = f.__name__
+        # Initialize the cache partition for this function.
+        self._cache[scope] = (threading.RLock(), {})
+
+        @functools.wraps(f)
+        def _do_cached_function(*args, **kwargs):
+            return self._get_or_compute(
+                scope, args[0], lambda: f(*args, **kwargs)
+            )
+
+        return _do_cached_function
 
 
 CACHE = Cache()
@@ -330,6 +382,7 @@ def _get_patch(commit):
         return _run_command(["git", "format-patch", "--stdout", "-1", commit])
 
 
+@CACHE.cache_function
 def _get_file_content(path, commit):
     """Returns the content of a file at a specific commit.
 
@@ -347,28 +400,18 @@ def _get_file_content(path, commit):
             "_get_file_content must be called with relative paths: %s" % (path,)
         )
 
-    # {<commit>: {<path1>: <content>, <path2>: <content>}}
-    cache = CACHE.get_subcache("get_file_content")
-    if path in cache:
-        return cache[path]
-
     if commit == PRE_SUBMIT:
         content = _run_command(["git", "diff", "HEAD", "--", path], stderr=True)
     else:
         content = _run_command(
             ["git", "show", "%s:%s" % (commit, path)], stderr=True
         )
-    cache[path] = content
     return content
 
 
+@CACHE.cache_function
 def _get_file_diff(path, commit):
     """Returns a list of (linenum, lines) tuples that the commit touched."""
-    # {<commit>: {<path1>: <content>, <path2>: <content>}}
-    cache = CACHE.get_subcache("get_file_diff")
-    if path in cache:
-        return cache[path]
-
     if commit == PRE_SUBMIT:
         command = [
             "git",
@@ -404,7 +447,6 @@ def _get_file_diff(path, commit):
             new_lines.append((line_num, line[1:]))
         if not line.startswith("-"):
             line_num += 1
-    cache[path] = new_lines
     return new_lines
 
 
@@ -473,6 +515,21 @@ def _path_is_ignored(path, cache):
     return False
 
 
+@CACHE.cache_function
+def _get_all_affected_files(commit, path):
+    """Return the unfiltered list of file paths affected by a commit.
+
+    This function exists only to provide caching for _get_affected_files();
+    users should call that function instead.
+    """
+    if commit == PRE_SUBMIT:
+        return _run_command(
+            ["git", "diff-index", "--cached", "--name-only", "HEAD"]
+        ).split()
+
+    return git.RawDiff(path, "%s^!" % commit)
+
+
 def _get_affected_files(
     commit,
     include_deletes=False,
@@ -500,17 +557,8 @@ def _get_affected_files(
     if not relative and full_details:
         raise ValueError("full_details only supports relative paths currently")
 
-    if commit == PRE_SUBMIT:
-        return _run_command(
-            ["git", "diff-index", "--cached", "--name-only", "HEAD"]
-        ).split()
-
     path = os.getcwd()
-    # {<commit>: {<path1>: <content>, <path2>: <content>}}
-    cache = CACHE.get_subcache("get_affected_files")
-    if path not in cache:
-        cache[path] = git.RawDiff(path, "%s^!" % commit)
-    files = cache[path]
+    files = _get_all_affected_files(commit, path)
 
     # Filter out symlinks.
     if not include_symlinks:
@@ -553,18 +601,13 @@ def _get_commits(ignore_merged_commits=False):
     return _run_command(cmd).split()
 
 
+@CACHE.cache_function
 def _get_commit_desc(commit):
     """Returns the full commit message of a commit."""
     if commit == PRE_SUBMIT:
         return ""
 
-    # {<commit>: <content>}
-    cache = CACHE.get_subcache("get_commit_desc")
-    if commit not in cache:
-        cache[commit] = _run_command(
-            ["git", "log", "--format=%B", commit + "^!"]
-        )
-    return cache[commit]
+    return _run_command(["git", "log", "--format=%B", commit + "^!"])
 
 
 def _check_lines_in_diff(commit, files, check_callable, error_description):
