@@ -3177,6 +3177,8 @@ def _run_project_hooks(
                 hook_count,
                 hook.__name__,
             )
+            if isatty:
+                output = f"\r{output}{CSI_ERASE_LINE_AFTER}"
             print(output, end="", flush=True)
             start_time = datetime.datetime.utcnow()
             hook_error = hook(project, commit)
