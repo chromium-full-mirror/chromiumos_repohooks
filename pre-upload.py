@@ -3148,6 +3148,7 @@ def _run_project_hooks(
             os.chdir(pwd)
             return True
 
+    isatty = sys.stdout.isatty()
     hooks = _get_project_hooks(presubmit, config)
     error_found = False
     commit_count = len(commit_list)
@@ -3181,7 +3182,7 @@ def _run_project_hooks(
             hook_error = hook(project, commit)
             end_time = datetime.datetime.utcnow()
             print(" " + pformat.timedelta(end_time - start_time), end="")
-            if sys.stdout.isatty():
+            if isatty:
                 print(f"\r{CSI_ERASE_LINE_AFTER}", end="", flush=True)
             else:
                 print()
