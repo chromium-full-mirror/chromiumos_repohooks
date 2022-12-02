@@ -3184,15 +3184,20 @@ def _run_project_hooks(
             hook_error = hook(project, commit)
             end_time = datetime.datetime.utcnow()
             print(" " + pformat.timedelta(end_time - start_time), end="")
-            if isatty:
-                print(f"\r{CSI_ERASE_LINE_AFTER}", end="", flush=True)
-            else:
+            if not isatty:
                 print()
             if hook_error:
+                # Clear status line before showing errors.
+                if isatty:
+                    print(f"\r{CSI_ERASE_LINE_AFTER}", end="")
                 if not isinstance(hook_error, list):
                     hook_error = [hook_error]
                 PrintErrorsForCommit(color, hook, project.name, hook_error)
                 error_found = True
+
+        # Clear status line after running all hooks for this commit.
+        if isatty:
+            print(f"\r{CSI_ERASE_LINE_AFTER}", end="")
 
     os.chdir(pwd)
     return error_found
