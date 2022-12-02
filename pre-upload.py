@@ -19,6 +19,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import stat
 import subprocess
 import sys
@@ -3149,6 +3150,7 @@ def _run_project_hooks(
             return True
 
     isatty = sys.stdout.isatty()
+    yellow_len = len(color.Color(color.YELLOW, ""))
     hooks = _get_project_hooks(presubmit, config)
     error_found = False
     commit_count = len(commit_list)
@@ -3170,22 +3172,32 @@ def _run_project_hooks(
             )
         )
 
+        pending = [x.__name__ for x in hooks]
         for h, hook in enumerate(hooks):
-            output = "[%s %i/%i PRESUBMIT.cfg] %s" % (
+            output_prefix = "[%s %i/%i] " % (
                 color.Color(color.YELLOW, "RUNNING"),
                 h + 1,
                 hook_count,
-                hook.__name__,
             )
+            output = output_prefix + ", ".join(pending)
             if isatty:
-                output = f"\r{output}{CSI_ERASE_LINE_AFTER}"
+                cols = shutil.get_terminal_size()[0] + yellow_len
+                output = f"\r{output[0:cols]}{CSI_ERASE_LINE_AFTER}"
             print(output, end="", flush=True)
             start_time = datetime.datetime.utcnow()
             hook_error = hook(project, commit)
             end_time = datetime.datetime.utcnow()
-            print(" " + pformat.timedelta(end_time - start_time), end="")
-            if not isatty:
-                print()
+            hook_name = pending.pop(0)
+            delta = pformat.timedelta(end_time - start_time)
+            if isatty:
+                output = f"{output_prefix}{hook_name} {delta}"
+                print(
+                    f"\r{output[0:cols]}{CSI_ERASE_LINE_AFTER}",
+                    end="",
+                    flush=True,
+                )
+            else:
+                print(" " + delta, flush=True)
             if hook_error:
                 # Clear status line before showing errors.
                 if isatty:
