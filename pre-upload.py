@@ -1109,7 +1109,7 @@ def _check_cargo_clippy(project, commit, options=()):
 
     options = list(options)
     if not options:
-        return []
+        return None
     parser = _get_cargo_clippy_parser()
 
     try:
@@ -1121,7 +1121,12 @@ def _check_cargo_clippy(project, commit, options=()):
                 f" Please check PRESUBMIT.cfg is correct: {e}"
             )
         ]
-    files = _get_affected_files(commit)
+    files = _filter_files(
+        _get_affected_files(commit), [r"\.rs$", r"clippy\.toml$"]
+    )
+    if not files:
+        # No rust or clippy config files modified, skip this check.
+        return None
 
     errors = []
     for clippy in opts.project:

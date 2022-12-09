@@ -2951,6 +2951,25 @@ class CheckCargoClippyTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
 
         rc_mock.assert_not_called()
 
+    def testDontRunNonRust(self):
+        """Skip checks when no monitored files are modified."""
+        rc_mock = self.PatchObject(pre_upload, "_run_command", return_value="")
+
+        # A C++ file was changed.
+        self.PatchObject(
+            pre_upload,
+            "_get_affected_files",
+            return_value=[f"{self.project.dir}/repo_b/a.cc"],
+        )
+        # But, we only care about Rust files.
+        errs = pre_upload._check_cargo_clippy(
+            self.project, "COMMIT", options=["--project=repo_b:foo"]
+        )
+
+        self.assertFalse(errs)
+
+        rc_mock.assert_not_called()
+
     def testCustomScript(self):
         """Verify project-specific script is used."""
         rc_mock = self.PatchObject(pre_upload, "_run_command", return_value="")
