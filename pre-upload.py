@@ -62,7 +62,7 @@ from chromite.lib import path_util
 from chromite.lib import portage_util
 from chromite.lib import terminal
 from chromite.licensing import licenses_lib
-from chromite.utils import pformat
+from chromite.utils import timer
 
 
 assert sys.version_info >= (3, 6), "This module requires Python 3.6+"
@@ -3201,11 +3201,9 @@ def _run_project_hooks(
                 cols = shutil.get_terminal_size()[0] + yellow_len
                 output = f"\r{output[0:cols]}{CSI_ERASE_LINE_AFTER}"
             print(output, end="", flush=True)
-            start_time = datetime.datetime.utcnow()
-            hook_error = hook(project, commit)
-            end_time = datetime.datetime.utcnow()
+            with timer.Timer() as delta:
+                hook_error = hook(project, commit)
             hook_name = pending.pop(0)
-            delta = pformat.timedelta(end_time - start_time)
             if isatty:
                 output = f"{output_prefix}{hook_name} {delta}"
                 print(
@@ -3214,7 +3212,7 @@ def _run_project_hooks(
                     flush=True,
                 )
             else:
-                print(" " + delta, flush=True)
+                print(f" {delta}", flush=True)
             if hook_error:
                 # Clear status line before showing errors.
                 if isatty:
