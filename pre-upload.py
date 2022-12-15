@@ -1267,13 +1267,14 @@ def _check_change_has_bug_field(project, commit):
             )
             return HookFailure(msg)
 
-        BUG_RE = r"\nBUG=([Nn]one|(chromium|b):\d+)"
+        BUG_RE = r"\nBUG=([Nn]one|(chromium|b|oss-fuzz):\d+)"
         if not re.search(BUG_RE, _get_commit_desc(commit)):
             msg = (
                 "Changelist description needs BUG field (after first line):\n"
                 "Examples:\n"
                 "BUG=chromium:9999 (for public tracker)\n"
                 "BUG=b:9999 (for buganizer)\n"
+                "BUG=oss-fuzz:9999 (for oss-fuzz)\n"
                 "BUG=None\n%s" % (SEE_ALSO,)
             )
             return HookFailure(msg)

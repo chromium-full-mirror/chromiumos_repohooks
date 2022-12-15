@@ -1955,6 +1955,7 @@ class CheckCommitMessageBug(CommitMessageTestCase):
         """Accept a commit message w/a valid BUG."""
         self.assertMessageAccepted("\nBUG=chromium:1234\n", self.CROS_PROJECT)
         self.assertMessageAccepted("\nBUG=b:1234\n", self.CROS_PROJECT)
+        self.assertMessageAccepted("\nBUG=oss-fuzz:1234\n", self.CROS_PROJECT)
 
         self.assertMessageAccepted("\nBug: 1234\n", self.AOSP_PROJECT)
         self.assertMessageAccepted("\nBug:1234\n", self.AOSP_PROJECT)
