@@ -1659,6 +1659,7 @@ def _check_ebuild_licenses(_project, commit):
         # e.g. path/to/overlay/category/package/package.ebuild ->
         #      path/to/overlay
         overlay_path = os.sep.join(ebuild.split(os.sep)[:-3])
+        category = ebuild.split(os.sep)[-3]
 
         try:
             ebuild_content = _get_file_content(ebuild, commit)
@@ -1666,15 +1667,25 @@ def _check_ebuild_licenses(_project, commit):
                 ebuild_content, overlay_path
             )
         except ValueError as e:
-            errors.append(HookFailure(str(e), [ebuild]))
+            if category not in {"acct-group", "acct-user"}:
+                errors.append(HookFailure(str(e), [ebuild]))
             continue
 
         # Virtual packages must use "metapackage" license.
-        if ebuild.split("/")[-3] == "virtual":
+        if category == "virtual":
             if license_types != ["metapackage"]:
                 errors.append(
                     HookFailure(
                         'Virtual package must use LICENSE="metapackage".',
+                        [ebuild],
+                    )
+                )
+                continue
+        elif category in {"acct-group", "acct-user"}:
+            if license_types:
+                errors.append(
+                    HookFailure(
+                        "Account packages must not set LICENSE.",
                         [ebuild],
                     )
                 )

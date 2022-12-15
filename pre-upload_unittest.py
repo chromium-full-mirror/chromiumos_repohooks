@@ -1087,6 +1087,22 @@ class CheckEbuildLicense(PreUploadTestCase):
             "metapackage", "overlay/virtual/pkg/pkg.ebuild", False
         )
 
+    def testAcctUserPackageNoLicense(self):
+        """Check acct-user packages allow LICENSE=""."""
+        self._CheckContent("", "overlay/acct-user/foo/foo.ebuild", False)
+
+    def testAcctUserPackageLicense(self):
+        """Check acct-user packages reject LICENSE."""
+        self._CheckContent("GPL-2", "overlay/acct-user/foo/foo.ebuild", True)
+
+    def testAcctGroupPackageNoLicense(self):
+        """Check acct-group packages allow LICENSE=""."""
+        self._CheckContent("", "overlay/acct-group/foo/foo.ebuild", False)
+
+    def testAcctGroupPackageLicense(self):
+        """Check acct-group packages reject LICENSE."""
+        self._CheckContent("GPL-2", "overlay/acct-group/foo/foo.ebuild", True)
+
 
 class CheckEbuildLocalnameExists(
     PreUploadTestCase, cros_test_lib.MockTempDirTestCase
