@@ -2027,8 +2027,10 @@ def _check_change_has_proper_changeid(_project, commit):
     if end and cherry_pick_marker in end[-1]:
         # Cherry picked patches allow more tags in the last paragraph.
         allowed_tags += [
+            "Auto-Submit",
             "Commit-Queue",
             "Commit-Ready",
+            "Owners-Override",
             "Reviewed-by",
             "Reviewed-on",
             "Tested-by",
