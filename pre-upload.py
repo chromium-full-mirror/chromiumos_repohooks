@@ -2670,7 +2670,7 @@ def _run_project_hook_script(script, project, commit):
     env["PRESUBMIT_COMMIT"] = commit
 
     # Put affected files in an environment variable
-    files = _get_affected_files(commit)
+    files = _get_affected_files(commit, relative=True)
     env["PRESUBMIT_FILES"] = "\n".join(files)
 
     cmd_result = cros_build_lib.run(

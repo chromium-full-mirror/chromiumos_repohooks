@@ -65,7 +65,7 @@ A few environment variables are set so scripts don't need to discover things.
     (e.g. 'chromiumos/platform/firmware').
 *   `PRESUBMIT_COMMIT`: The full commit hash of your change.
 *   `PRESUBMIT_FILES`: A list of files affected by your commit delimited by
-    newlines.
+    newlines (e.g. 'README.md\nsub/dir/foo.py').
 
 ## [Hook Scripts]
 
