@@ -3325,5 +3325,48 @@ ignore_merged_commits: true
         self.assertTrue(options["ignore_merged_commits"])
 
 
+class ReadmeTests(cros_test_lib.TestCase):
+    """Tests to check README.md content."""
+
+    def setUp(self):
+        self.readme = (DIR / "README.md").read_text(encoding="utf-8")
+
+    def testHookOverridesDocs(self):
+        """Make sure [Hook Overrides] is kept up-to-date."""
+        # Extract documented sections from the readme.
+        start = end = None
+        lines = self.readme.splitlines()
+        for i, line in enumerate(lines):
+            if start is None:
+                if line == "## [Hook Overrides]":
+                    start = i
+            elif line.startswith("## "):
+                end = i - 1
+                break
+
+        # See which hooks we support.
+        doc_sections = [
+            x.split("`")[1]
+            for x in lines[start : start + end]
+            if x.startswith("*")
+        ]
+        all_sections = sorted(pre_upload._HOOK_FLAGS.keys())
+        sorted_docs = sorted(doc_sections)
+
+        # Hook docs must be sorted.
+        self.assertEqual(
+            doc_sections,
+            sorted_docs,
+            msg="Keep README.md:[Hook Overrides] sorted",
+        )
+
+        # All hooks must be documented.
+        self.assertEqual(
+            sorted_docs,
+            all_sections,
+            msg="All configurable hooks must be documented in README.md:[Hook Overrides]",
+        )
+
+
 if __name__ == "__main__":
     cros_test_lib.main(module=__name__)

@@ -98,22 +98,36 @@ Note: Not all hooks that we run may be disabled.  We only document the ones that
 may be controlled by the config file here, but we run many more checks.
 
 *   `aosp_license_check`: Require source files have an Android (Apache) license.
+*   `black_check`: Require Python files be formated by Black.
+*   `blank_line_check`: Check for trailing blank lines.
 *   `branch_check`: Require all commit messages have a `BRANCH=` line.
 *   `bug_field_check`: Require all commit messages have a `BUG=` line.
+*   `cargo_clippy_check`: Run Rust code through `cargo clippy`.
+*   `check_change_no_include_board_phase`: Reject commit messages that refer to
+    hardware board development phases (e.g. PVT).
+*   `check_rustfmt`: Run Rust code through `rustfmt`.
 *   `checkpatch_check`: Run commits through Linux's `checkpatch.pl` tool.
 *   `clang_format_check`: Run source code through `clang-format`.
 *   `contribution_check`: Check source files for invalid "not a contribution".
 *   `cros_license_check`: Require source files have a Chromium (BSD) license.
+*   `exec_files_check`: Check common file types do not have +x permission bits.
 *   `filepath_chartype_check`: Check source files for FilePath::CharType use.
+*   `gofmt_check`: Run Go code through `gofmt`.
+*   `handle_eintr_close_check`: Check C++ code does not use unsafe
+    `HANDLE_EINTR(close(...))` idioms.
 *   `json_check`: Check all `.json` files are valid JSON.
+*   `kernel_splitconfig_check`: Require CrOS kernel config changes are separate
+    commits from kernel code changes.
 *   `kerneldoc_check`: Run commits through Linux's `kernel-doc` tool.
+*   `keyword_check`: Check text files & commit messages for
+    [blocked terms](#blocked_terms).
 *   `long_line_check`: Do not allow lines longer than 80 cols.
 *   `manifest_check`: Check all ebuild `Manifest` files.
 *   `project_prefix_check`: Require all commit message have a subdir prefix.
 *   `signoff_check`: Require all commit messages have a `Signed-off-by` tag.
 *   `stray_whitespace_check`: Check source files for stray whitespace.
-*   `tabbed_indent_required_check`: Require tabs for indentation.
 *   `tab_check`: Do not allow tabs for indentation in source files.
+*   `tabbed_indent_required_check`: Require tabs for indentation.
 *   `test_field_check`: Require all commit messages have a `TEST=` line.
 
 ## [Hook Overrides Options]
@@ -126,7 +140,7 @@ name above, so see that list for more details.
 cros_license_check: --exclude_regex=\b(checkpatch\.pl|kernel-doc)$
 ```
 
-## Blocked and Unblocked Word List
+## Blocked and Unblocked Word List {#blocked_terms}
 
 `blocked_terms.txt` contains a default list of words which are blocked by
 keyword_check. `unblocked_terms.txt` is a default list of words which are
