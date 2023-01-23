@@ -24,6 +24,7 @@ sys.path.insert(0, str(DIR.parent.parent))
 
 # The sys.path monkey patching confuses the linter.
 # pylint: disable=wrong-import-position
+from chromite.format import formatters
 from chromite.lib import constants
 from chromite.lib import cros_build_lib
 from chromite.lib import cros_test_lib
@@ -2909,13 +2910,12 @@ class CheckRustfmtTest(PreUploadTestCase):
         # Bad because it's missing trailing newline.
         content = "fn main() {}"
         self.content_mock.return_value = content
-        self.PatchObject(
-            pre_upload, "_run_command", return_value=content + "\n"
-        )
+        self.PatchObject(formatters.rust, "Data", return_value=content + "\n")
         failure = pre_upload._check_rustfmt(ProjectNamed("PROJECT"), "COMMIT")
         self.assertIsNotNone(failure)
         self.assertEqual(
-            "Files not formatted with rustfmt: " "(run 'cargo fmt' to fix)",
+            "Files not formatted with rustfmt "
+            "(run `cros format` or `cargo fmt` to fix):",
             failure.msg,
         )
         self.assertEqual(["a.rs"], failure.items)
@@ -2926,7 +2926,7 @@ class CheckRustfmtTest(PreUploadTestCase):
         )
         content = "fn main() {}\n"
         self.content_mock.return_value = content
-        self.PatchObject(pre_upload, "_run_command", return_value=content)
+        self.PatchObject(formatters.rust, "Data", return_value=content)
         failure = pre_upload._check_rustfmt(ProjectNamed("PROJECT"), "COMMIT")
         self.assertIsNone(failure)
 

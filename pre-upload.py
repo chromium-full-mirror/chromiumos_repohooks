@@ -53,6 +53,7 @@ elif __name__ == "__main__":
 
 # The sys.path monkey patching confuses the linter.
 # pylint: disable=wrong-import-position
+from chromite.format import formatters
 from chromite.lib import commandline
 from chromite.lib import constants
 from chromite.lib import cros_build_lib
@@ -964,7 +965,7 @@ def _check_tabbed_indents(_project, commit, options=()):
     )
 
 
-def _check_gofmt(_project, commit, options=()):
+def _check_gofmt(project, commit, options=()):
     """Checks that Go files are formatted with gofmt."""
     included, excluded = _parse_common_inclusion_options(options)
     errors = []
@@ -974,40 +975,34 @@ def _check_gofmt(_project, commit, options=()):
         excluded,
     )
 
-    for gofile in files:
-        contents = _get_file_content(gofile, commit)
-        output = _run_command(
-            cmd=["gofmt", "-l"],
-            input=contents.encode("utf-8"),
-            stderr=subprocess.STDOUT,
-        )
-        if output:
-            errors.append(gofile)
+    project_path = Path(project.dir)
+    for file in files:
+        contents = _get_file_content(file, commit)
+        if contents != formatters.go.Data(contents, path=project_path / file):
+            errors.append(file)
     if errors:
-        return HookFailure("Files not formatted with gofmt:", errors)
+        return HookFailure(
+            "Files not formatted with gofmt (run `cros format` to fix):", errors
+        )
     return None
 
 
-def _check_rustfmt(_project, commit):
+def _check_rustfmt(project, commit):
     """Checks that Rust files are formatted with rustfmt."""
     errors = []
     files = _filter_files(
         _get_affected_files(commit, relative=True), [r"\.rs$"]
     )
 
-    for rustfile in files:
-        contents = _get_file_content(rustfile, commit)
-        output = _run_command(
-            cmd=["rustfmt", "--edition", "2018"],
-            enter_chroot=True,
-            input=contents.encode("utf-8"),
-            stderr=subprocess.STDOUT,
-        )
-        if output != contents:
-            errors.append(rustfile)
+    project_path = Path(project.dir)
+    for file in files:
+        contents = _get_file_content(file, commit)
+        if contents != formatters.rust.Data(contents, path=project_path / file):
+            errors.append(file)
     if errors:
         return HookFailure(
-            "Files not formatted with rustfmt: " "(run 'cargo fmt' to fix)",
+            "Files not formatted with rustfmt "
+            "(run `cros format` or `cargo fmt` to fix):",
             errors,
         )
     return None
