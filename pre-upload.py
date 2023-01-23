@@ -2378,51 +2378,18 @@ def _check_black(project, commit, options=()):
         _get_affected_files(commit, relative=True), included, excluded
     )
 
-    # Detect if the repo has their own black config.  If not, we want to
-    # use the one here.
-    config_path = REPOHOOKS_DIR / "pyproject.toml"
-    their_config = None
-    if project.dir:
-        their_config = Path(project.dir) / "pyproject.toml"
-        if their_config.is_file() and "tool.black" in their_config.read_text():
-            config_path = their_config
-
-    black_tool = Path(constants.DEPOT_TOOLS_DIR) / "black"
-    files_need_formatting = []
+    errors = []
+    project_path = Path(project.dir)
     for file in files:
         contents = _get_file_content(file, commit)
-        result = cros_build_lib.run(
-            [
-                black_tool,
-                f"--config={config_path}",
-                "--quiet",
-                "--check",
-                "--diff",
-                f"--stdin-filename={file}",
-                "-",
-            ],
-            print_cmd=False,
-            input=contents,
-            check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            encoding="utf-8",
-        )
-        if result.returncode:
-            files_need_formatting.append((file, result.stdout))
+        if contents != formatters.python.Data(
+            contents, path=project_path / file
+        ):
+            errors.append(file)
 
-    if files_need_formatting:
-        black_cmd = [black_tool]
-        if config_path != their_config:
-            black_cmd.extend(["--config", config_path])
-        for file, _ in files_need_formatting:
-            black_cmd.append(file)
-        black_cmd_repr = cros_build_lib.CmdToStr(black_cmd)
+    if errors:
         return HookFailure(
-            f"Files need formatted with black.\n"
-            f"Run this command to fix automatically:\n"
-            f"  {black_cmd_repr}",
-            [f"{file}\n{diff}" for file, diff in files_need_formatting],
+            "Files not formatted (run `cros format` to fix):", errors
         )
 
     return None

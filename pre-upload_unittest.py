@@ -2866,17 +2866,7 @@ class CheckBlack(PreUploadTestCase, cros_test_lib.TempDirTestCase):
         )
         result = pre_upload._check_black(ProjectNamed("PROJECT"), "COMMIT")
         self.assertIsNotNone(result)
-        self.assertEqual(
-            f"Files need formatted with black.\n"
-            f"Run this command to fix automatically:\n"
-            f"  {constants.DEPOT_TOOLS_DIR}/black --config "
-            f"{pre_upload.REPOHOOKS_DIR}/pyproject.toml "
-            f"needs_reformatted.py",
-            result.msg,
-        )
-        self.assertEqual(
-            ["needs_reformatted.py"], [x.splitlines()[0] for x in result.items]
-        )
+        self.assertEqual(["needs_reformatted.py"], result.items)
 
     def testLocalConfig(self):
         """When a pyproject.toml exists in the project, it should be used."""
@@ -2888,13 +2878,8 @@ class CheckBlack(PreUploadTestCase, cros_test_lib.TempDirTestCase):
             "[tool.black]\n" "line-length = 6\n"
         )
         result = pre_upload._check_black(project, "COMMIT")
-        self.assertEqual(
-            f"Files need formatted with black.\n"
-            f"Run this command to fix automatically:\n"
-            f"  {constants.DEPOT_TOOLS_DIR}/black ok.py",
-            result.msg,
-        )
-        self.assertEqual(["ok.py"], [x.splitlines()[0] for x in result.items])
+        self.assertIsNotNone(result)
+        self.assertEqual(["ok.py"], result.items)
 
 
 class CheckRustfmtTest(PreUploadTestCase):
