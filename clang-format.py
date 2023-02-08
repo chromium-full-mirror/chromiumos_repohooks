@@ -141,7 +141,7 @@ def main(argv):
     # systems which dropped /usr/bin/python.  Run through vpython manually to
     # match what depot_tools does.  b/220165980
     cmd = [
-        "vpython",
+        "vpython3",
         opts.git_clang_format,
         "--binary",
         opts.clang_format,
