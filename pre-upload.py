@@ -19,6 +19,7 @@ import itertools
 import os
 from pathlib import Path
 import re
+import shlex
 import shutil
 import stat
 import subprocess
@@ -2615,10 +2616,21 @@ def _run_project_hook_script(script, project, commit):
     files = _get_affected_files(commit, relative=True)
     env["PRESUBMIT_FILES"] = "\n".join(files)
 
+    # Replace placeholders ourselves so arguments expand correctly.
+    cmd = []
+    for arg in shlex.split(script):
+        if arg == "${PRESUBMIT_PROJECT}":
+            cmd.append(project.name)
+        elif arg == "${PRESUBMIT_COMMIT}":
+            cmd.append(commit)
+        elif arg == "${PRESUBMIT_FILES}":
+            cmd.extend(files)
+        else:
+            cmd.append(arg)
+
     cmd_result = cros_build_lib.run(
-        cmd=script,
+        cmd=cmd,
         env=env,
-        shell=True,
         print_cmd=False,
         input="",
         stdout=True,

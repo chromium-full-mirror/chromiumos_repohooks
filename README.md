@@ -67,6 +67,17 @@ A few environment variables are set so scripts don't need to discover things.
 *   `PRESUBMIT_FILES`: A list of files affected by your commit delimited by
     newlines (e.g. 'README.md\nsub/dir/foo.py').
 
+## Placeholders
+
+A few keywords are recognized to pass down settings.  These are **not**
+environment variables, but are expanded inline.  Files with whitespace and
+such will be expanded correctly via argument positions, so do not try to
+force your own quote handling.
+
+* `${PRESUBMIT_PROJECT}`: List of files to operate on.
+* `${PRESUBMIT_FILES}`: A list of files to operate on.
+* `${PREUPLOAD_COMMIT}`: Commit hash.
+
 ## [Hook Scripts]
 
 This section allows for completely arbitrary hooks to run on a per-repo basis.
@@ -81,6 +92,10 @@ The keys must be unique as duplicates will silently clobber earlier values.
 
 You do not need to send stderr to stdout.  The tooling will take care of
 merging them together for you automatically.
+
+The command respects shell-like syntax, but is not actually shell code.  If you
+want to run arbitrary shell scripts, you should create a dedicated shell script
+and then execute that.  This allows for linting of the script.
 
 ```
 [Hook Scripts]
