@@ -2802,6 +2802,12 @@ def _check_exec_files(_project, commit):
     return None
 
 
+def _check_git_cl_presubmit(_project, commit):
+    """Run git-cl presubmit automatically if PRESUBMIT.py exists."""
+    # Stub to seed existing configs.
+    return None
+
+
 # Base
 
 # A list of hooks which are not project specific and check patch description
@@ -2830,6 +2836,7 @@ _COMMON_HOOKS = [
     _check_ebuild_virtual_pv,
     _check_exec_files,
     _check_for_uprev,
+    _check_git_cl_presubmit,
     _check_gofmt,
     _check_keywords,
     _check_layout_conf,
@@ -2862,6 +2869,7 @@ _HOOK_FLAGS = {
     "cros_license_check": _check_cros_license,
     "exec_files_check": _check_exec_files,
     "filepath_chartype_check": _check_filepath_chartype,
+    "git_cl_presubmit": _check_git_cl_presubmit,
     "gofmt_check": _check_gofmt,
     "handle_eintr_close_check": _check_no_handle_eintr_close,
     "json_check": _run_json_check,
