@@ -2784,7 +2784,28 @@ def _check_exec_files(_project, commit):
 
 def _check_git_cl_presubmit(_project, commit):
     """Run git-cl presubmit automatically if PRESUBMIT.py exists."""
-    # Stub to seed existing configs.
+    if not os.path.exists("PRESUBMIT.py"):
+        return None
+
+    presubmit_support = shutil.which("presubmit_support.py")
+    if not presubmit_support:
+        return HookFailure(
+            "presubmit_support.py not found; make sure depot_tools is in $PATH."
+        )
+    cmd = ["vpython3", presubmit_support]
+    if commit == "pre-submit":
+        cmd += ["--commit"]
+    result = cros_build_lib.run(
+        cmd,
+        print_cmd=False,
+        input="",
+        check=False,
+        encoding="utf-8",
+        stdout=True,
+        stderr=subprocess.STDOUT,
+    )
+    if result.returncode:
+        return HookFailure(f"git-cl presubmit failed: {result.stdout}")
     return None
 
 
