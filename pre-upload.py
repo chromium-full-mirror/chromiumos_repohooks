@@ -16,7 +16,6 @@ import datetime
 import fnmatch
 import functools
 import itertools
-import json
 import os
 from pathlib import Path
 import re
@@ -2495,25 +2494,6 @@ def _kernel_configcheck(_project, commit):
     return None
 
 
-def _run_json_check(_project, commit):
-    """Checks that all JSON files are syntactically valid."""
-    ret = []
-
-    files = _filter_files(
-        _get_affected_files(commit, relative=True), [r".*\.json$"]
-    )
-    for f in files:
-        data = _get_file_content(f, commit)
-        try:
-            json.loads(data)
-        except Exception as e:
-            ret.append("%s: Invalid JSON: %s" % (f, e))
-
-    if ret:
-        return HookFailure("\n".join(ret))
-    return None
-
-
 def _check_manifests(_project, commit):
     """Make sure Manifest files only have comments & DIST lines."""
     ret = []
@@ -2872,7 +2852,6 @@ _HOOK_FLAGS = {
     "git_cl_presubmit": _check_git_cl_presubmit,
     "gofmt_check": _check_gofmt,
     "handle_eintr_close_check": _check_no_handle_eintr_close,
-    "json_check": _run_json_check,
     "kernel_splitconfig_check": _kernel_configcheck,
     "kerneldoc_check": _run_kerneldoc,
     "keyword_check": _check_keywords,

@@ -718,45 +718,6 @@ class CheckKernelConfig(PreUploadTestCase):
         self.assertFalse(failure)
 
 
-class CheckJson(PreUploadTestCase):
-    """Tests for _run_json_check."""
-
-    def setUp(self):
-        self.file_mock = self.PatchObject(pre_upload, "_get_affected_files")
-        self.content_mock = self.PatchObject(pre_upload, "_get_file_content")
-
-    def testNoJson(self):
-        """Nothing should be checked w/no JSON files."""
-        self.file_mock.return_value = [
-            "/foo/bar.txt",
-            "/readme.md",
-        ]
-        ret = pre_upload._run_json_check("PROJECT", "COMMIT")
-        self.assertIsNone(ret)
-
-    def testValidJson(self):
-        """We should accept valid json files."""
-        self.file_mock.return_value = [
-            "/foo/bar.txt",
-            "/data.json",
-        ]
-        self.content_mock.return_value = "{}"
-        ret = pre_upload._run_json_check("PROJECT", "COMMIT")
-        self.assertIsNone(ret)
-        self.content_mock.assert_called_once_with("/data.json", "COMMIT")
-
-    def testInvalidJson(self):
-        """We should reject invalid json files."""
-        self.file_mock.return_value = [
-            "/foo/bar.txt",
-            "/data.json",
-        ]
-        self.content_mock.return_value = "{"
-        ret = pre_upload._run_json_check("PROJECT", "COMMIT")
-        self.assertIsNotNone(ret)
-        self.content_mock.assert_called_once_with("/data.json", "COMMIT")
-
-
 class CheckManifests(PreUploadTestCase):
     """Tests _check_manifests."""
 

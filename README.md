@@ -116,7 +116,6 @@ may be controlled by the config file here, but we run many more checks.
 *   `gofmt_check`: Run Go code through `gofmt`.
 *   `handle_eintr_close_check`: Check C++ code does not use unsafe
     `HANDLE_EINTR(close(...))` idioms.
-*   `json_check`: Check all `.json` files are valid JSON.
 *   `kernel_splitconfig_check`: Require CrOS kernel config changes are separate
     commits from kernel code changes.
 *   `kerneldoc_check`: Run commits through Linux's `kernel-doc` tool.
