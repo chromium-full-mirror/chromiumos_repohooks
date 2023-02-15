@@ -931,12 +931,12 @@ src_compile() { }
         self.assertIsNone(ret)
 
         # Verify we handle double quotes too.
-        self.content_mock.return_value = template % '"5"'
+        self.content_mock.return_value = template % '"7"'
         ret = pre_upload._check_ebuild_eapi(ProjectNamed("overlay"), "HEAD")
         self.assertIsNone(ret)
 
         # Verify we handle single quotes too.
-        self.content_mock.return_value = template % "'5-hdepend'"
+        self.content_mock.return_value = template % "'7-hdepend'"
         ret = pre_upload._check_ebuild_eapi(ProjectNamed("overlay"), "HEAD")
         self.assertIsNone(ret)
 
