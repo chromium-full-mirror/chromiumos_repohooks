@@ -5,8 +5,6 @@
 
 """Wrapper to run git-clang-format and parse its output."""
 
-import hashlib
-import io
 import os
 import sys
 
@@ -35,45 +33,6 @@ BUILDTOOLS_PATH = os.path.join(
 )
 
 
-def _GetSha1Hash(path):
-    """Gets the SHA-1 hash of |path|, or None if the file does not exist."""
-    if not os.path.exists(path):
-        return None
-    with open(path, "rb") as f:
-        m = hashlib.sha1()
-        while True:
-            buf = f.read(io.DEFAULT_BUFFER_SIZE)
-            if not buf:
-                break
-            m.update(buf)
-        return m.hexdigest()
-
-
-def _GetDefaultClangFormatPath():
-    """Gets the default clang-format binary path.
-
-    This also ensures that the binary itself is up-to-date.
-    """
-
-    clang_format_path = os.path.join(BUILDTOOLS_PATH, "linux64/clang-format")
-    hash_file_path = os.path.join(BUILDTOOLS_PATH, "linux64/clang-format.sha1")
-    with open(hash_file_path, "r") as f:
-        expected_hash = f.read().strip()
-    if expected_hash != _GetSha1Hash(clang_format_path):
-        # See chromium/src/buildtools/clang_format/README.txt for more details.
-        cmd = [
-            os.path.join(
-                constants.DEPOT_TOOLS_DIR, "download_from_google_storage.py"
-            ),
-            "-b",
-            "chromium-clang-format",
-            "-s",
-            hash_file_path,
-        ]
-        cros_build_lib.dbg_run(cmd)
-    return clang_format_path
-
-
 def main(argv):
     """Checks if a project is correctly formatted with clang-format.
 
@@ -84,7 +43,7 @@ def main(argv):
     parser = commandline.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--clang-format",
-        default=_GetDefaultClangFormatPath(),
+        default=os.path.join(constants.CHROMITE_SCRIPTS_DIR, "clang-format"),
         help="The path of the clang-format executable.",
     )
     parser.add_argument(
