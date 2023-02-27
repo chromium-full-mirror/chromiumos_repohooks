@@ -455,7 +455,7 @@ def _get_ignore_wildcards(directory, cache):
             # of this commit instead of the on-disk version. This may have a
             # noticeable performance impact, as each call to _get_file_content()
             # runs git.
-            with open(dotfile_path, "r") as dotfile:
+            with open(dotfile_path, "r", encoding="utf-8") as dotfile:
                 for line in dotfile.readlines():
                     line = line.strip()
                     if line.startswith("#"):
