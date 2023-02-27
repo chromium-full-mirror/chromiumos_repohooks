@@ -135,7 +135,7 @@ may be controlled by the config file here, but we run many more checks.
     commits from kernel code changes.
 *   `kerneldoc_check`: Run commits through Linux's `kernel-doc` tool.
 *   `keyword_check`: Check text files & commit messages for
-    [blocked terms](#blocked_terms).
+    [blocked terms](#blocked-terms).
 *   `long_line_check`: Do not allow lines longer than 80 cols.
 *   `manifest_check`: Check all ebuild `Manifest` files.
 *   `project_prefix_check`: Require all commit message have a subdir prefix.
@@ -155,7 +155,7 @@ name above, so see that list for more details.
 cros_license_check: --exclude_regex=\b(checkpatch\.pl|kernel-doc)$
 ```
 
-## Blocked and Unblocked Word List {#blocked_terms}
+## Blocked and Unblocked Word List {#blocked-terms}
 
 `blocked_terms.txt` contains a default list of words which are blocked by
 keyword_check. `unblocked_terms.txt` is a default list of words which are
