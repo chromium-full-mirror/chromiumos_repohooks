@@ -2625,6 +2625,8 @@ def _run_project_hook_script(script, project, commit):
             cmd.append(commit)
         elif arg == "${PRESUBMIT_FILES}":
             cmd.extend(files)
+        elif "${PRESUBMIT_COMMIT}" in arg:
+            cmd.append(arg.replace("${PRESUBMIT_COMMIT}", commit))
         else:
             cmd.append(arg)
 
