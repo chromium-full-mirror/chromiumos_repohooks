@@ -75,6 +75,10 @@ assert sys.version_info >= (3, 6), "This module requires Python 3.6+"
 PRE_SUBMIT = "pre-submit"
 
 
+# Path to bundled tools.
+TOOLS_DIR = REPOHOOKS_DIR / "third_party"
+
+
 # Terminal escape sequence to erase the current line after the cursor.
 CSI_ERASE_LINE_AFTER = "\x1b[K"
 
@@ -2390,7 +2394,7 @@ def _check_clang_format(_project, commit, options=()):
         options.append("--commit=HEAD")
     else:
         options.extend(["--commit", commit])
-    cmd = [REPOHOOKS_DIR / "clang-format.py"] + options
+    cmd = [TOOLS_DIR / "clang-format.py"] + options
     cmd_result = cros_build_lib.run(
         cmd,
         print_cmd=False,
@@ -2422,7 +2426,7 @@ def _run_checkpatch(_project, commit, options=()):
     if options and options[0].startswith("./") and os.path.exists(options[0]):
         cmdpath = options.pop(0)
     else:
-        cmdpath = os.path.join(REPOHOOKS_DIR, "checkpatch.pl")
+        cmdpath = os.path.join(TOOLS_DIR, "checkpatch.pl")
     if commit == PRE_SUBMIT:
         # The --ignore option must be present and include 'MISSING_SIGN_OFF' in
         # this case.
@@ -2460,7 +2464,7 @@ def _run_kerneldoc(_project, commit, options=()):
         _get_affected_files(commit, relative=True), included, excluded
     )
     if files:
-        cmd = [REPOHOOKS_DIR / "kernel-doc", "-none"] + files
+        cmd = [TOOLS_DIR / "kernel-doc", "-none"] + files
         output = _run_command(cmd, stderr=subprocess.STDOUT)
         if output:
             return HookFailure(
