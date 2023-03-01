@@ -164,17 +164,11 @@ class CheckKeywordsTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
         self.rf_mock.assert_has_calls(
             [
                 mock.call(
-                    os.path.join(
-                        pre_upload._get_hooks_dir(),
-                        pre_upload.BLOCKED_TERMS_FILE,
-                    )
+                    pre_upload.REPOHOOKS_DIR / pre_upload.BLOCKED_TERMS_FILE
                 ),
                 mock.call(pre_upload.UNBLOCKED_TERMS_FILE),
                 mock.call(
-                    os.path.join(
-                        pre_upload._get_hooks_dir(),
-                        pre_upload.UNBLOCKED_TERMS_FILE,
-                    )
+                    pre_upload.REPOHOOKS_DIR / pre_upload.UNBLOCKED_TERMS_FILE
                 ),
             ]
         )

@@ -44,9 +44,8 @@ class CheckFilesTest(cros_test_lib.MockTestCase, cros_test_lib.TempDirTestCase):
     @classmethod
     def setUpClass(cls):
         """Initialize the class instance mocks."""
-        cls.hooks_dir = pre_upload._get_hooks_dir()
         cls.common_file_terms = pre_upload._read_terms_file(
-            os.path.join(cls.hooks_dir, pre_upload.BLOCKED_TERMS_FILE)
+            pre_upload.REPOHOOKS_DIR / pre_upload.BLOCKED_TERMS_FILE
         )
         # With the unblocked file effectively empty, to test unblocking we must
         # have our own list here.
@@ -69,8 +68,6 @@ class CheckFilesTest(cros_test_lib.MockTestCase, cros_test_lib.TempDirTestCase):
         self.diff_mock = self.PatchObject(pre_upload, "_get_file_diff")
         self.desc_mock = self.PatchObject(pre_upload, "_get_commit_desc")
         self.project = pre_upload.Project(name="PROJECT", dir="./", remote=None)
-        self.hooks_dir_mock = self.PatchObject(pre_upload, "_get_hooks_dir")
-        self.hooks_dir_mock.return_value = self.hooks_dir
 
     def CheckKeyword(self, test):
         """Test a particular keyword.

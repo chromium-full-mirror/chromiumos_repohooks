@@ -280,19 +280,6 @@ def _run_command(cmd, **kwargs):
     return result.stdout.decode("utf-8", "replace")
 
 
-@functools.lru_cache()
-def _get_hooks_dir():
-    """Returns the absolute path to the repohooks directory."""
-    if __name__ == "__main__":
-        # Works when file is run on its own (__file__ is defined)...
-        return os.path.abspath(os.path.dirname(__file__))
-    else:
-        # We need to do this when we're run through repo.  Since repo executes
-        # us with execfile(), we don't get __file__ defined.
-        cmd = ["repo", "forall", "chromiumos/repohooks", "-c", "pwd"]
-        return _run_command(cmd).strip()
-
-
 def _match_regex_list(subject, expressions):
     """Try to match a list of regular expressions to a string.
 
@@ -910,12 +897,12 @@ def _check_keywords(project, commit, options=()):
         return ()
 
     # Read blocked word list.
-    blocked_terms_file = os.path.join(_get_hooks_dir(), BLOCKED_TERMS_FILE)
+    blocked_terms_file = REPOHOOKS_DIR / BLOCKED_TERMS_FILE
     common_keywords = _read_terms_file(blocked_terms_file)
 
     # Find unblocked word list in project root directory. If not found, global
     # list is used.
-    unblocked_terms_file = os.path.join(_get_hooks_dir(), UNBLOCKED_TERMS_FILE)
+    unblocked_terms_file = REPOHOOKS_DIR / UNBLOCKED_TERMS_FILE
     if os.path.isfile(os.path.join(project.dir, UNBLOCKED_TERMS_FILE)):
         unblocked_terms_file = os.path.join(project.dir, UNBLOCKED_TERMS_FILE)
 
@@ -2398,13 +2385,12 @@ def _check_black(project, commit, options=()):
 
 def _check_clang_format(_project, commit, options=()):
     """Runs clang-format on the given project"""
-    hooks_dir = _get_hooks_dir()
     options = list(options)
     if commit == PRE_SUBMIT:
         options.append("--commit=HEAD")
     else:
         options.extend(["--commit", commit])
-    cmd = [os.path.join(hooks_dir, "clang-format.py")] + options
+    cmd = [REPOHOOKS_DIR / "clang-format.py"] + options
     cmd_result = cros_build_lib.run(
         cmd,
         print_cmd=False,
@@ -2432,12 +2418,11 @@ def _run_checkpatch(_project, commit, options=()):
     if desc.startswith("UPSTREAM:") or desc.startswith("FROMGIT:"):
         return None
 
-    hooks_dir = _get_hooks_dir()
     options = list(options)
     if options and options[0].startswith("./") and os.path.exists(options[0]):
         cmdpath = options.pop(0)
     else:
-        cmdpath = os.path.join(hooks_dir, "checkpatch.pl")
+        cmdpath = os.path.join(REPOHOOKS_DIR, "checkpatch.pl")
     if commit == PRE_SUBMIT:
         # The --ignore option must be present and include 'MISSING_SIGN_OFF' in
         # this case.
@@ -2475,8 +2460,7 @@ def _run_kerneldoc(_project, commit, options=()):
         _get_affected_files(commit, relative=True), included, excluded
     )
     if files:
-        hooks_dir = _get_hooks_dir()
-        cmd = [os.path.join(hooks_dir, "kernel-doc"), "-none"] + files
+        cmd = [REPOHOOKS_DIR / "kernel-doc", "-none"] + files
         output = _run_command(cmd, stderr=subprocess.STDOUT)
         if output:
             return HookFailure(
