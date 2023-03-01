@@ -28,9 +28,9 @@ assert sys.version_info >= (3, 6), "This module requires Python 3.6+"
 # that have formatting errors are printed with this prefix.
 DIFF_MARKER_PREFIX = "+++ b/"
 
-BUILDTOOLS_PATH = os.path.join(
-    constants.SOURCE_ROOT, "src", "chromium", "src", "buildtools"
-)
+
+# Path to the dir holding this script.
+DIR = Path(__file__).resolve().parent
 
 
 def main(argv):
@@ -48,9 +48,7 @@ def main(argv):
     )
     parser.add_argument(
         "--git-clang-format",
-        default=os.path.join(
-            BUILDTOOLS_PATH, "clang_format", "script", "git-clang-format"
-        ),
+        default=DIR / "git-clang-format",
         help="The path of the git-clang-format executable.",
     )
     parser.add_argument(
