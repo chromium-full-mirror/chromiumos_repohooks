@@ -196,7 +196,7 @@ class Cache(object):
 
     def clear(self):
         # Retain existing scopes (and their locks) while clearing all keys.
-        for (lock, scope) in self._cache.values():
+        for lock, scope in self._cache.values():
             with lock:
                 scope.clear()
 
