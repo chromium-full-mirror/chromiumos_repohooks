@@ -280,6 +280,7 @@ def _run_command(cmd, **kwargs):
     return result.stdout.decode("utf-8", "replace")
 
 
+@functools.lru_cache()
 def _get_hooks_dir():
     """Returns the absolute path to the repohooks directory."""
     if __name__ == "__main__":
