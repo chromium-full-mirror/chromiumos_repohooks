@@ -12,6 +12,7 @@ import argparse
 import collections
 import concurrent.futures
 import configparser
+import contextlib
 import datetime
 import fnmatch
 import functools
@@ -64,6 +65,7 @@ from chromite.lib import osutils
 from chromite.lib import patch
 from chromite.lib import path_util
 from chromite.lib import portage_util
+from chromite.lib import sudo
 from chromite.lib import terminal
 from chromite.licensing import licenses_lib
 from chromite.utils import timer
@@ -1072,10 +1074,6 @@ def _run_clippy_on_dir(root, cmd, errors):
             "-D",
             "warnings",
         ]
-
-    if not cros_build_lib.IsInsideChroot():
-        print("\nRunning cargo commands inside the chroot.")
-        print("You may be prompted to authenticate by sudo.")
 
     # If Cargo.lock isn't tracked by git, regenerate it. This fixes the case a
     # dependency has been updated since the last time the presubmit checks
@@ -2855,6 +2853,12 @@ _COMMON_HOOKS = [
     _check_tabbed_indents,
 ]
 
+# A list of hooks that require sudo.
+_SUDO_HOOKS = frozenset(
+    [
+        "cargo_clippy_check",
+    ]
+)
 
 # A dictionary of flags (keys) that can appear in the config file, and the hook
 # that the flag controls (value).
@@ -3174,13 +3178,19 @@ def _run_project_hooks(
     error_found = False
     commit_count = len(commit_list)
     hook_count = len(hooks)
+    require_sudo = any(h.__name__ in _SUDO_HOOKS for h in hooks)
 
     def _run_hook(hook, project, commit):
         with timer.Timer() as delta:
             result = hook(project, commit)
         return (hook, result, delta)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as executor:
+    with contextlib.ExitStack() as stack:
+        executor = stack.enter_context(
+            concurrent.futures.ThreadPoolExecutor(max_workers=jobs)
+        )
+        if require_sudo:
+            stack.enter_context(sudo.SudoKeepAlive())
         for i, commit in enumerate(commit_list):
             CACHE.clear()
 
