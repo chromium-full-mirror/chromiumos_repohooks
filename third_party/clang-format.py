@@ -6,6 +6,7 @@
 """Wrapper to run git-clang-format and parse its output."""
 
 import os
+from pathlib import Path
 import sys
 
 
