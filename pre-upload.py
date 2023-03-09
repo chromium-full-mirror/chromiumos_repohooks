@@ -2853,13 +2853,6 @@ _COMMON_HOOKS = [
     _check_tabbed_indents,
 ]
 
-# A list of hooks that require sudo.
-_SUDO_HOOKS = frozenset(
-    [
-        "cargo_clippy_check",
-    ]
-)
-
 # A dictionary of flags (keys) that can appear in the config file, and the hook
 # that the flag controls (value).
 _HOOK_FLAGS = {
@@ -2892,6 +2885,20 @@ _HOOK_FLAGS = {
     "tabbed_indent_required_check": _check_tabbed_indents,
     "test_field_check": _check_change_has_test_field,
 }
+
+
+def _hooks_require_sudo(hooks) -> bool:
+    """Returns true if the provided list of hooks requires sudo.
+
+    Args:
+        hooks: list of hooks to check.
+    """
+    for h in hooks:
+        if h.__name__ == "cargo_clippy_check":
+            if "options" in h.keywords:
+                return True
+
+    return False
 
 
 def _get_override_hooks(config):
@@ -3178,7 +3185,6 @@ def _run_project_hooks(
     error_found = False
     commit_count = len(commit_list)
     hook_count = len(hooks)
-    require_sudo = any(h.__name__ in _SUDO_HOOKS for h in hooks)
 
     def _run_hook(hook, project, commit):
         with timer.Timer() as delta:
@@ -3189,7 +3195,7 @@ def _run_project_hooks(
         executor = stack.enter_context(
             concurrent.futures.ThreadPoolExecutor(max_workers=jobs)
         )
-        if require_sudo:
+        if _hooks_require_sudo(hooks):
             stack.enter_context(sudo.SudoKeepAlive())
         for i, commit in enumerate(commit_list):
             CACHE.clear()
