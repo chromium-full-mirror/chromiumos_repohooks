@@ -42,7 +42,6 @@ in subdirectories (to try and override parent settings) is not supported.
 
 [Hook Scripts]
 cros lint = cros lint ${PRESUBMIT_FILES}
-pre-upload_unittest = ./pre-upload_unittest.py
 
 [Hook Overrides]
 cros_license_check: true
