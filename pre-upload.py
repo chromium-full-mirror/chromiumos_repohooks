@@ -2788,11 +2788,9 @@ def _check_git_cl_presubmit(_project, commit):
     if not os.path.exists("PRESUBMIT.py"):
         return None
 
-    presubmit_support = shutil.which("presubmit_support.py")
-    if not presubmit_support:
-        return HookFailure(
-            "presubmit_support.py not found; make sure depot_tools is in $PATH."
-        )
+    presubmit_support = os.path.join(
+        constants.DEPOT_TOOLS_DIR, "presubmit_support.py"
+    )
     cmd = ["vpython3", presubmit_support]
     if commit == "pre-submit":
         cmd += ["--commit"]
