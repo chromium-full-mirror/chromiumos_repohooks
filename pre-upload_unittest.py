@@ -2671,11 +2671,11 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
     def testExplicitDir(self):
         """Verify we can run on a diff dir."""
         # Use the chromite dir since we know it exists.
-        ret = pre_upload.direct_main(["--dir", constants.CHROMITE_DIR])
+        ret = pre_upload.direct_main(["--dir", str(constants.CHROMITE_DIR)])
         self.assertEqual(ret, 0)
         self.hooks_mock.assert_called_once_with(
             mock.ANY,
-            proj_dir=constants.CHROMITE_DIR,
+            proj_dir=str(constants.CHROMITE_DIR),
             commit_list=[],
             presubmit=mock.ANY,
             config_file=mock.ANY,
@@ -2687,12 +2687,12 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
         """A bogus project name should be fine (use default settings)."""
         # Use the chromite dir since we know it exists.
         ret = pre_upload.direct_main(
-            ["--dir", constants.CHROMITE_DIR, "--project", "foooooooooo"]
+            ["--dir", str(constants.CHROMITE_DIR), "--project", "foooooooooo"]
         )
         self.assertEqual(ret, 0)
         self.hooks_mock.assert_called_once_with(
             "foooooooooo",
-            proj_dir=constants.CHROMITE_DIR,
+            proj_dir=str(constants.CHROMITE_DIR),
             commit_list=[],
             presubmit=mock.ANY,
             config_file=mock.ANY,
