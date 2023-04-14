@@ -2225,7 +2225,7 @@ class CheckCommitMessageNoBoardPhase(CommitMessageTestCase):
         return pre_upload._check_change_no_include_board_phase(project, commit)
 
     def testNormal(self):
-        """Accept a commit message w/o reference to an board phase."""
+        """Accept a commit message w/o reference to a board phase."""
         self.assertMessageAccepted("foo\n")
 
     def testContainsBoardPhase(self):
@@ -2700,7 +2700,7 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
             jobs=mock.ANY,
         )
 
-    def testBogustProjectNoDir(self):
+    def testBogusProjectNoDir(self):
         """Make sure --dir is detected even with --project."""
         ret = pre_upload.direct_main(["--project", "foooooooooo"])
         self.assertEqual(ret, 0)

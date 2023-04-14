@@ -231,7 +231,7 @@ writing your hooks:
     to the special string `pre-submit` indicating you should be analyzing
     uncommitted changes.  Handle this case.
 10. **Don't report issues with files the user didn't touch.**  Use
-    `${PRESUBMIT_FILES}` to detemine which files you are to check.
+    `${PRESUBMIT_FILES}` to determine which files you are to check.
 
 # Reporting issues
 

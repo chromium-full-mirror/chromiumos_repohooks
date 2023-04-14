@@ -3489,7 +3489,7 @@ def direct_main(argv):
             PRE_SUBMIT,
         ]
 
-    # Check/normlaize git dir; if unspecified, we'll use the root of the git
+    # Check/normalize git dir; if unspecified, we'll use the root of the git
     # project from CWD
     if opts.dir is None:
         git_dir = _run_command(
