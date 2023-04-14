@@ -187,4 +187,8 @@ class CheckFilesTest(cros_test_lib.MockTestCase, cros_test_lib.TempDirTestCase):
 
 
 if __name__ == "__main__":
-    cros_test_lib.main(module=__name__)
+    presubmit_commit = os.environ.get("PRESUBMIT_COMMIT", "")
+    if presubmit_commit in ("", "pre-submit"):
+        # Skip tests on pre-upload. Run when in pre-submit mode, or if run
+        # directly.
+        cros_test_lib.main(module=__name__)
