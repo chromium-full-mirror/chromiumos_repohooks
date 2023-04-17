@@ -1396,7 +1396,7 @@ def match_board_phases(line):
     # Some examples:
     # 'Enabling ABC on XYZ EVT and PVT boards'      -> ['EVT', 'PVT']
     # 'Rename acpi_gpio_evt_pin to acpi_gpio_event' -> []
-    matches = [x for x in re.findall(name_re, line, re.IGNORECASE)]
+    matches = re.findall(name_re, line, re.IGNORECASE)
 
     return ",".join(matches)
 
