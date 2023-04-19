@@ -134,6 +134,9 @@ COMMON_INCLUDED_PATHS = CPP_PATHS + [
     r".*\.rs$",
     r".*\.ebuild$",
     r".*\.eclass$",
+    r".*\.bazel$",
+    r".*\.bzl$",
+    r"(^BUILD|/BUILD)",
     r"(^OWNERS|/OWNERS)",
 ]
 
