@@ -677,6 +677,10 @@ def _check_no_handle_eintr_close(_project, commit, options=()):
 def _check_no_long_lines(_project, commit, options=()):
     """Checks there are no lines longer than MAX_LEN in any of the files."""
     LONG_LINE_OK_PATHS = [
+        # Bazel's BUILD files have no line length limit. The style guide says
+        # "it should not be enforced in code reviews or presubmit scripts".
+        # https://bazel.build/build/style-guide?hl=en
+        r".*\.bazel$",
         # Go has no line length limit.
         # https://golang.org/doc/effective_go.html#formatting
         r".*\.go$",
