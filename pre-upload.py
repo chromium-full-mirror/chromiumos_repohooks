@@ -681,6 +681,9 @@ def _check_no_long_lines(_project, commit, options=()):
         # "it should not be enforced in code reviews or presubmit scripts".
         # https://bazel.build/build/style-guide?hl=en
         r".*\.bazel$",
+        # GN format does not enforce a line length limit by the cros format.
+        # https://chromium.googlesource.com/dart/dartium/src/+/HEAD/tools/gn/docs/style_guide.md
+        r".*\.gn$",
         # Go has no line length limit.
         # https://golang.org/doc/effective_go.html#formatting
         r".*\.go$",
