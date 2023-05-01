@@ -2540,18 +2540,35 @@ def _check_manifests(_project, commit):
     return None
 
 
-def _check_change_has_branch_field(_project, commit):
+def _check_change_has_branch_field(_project, commit, options=()):
     """Check for a non-empty 'BRANCH=' field in the commit message."""
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--optional", action="store_true")
+    parser.add_argument("--required", action="store_false", dest="optional")
+    opts = parser.parse_args(options)
+
     if commit == PRE_SUBMIT:
         return None
-    BRANCH_RE = r"\nBRANCH=\S+"
+    branch_re = re.compile(r"\nBRANCH=([^\n]+)")
+    branch_match = branch_re.search(_get_commit_desc(commit))
 
-    if not re.search(BRANCH_RE, _get_commit_desc(commit)):
+    if not branch_match and not opts.optional:
         msg = (
             "Changelist description needs BRANCH field (after first line)\n"
             "E.g. BRANCH=none or BRANCH=link,snow"
         )
         return HookFailure(msg)
+
+    if branch_match and opts.optional:
+        branch = branch_match.group(1)
+        if branch.lower().strip() == "none":
+            msg = (
+                "BRANCH is optional in this repository.  Specifying "
+                f"BRANCH={branch} is not useful.  Remove this line."
+            )
+            return HookFailure(msg)
+
     return None
 
 

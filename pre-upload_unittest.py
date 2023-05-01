@@ -2028,6 +2028,39 @@ class CheckCommitMessageBug(CommitMessageTestCase):
             self.assertMessageRejected("\n" + test_field + bug_field, project)
 
 
+class CheckCommitMessageBranch(CommitMessageTestCase):
+    """Tests for branch_check."""
+
+    def setUp(self):
+        self.options = []
+
+    def CheckMessage(self, project, commit):
+        return pre_upload._check_change_has_branch_field(
+            project,
+            commit,
+            options=self.options,
+        )
+
+    def testBranchRequiredOk(self):
+        """Test that, when BRANCH= is required, BRANCH=none is accepted."""
+        self.assertMessageAccepted("\nBRANCH=none\n")
+
+    def testBranchRequiredMissing(self):
+        """Test that, when BRANCH= is required and missing, it's rejected."""
+        self.assertMessageRejected("\n")
+
+    def testBranchOptionalOk(self):
+        """Test that, when BRANCH= is optional, it's accepted."""
+        self.options = ["--optional"]
+        self.assertMessageAccepted("\n")
+        self.assertMessageAccepted("\nBRANCH=link,snow\n")
+
+    def testBranchOptionalNone(self):
+        """Test that, when BRANCH= is optional, BRANCH=none is rejected."""
+        self.options = ["--optional"]
+        self.assertMessageRejected("\nBRANCH=None\n")
+
+
 class CheckCommitMessageCqDepend(CommitMessageTestCase):
     """Tests for _check_change_has_valid_cq_depend."""
 
