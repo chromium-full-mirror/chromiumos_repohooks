@@ -681,6 +681,11 @@ def _check_no_long_lines(_project, commit, options=()):
         # "it should not be enforced in code reviews or presubmit scripts".
         # https://bazel.build/build/style-guide?hl=en
         r".*\.bazel$",
+        # "As in BUILD files, there is no strict line length limit as labels
+        # can be long. When possible, try to use at most 79 characters per line
+        # (following Python's style guide, PEP 8)."
+        # https://bazel.build/rules/bzl-style#line-length
+        r".*\.bzl$",
         # GN format does not enforce a line length limit by the cros format.
         # https://chromium.googlesource.com/dart/dartium/src/+/HEAD/tools/gn/docs/style_guide.md
         r".*\.gn$",
