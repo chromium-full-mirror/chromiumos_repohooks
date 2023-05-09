@@ -1457,7 +1457,9 @@ def _check_for_uprev(project, commit, project_top=None):
     def AllowedPath(obj):
         allowed_files = {
             "ChangeLog",
+            "DIR_METADATA",
             "Manifest",
+            "METADATA",
             "metadata.xml",
             "OWNERS",
             "README.md",
