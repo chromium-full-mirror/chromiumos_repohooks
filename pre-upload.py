@@ -359,7 +359,9 @@ def _get_patch(commit):
     if commit == PRE_SUBMIT:
         return _run_command(["git", "diff", "--cached", "HEAD"])
     else:
-        return _run_command(["git", "format-patch", "--stdout", "-1", commit])
+        return _run_command(
+            ["git", "format-patch", "-p", "--stdout", "-1", commit]
+        )
 
 
 @CACHE.cache_function
