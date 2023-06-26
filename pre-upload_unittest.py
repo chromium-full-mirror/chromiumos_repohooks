@@ -2034,7 +2034,7 @@ class CheckCommitMessageBranch(CommitMessageTestCase):
     def setUp(self):
         self.options = []
 
-    def CheckMessage(self, project, commit):
+    def CheckMessage(self, project, commit):  # pylint: disable=arguments-differ
         return pre_upload._check_change_has_branch_field(
             project,
             commit,
@@ -3337,7 +3337,10 @@ class ReadmeTests(cros_test_lib.TestCase):
         self.assertEqual(
             sorted_docs,
             all_sections,
-            msg="All configurable hooks must be documented in README.md:[Hook Overrides]",
+            msg=(
+                "All configurable hooks must be documented in "
+                "README.md:[Hook Overrides]"
+            ),
         )
 
 
