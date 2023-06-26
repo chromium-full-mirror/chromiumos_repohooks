@@ -197,7 +197,7 @@ class BadInvocation(Exception):
 # General Helpers
 
 
-class Cache(object):
+class Cache:
     """General helper for caching git content."""
 
     def __init__(self):
@@ -1550,7 +1550,7 @@ def _check_for_uprev(project, commit, project_top=None):
 
 
 def _check_ebuild_eapi(project, commit):
-    """Make sure we have people use EAPI=6 or newer with custom ebuilds.
+    """Make sure we have people use EAPI=7 or newer with custom ebuilds.
 
     We want to get away from older EAPI's as it makes life confusing and they
     have less builtin error checking.
@@ -1569,7 +1569,7 @@ def _check_ebuild_eapi(project, commit):
     if project.name in allowlist:
         return None
 
-    BAD_EAPIS = ("0", "1", "2", "3", "4", "5")
+    BAD_EAPIS = ("0", "1", "2", "3", "4", "5", "6")
 
     get_eapi = re.compile(r'^\s*EAPI=[\'"]?([^\'"]+)')
 

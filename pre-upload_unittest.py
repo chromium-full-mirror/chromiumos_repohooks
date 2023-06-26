@@ -920,7 +920,7 @@ IUSE="foo"
 src_compile() { }
 """
         # Make sure we only check the first EAPI= setting.
-        self.content_mock.return_value = template % "6\nEAPI=1"
+        self.content_mock.return_value = template % "8\nEAPI=1"
         ret = pre_upload._check_ebuild_eapi(ProjectNamed("overlay"), "HEAD")
         self.assertIsNone(ret)
 
