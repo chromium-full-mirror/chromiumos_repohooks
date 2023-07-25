@@ -26,7 +26,6 @@ sys.path.insert(0, str(DIR.parent.parent))
 # pylint: disable=wrong-import-position
 from chromite.format import formatters
 from chromite.lib import constants
-from chromite.lib import cros_build_lib
 from chromite.lib import cros_test_lib
 from chromite.lib import git
 from chromite.lib import osutils
@@ -55,14 +54,12 @@ class TryUTF8DecodeTest(PreUploadTestCase):
     """Verify we sanely handle unicode content."""
 
     def setUp(self):
-        self.rc_mock = self.PatchObject(cros_build_lib, "run")
+        self.rc_mock = self.StartPatcher(cros_test_lib.RunCommandMock())
 
     def _run(self, content):
         """Helper for round tripping through _run_command."""
-        self.rc_mock.return_value = cros_build_lib.CompletedProcess(
-            stdout=content, returncode=0
-        )
-        return pre_upload._run_command([])
+        self.rc_mock.SetDefaultCmdResult(0, stdout=content)
+        return pre_upload._run_command(["_"])
 
     def testEmpty(self):
         """Check empty output."""
