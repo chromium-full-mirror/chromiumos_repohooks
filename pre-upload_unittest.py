@@ -59,18 +59,10 @@ class TryUTF8DecodeTest(PreUploadTestCase):
         ret = self._run(b"")
         self.assertEqual("", ret)
 
-        if sys.version_info.major < 3:
-            ret = self._run("")
-            self.assertEqual("", ret)
-
     def testAscii(self):
         """Check ascii output."""
         ret = self._run(b"abc")
         self.assertEqual("abc", ret)
-
-        if sys.version_info.major < 3:
-            ret = self._run("abc")
-            self.assertEqual("abc", ret)
 
     def testUtf8(self):
         """Check valid UTF-8 output."""
