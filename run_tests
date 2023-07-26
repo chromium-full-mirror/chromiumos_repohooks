@@ -1,0 +1,31 @@
+#!/usr/bin/env vpython3
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+"""repohooks main test runner.
+
+Run the specified tests.  If none are specified, we'll scan the
+tree looking for tests to run and then only run the semi-fast ones.
+
+https://docs.pytest.org/en/latest/how-to/usage.html#specifying-tests-selecting-tests
+"""
+
+import os
+from pathlib import Path
+import sys
+
+import pytest
+
+
+# Make chromite available to unittests.
+DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(DIR.parent.parent))
+
+
+presubmit_commit = os.environ.get("PRESUBMIT_COMMIT", "")
+if presubmit_commit in ("", "pre-submit"):
+    # Skip tests on pre-upload. Run when in pre-submit mode, or if run directly.
+    sys.exit(pytest.main())
+else:
+    print(f"{__file__}: skipping due to PRESUBMIT_COMMIT={presubmit_commit}")

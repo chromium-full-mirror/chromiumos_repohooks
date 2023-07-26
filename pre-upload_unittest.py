@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2012 The ChromiumOS Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -14,16 +13,6 @@ from unittest import mock
 
 import errors
 
-
-# We access private members of the pre_upload module.
-# pylint: disable=protected-access
-
-# Make sure we can find the chromite paths.
-DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(DIR.parent.parent))
-
-# The sys.path monkey patching confuses the linter.
-# pylint: disable=wrong-import-position
 from chromite.format import formatters
 from chromite.lib import constants
 from chromite.lib import cros_test_lib
@@ -32,7 +21,11 @@ from chromite.lib import osutils
 from chromite.lib import path_util
 
 
-assert sys.version_info >= (3, 6), "This module requires Python 3.6+"
+# We access private members of the pre_upload module.
+# pylint: disable=protected-access
+
+
+DIR = Path(__file__).resolve().parent
 
 
 pre_upload = __import__("pre-upload")
@@ -3342,11 +3335,3 @@ class ReadmeTests(cros_test_lib.TestCase):
                 "README.md:[Hook Overrides]"
             ),
         )
-
-
-if __name__ == "__main__":
-    presubmit_commit = os.environ.get("PRESUBMIT_COMMIT", "")
-    if presubmit_commit in ("", "pre-submit"):
-        # Skip tests on pre-upload. Run when in pre-submit mode, or if run
-        # directly.
-        cros_test_lib.main(module=__name__)
