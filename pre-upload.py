@@ -2598,7 +2598,7 @@ def _check_change_has_no_signoff_field(_project, commit):
     return None
 
 
-def _run_project_hook_script(script, project, commit):
+def _run_project_hook_script(script, name, project, commit):
     """Runs a project hook script.
 
     The script is run with the following environment variables set:
@@ -2625,6 +2625,14 @@ def _run_project_hook_script(script, project, commit):
         elif arg == "${PRESUBMIT_COMMIT}":
             cmd.append(commit)
         elif arg == "${PRESUBMIT_FILES}":
+            if not files:
+                if commit == PRE_SUBMIT:
+                    print(
+                        f"\n{name}: Skipping in {project.name} because it uses"
+                        " PRESUBMIT_FILES, which is empty.",
+                        file=sys.stderr,
+                    )
+                return
             cmd.extend(files)
         elif "${PRESUBMIT_COMMIT}" in arg:
             cmd.append(arg.replace("${PRESUBMIT_COMMIT}", commit))
@@ -3022,7 +3030,7 @@ def _get_project_hooks(presubmit, config):
     hooks = list(enabled_hooks) + hooks
 
     for name, script in _get_project_hook_scripts(config):
-        func = functools.partial(_run_project_hook_script, script)
+        func = functools.partial(_run_project_hook_script, script, name)
         func.__name__ = name
         hooks.append(func)
 

@@ -3190,12 +3190,19 @@ check_change_no_include_board_phase: true
 class ProjectHooksProcessing(PreUploadTestCase, cros_test_lib.TempDirTestCase):
     """Verify _get_project_hooks processing."""
 
-    def parse(self, data):
+    def parse(self, data, select=None):
         """Helper to write config and parse it."""
         filename = self.tempdir / "config"
         osutils.WriteFile(filename, data)
         config = pre_upload._get_project_config(filename)
-        return pre_upload._get_project_hooks(presubmit=True, config=config)
+        hooks = pre_upload._get_project_hooks(presubmit=True, config=config)
+        if not select:
+            return hooks
+        return next(h for h in hooks if h.__name__ == select)
+
+    def set_presubmit_files(self, files):
+        """Helper to mock PRESUBMIT_FILES passed to hooks."""
+        self.PatchObject(pre_upload, "_get_affected_files", return_value=files)
 
     def testClangFormatCheckDefault(self):
         """Verify clang-format check disabled by default."""
@@ -3250,6 +3257,49 @@ clang_format_check:
                 break
         else:
             self.fail('could not find "clang_format_check" enabled hook')
+
+    def testPresubmitFiles(self):
+        """Verify custom hook with PRESUBMIT_FILES is passed affected files."""
+        self.set_presubmit_files(["/does_not_exist"])
+        hook = self.parse(
+            """\
+[Hook Scripts]
+uses files: /bin/cat ${PRESUBMIT_FILES}
+""",
+            "uses files",
+        )
+        result = hook(ProjectNamed("project"), "commit")
+        self.assertEndsWith(
+            result.msg, "cat: /does_not_exist: No such file or directory\n  "
+        )
+
+    def testPresubmitFilesSkipped(self):
+        """Skips custom hook with PRESUBMIT_FILES when no files affected."""
+        self.set_presubmit_files([])
+        hook = self.parse(
+            """\
+[Hook Scripts]
+uses files: /bin/false ${PRESUBMIT_FILES}
+""",
+            "uses files",
+        )
+        result = hook(ProjectNamed("project"), "commit")
+        self.assertIsNone(result)
+
+    def testNoPresubmitFilesNotSkipped(self):
+        """Custom hook without PRESUBMIT_FILES not skipped when no files."""
+        self.set_presubmit_files([])
+        hook = self.parse(
+            """\
+[Hook Scripts]
+no files: /bin/false
+""",
+            "no files",
+        )
+        result = hook(ProjectNamed("project"), "commit")
+        self.assertEqual(
+            result.msg, 'Hook script "/bin/false" failed with code 1'
+        )
 
 
 class ProjectOptionsProcessing(
