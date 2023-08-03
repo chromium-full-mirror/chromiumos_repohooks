@@ -68,6 +68,7 @@ from chromite.lib import portage_util
 from chromite.lib import sudo
 from chromite.lib import terminal
 from chromite.licensing import licenses_lib
+from chromite.lint import linters
 from chromite.utils import timer
 
 
@@ -2289,41 +2290,11 @@ def _check_layout_conf(_project, commit):
     # Gather all the errors in one pass so we show one full message.
     all_errors = {}
     for layout_path in layout_paths:
-        all_errors[layout_path] = errors = []
-
-        # Make sure the config file is sorted.
-        data = [
-            x
-            for x in _get_file_content(layout_path, commit).splitlines()
-            if x and x[0] != "#"
-        ]
-        if sorted(data) != data:
-            errors += ["keep lines sorted"]
-
-        # Require people to set specific values all the time.
-        settings = (
-            ("fast caching", "cache-format = md5-dict"),
-            ("fast manifests", "thin-manifests = true"),
-            (
-                "extra features",
-                "profile-formats = portage-2 profile-default-eapi",
-            ),
-            ("newer eapi", "profile_eapi_when_unspecified = 5-progress"),
-        )
-        for reason, line in settings:
-            if line not in data:
-                errors += ["enable %s with: %s" % (reason, line)]
-
-        # Require one of these settings.
-        if "use-manifests = strict" not in data:
-            errors += ["enable file checking with: use-manifests = strict"]
-
-        # Require repo-name to be set.
-        for line in data:
-            if line.startswith("repo-name = "):
-                break
-        else:
-            errors += ["set the board name with: repo-name = $BOARD"]
+        data = _get_file_content(layout_path, commit)
+        errors = linters.portage_layout_conf.Data(data, layout_path)
+        if formatters.portage_layout_conf.Data(data, layout_path) != data:
+            errors += ["File is not formatted; run `cros format`"]
+        all_errors[layout_path] = errors
 
     # Summarize all the errors we saw (if any).
     lines = ""

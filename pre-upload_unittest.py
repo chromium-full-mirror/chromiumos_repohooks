@@ -8,7 +8,6 @@ import configparser
 import datetime
 import os
 from pathlib import Path
-import sys
 from unittest import mock
 
 import errors
@@ -1828,7 +1827,7 @@ class CheckLayoutConfTestCase(PreUploadTestCase):
         """Return a valid layout.conf with |filters| lines removed."""
         all_lines = [
             "cache-format = md5-dict",
-            "masters = portage-stable chromiumos",  # nocheck
+            "masters = portage-stable chromiumos eclass-overlay",  # nocheck
             "profile-formats = portage-2 profile-default-eapi",
             "profile_eapi_when_unspecified = 5-progress",
             "repo-name = link",
@@ -1844,7 +1843,7 @@ class CheckLayoutConfTestCase(PreUploadTestCase):
             else:
                 lines.append(line)
 
-        return "\n".join(lines)
+        return "\n".join(lines) + "\n"
 
     def testNoFilesToCheck(self):
         """Don't blow up when there are no layout.conf files."""
@@ -1861,7 +1860,7 @@ class CheckLayoutConfTestCase(PreUploadTestCase):
 
     def testAcceptUnknownKeys(self):
         """Accept keys we don't explicitly know about."""
-        self.content_mock.return_value = self.GetLayoutConf() + "\nzzz-top = ok"
+        self.content_mock.return_value = self.GetLayoutConf() + "zzz-top = ok\n"
         self.assertAccepted(["metadata/layout.conf"])
 
     def testRejectUnsorted(self):
