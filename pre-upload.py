@@ -1739,8 +1739,6 @@ def _check_ebuild_licenses(_project, commit):
 
 def _check_ebuild_owners(project, commit):
     """Require all packages include an OWNERS file."""
-    # Look for all adds/removes since we're going to ignore changes that only
-    # update a package.  We only want to flag new package imports for now.
     affected_files_objs = _get_affected_files(
         commit, include_symlinks=True, relative=True, full_details=True
     )
@@ -1788,7 +1786,7 @@ def _check_ebuild_owners(project, commit):
 
     if packages_missing_owners:
         return HookFailure(
-            "All new packages must have an OWNERS file filled out.",
+            "All packages must have an OWNERS file filled out.",
             packages_missing_owners,
         )
 
