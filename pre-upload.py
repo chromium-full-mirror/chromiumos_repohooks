@@ -279,12 +279,11 @@ def _run_command(cmd, **kwargs):
     Returns:
         The stdout from the process (discards stderr and returncode).
     """
-    kwargs.setdefault("print_cmd", False)
     kwargs.setdefault("stdout", True)
     # Run commands non-interactively by default.
     kwargs.setdefault("input", "")
     kwargs.setdefault("check", False)
-    result = cros_build_lib.run(cmd, **kwargs)
+    result = cros_build_lib.dbg_run(cmd, **kwargs)
     # NB: We decode this directly rather than through kwargs as our tests rely
     # on this post-processing behavior currently.
     return result.stdout.decode("utf-8", "replace")
@@ -2359,9 +2358,8 @@ def _check_clang_format(_project, commit, options=()):
     else:
         options.extend(["--commit", commit])
     cmd = [TOOLS_DIR / "clang-format.py"] + options
-    cmd_result = cros_build_lib.run(
+    cmd_result = cros_build_lib.dbg_run(
         cmd,
-        print_cmd=False,
         stdout=True,
         encoding="utf-8",
         errors="replace",
@@ -2404,9 +2402,8 @@ def _run_checkpatch(_project, commit, options=()):
     # we always do, so disable the check globally.
     options.append("--ignore=GERRIT_CHANGE_ID")
     cmd = [cmdpath] + options + ["-"]
-    cmd_result = cros_build_lib.run(
+    cmd_result = cros_build_lib.dbg_run(
         cmd,
-        print_cmd=False,
         input=_get_patch(commit).encode("utf-8"),
         stdout=True,
         stderr=subprocess.STDOUT,
@@ -2608,10 +2605,9 @@ def _run_project_hook_script(script, name, project, commit):
         else:
             cmd.append(arg)
 
-    cmd_result = cros_build_lib.run(
+    cmd_result = cros_build_lib.dbg_run(
         cmd=cmd,
         env=env,
-        print_cmd=False,
         input="",
         stdout=True,
         encoding="utf-8",
@@ -2783,9 +2779,8 @@ def _check_git_cl_presubmit(_project, commit):
     cmd = [git_cl, "presubmit"]
     if commit != "pre-submit":
         cmd += ["--upload"]
-    result = cros_build_lib.run(
+    result = cros_build_lib.dbg_run(
         cmd,
-        print_cmd=False,
         input="",
         check=False,
         encoding="utf-8",
