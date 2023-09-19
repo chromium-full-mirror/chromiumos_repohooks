@@ -2872,7 +2872,7 @@ class CheckRustfmtTest(PreUploadTestCase):
         self.assertIsNotNone(failure)
         self.assertEqual(
             "Files not formatted with rustfmt "
-            "(run `cros format` or `cargo fmt` to fix):",
+            "(run `cros format --commit=COMMIT` or `cargo fmt` to fix):",
             failure.msg,
         )
         self.assertEqual(["a.rs"], failure.items)

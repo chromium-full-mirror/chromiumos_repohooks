@@ -993,7 +993,9 @@ def _check_gofmt(project, commit, options=()):
             errors.append(file)
     if errors:
         return HookFailure(
-            "Files not formatted with gofmt (run `cros format` to fix):", errors
+            "Files not formatted with gofmt (run `cros format "
+            f"--commit={commit}` to fix):",
+            errors,
         )
     return None
 
@@ -1013,7 +1015,7 @@ def _check_rustfmt(project, commit):
     if errors:
         return HookFailure(
             "Files not formatted with rustfmt "
-            "(run `cros format` or `cargo fmt` to fix):",
+            f"(run `cros format --commit={commit}` or `cargo fmt` to fix):",
             errors,
         )
     return None
@@ -2290,7 +2292,9 @@ def _check_layout_conf(_project, commit):
         data = _get_file_content(layout_path, commit)
         errors = linters.portage_layout_conf.Data(data, layout_path)
         if formatters.portage_layout_conf.Data(data, layout_path) != data:
-            errors += ["File is not formatted; run `cros format`"]
+            errors += [
+                f"File is not formatted; run `cros format --commit={commit}`"
+            ]
         all_errors[layout_path] = errors
 
     # Summarize all the errors we saw (if any).
@@ -2344,7 +2348,9 @@ def _check_black(project, commit, options=()):
 
     if errors:
         return HookFailure(
-            "Files not formatted (run `cros format` to fix):", errors
+            f"Files not formatted (run `cros format --commit={commit}` "
+            "to fix):",
+            errors,
         )
 
     return None
