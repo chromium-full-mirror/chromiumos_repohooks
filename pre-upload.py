@@ -28,10 +28,7 @@ import sys
 import threading
 from typing import Tuple
 
-from errors import HookFailure
-from errors import PrintErrorForProject
-from errors import PrintErrorsForCommit
-from errors import VerifyException
+import errors
 
 
 # Path to the repohooks dir itself.
@@ -341,7 +338,7 @@ def _get_upstream_branch():
     current_branch = _run_command(["git", "symbolic-ref", "HEAD"]).strip()
     current_branch = current_branch.replace("refs/heads/", "")
     if not current_branch:
-        raise VerifyException("Need to be on a tracking branch")
+        raise errors.VerifyException("Need to be on a tracking branch")
 
     cfg_option = "branch." + current_branch + ".%s"
     full_upstream = _run_command(
@@ -349,7 +346,7 @@ def _get_upstream_branch():
     ).strip()
     remote = _run_command(["git", "config", cfg_option % "remote"]).strip()
     if not remote or not full_upstream:
-        raise VerifyException("Need to be on a tracking branch")
+        raise errors.VerifyException("Need to be on a tracking branch")
 
     return full_upstream.replace("heads", "remotes/" + remote)
 
@@ -606,7 +603,7 @@ def _check_lines_in_diff(commit, files, check_callable, error_description):
             line fails the check.
         error_description: A string describing the error.
     """
-    errors = []
+    error_list = []
     for afile in files:
         for line_num, line in _get_file_diff(afile, commit):
             result = check_callable(line)
@@ -614,9 +611,9 @@ def _check_lines_in_diff(commit, files, check_callable, error_description):
                 msg = f"{afile}, line {line_num}"
                 if isinstance(result, str):
                     msg += f": {result}"
-                errors.append(msg)
-    if errors:
-        return HookFailure(error_description, errors)
+                error_list.append(msg)
+    if error_list:
+        return errors.HookFailure(error_description, error_list)
     return None
 
 
@@ -649,14 +646,16 @@ def _check_no_extra_blank_lines(_project, commit, options=()):
         included + COMMON_INCLUDED_PATHS,
         excluded + COMMON_EXCLUDED_PATHS,
     )
-    errors = []
+    error_list = []
     for afile in files:
         file_content = _get_file_content(afile, commit)
         last_bytes = file_content[-2:]
         if last_bytes == "\n\n":
-            errors.append(afile)
-    if errors:
-        return HookFailure("Found extra blank line at end of file:", errors)
+            error_list.append(afile)
+    if error_list:
+        return errors.HookFailure(
+            "Found extra blank line at end of file:", error_list
+        )
     return None
 
 
@@ -720,7 +719,7 @@ def _check_no_long_lines(_project, commit, options=()):
         excluded + COMMON_EXCLUDED_PATHS + LONG_LINE_OK_PATHS,
     )
 
-    errors = []
+    error_list = []
     for afile in files:
         skip_regexps = (
             r"https?://",
@@ -750,16 +749,16 @@ def _check_no_long_lines(_project, commit, options=()):
             ):
                 continue
 
-            errors.append(
+            error_list.append(
                 "%s, line %s, %s chars, over %s chars"
                 % (afile, line_num, len(line), max_len)
             )
-            if len(errors) == 5:  # Just show the first 5 errors.
+            if len(error_list) == 5:  # Just show the first 5 errors.
                 break
 
-    if errors:
+    if error_list:
         msg = "Found lines longer than the limit (first 5 shown):"
-        return HookFailure(msg, errors)
+        return errors.HookFailure(msg, error_list)
     return None
 
 
@@ -897,7 +896,9 @@ def _check_keywords_in_file(
             )
         line_num += 1
     if commit_desc_errors:
-        return HookFailure("Found a blocked keyword in:", commit_desc_errors)
+        return errors.HookFailure(
+            "Found a blocked keyword in:", commit_desc_errors
+        )
 
     return None
 
@@ -937,21 +938,21 @@ def _check_keywords(project, commit, options=()):
         opts.exclude_regex + COMMON_EXCLUDED_PATHS,
     )
 
-    errors = []
+    error_list = []
     for file in files:
         errs = _check_keywords_in_file(
             project, commit, file, keywords, unblocked_terms_file, opts
         )
         if errs:
-            errors.append(errs)
+            error_list.append(errs)
 
     errs = _check_keywords_in_file(
         project, commit, None, keywords, unblocked_terms_file, opts
     )
     if errs:
-        errors.append(errs)
+        error_list.append(errs)
 
-    return errors
+    return error_list
 
 
 def _check_tabbed_indents(_project, commit, options=()):
@@ -979,7 +980,7 @@ def _check_tabbed_indents(_project, commit, options=()):
 def _check_gofmt(project, commit, options=()):
     """Checks that Go files are formatted with gofmt."""
     included, excluded = _parse_common_inclusion_options(options)
-    errors = []
+    error_list = []
     files = _filter_files(
         _get_affected_files(commit, relative=True),
         included + [r"\.go$"],
@@ -990,19 +991,19 @@ def _check_gofmt(project, commit, options=()):
     for file in files:
         contents = _get_file_content(file, commit)
         if contents != formatters.go.Data(contents, path=project_path / file):
-            errors.append(file)
-    if errors:
-        return HookFailure(
+            error_list.append(file)
+    if error_list:
+        return errors.HookFailure(
             "Files not formatted with gofmt (run `cros format "
             f"--commit={commit}` to fix):",
-            errors,
+            error_list,
         )
     return None
 
 
 def _check_rustfmt(project, commit):
     """Checks that Rust files are formatted with rustfmt."""
-    errors = []
+    error_list = []
     files = _filter_files(
         _get_affected_files(commit, relative=True), [r"\.rs$"]
     )
@@ -1011,12 +1012,12 @@ def _check_rustfmt(project, commit):
     for file in files:
         contents = _get_file_content(file, commit)
         if contents != formatters.rust.Data(contents, path=project_path / file):
-            errors.append(file)
-    if errors:
-        return HookFailure(
+            error_list.append(file)
+    if error_list:
+        return errors.HookFailure(
             "Files not formatted with rustfmt "
             f"(run `cros format --commit={commit}` or `cargo fmt` to fix):",
-            errors,
+            error_list,
         )
     return None
 
@@ -1067,13 +1068,13 @@ def _get_cargo_clippy_parser():
     return parser
 
 
-def _run_clippy_on_dir(root, cmd, errors):
+def _run_clippy_on_dir(root, cmd, error_list):
     """Runs clippy with cargo clean if needed.
 
     If clippy fails with E0460, cargo clean is run, and clippy is run again.
 
     If cmd is empty the default is used.
-    If clippy fails, a HookFailure will be appended to errors.
+    If clippy fails, a HookFailure will be appended to error_list.
     """
     # The cwd kwarg for run_command is replaced with src/scripts when entering
     # the chroot, so specify the manifest path to cargo as a workaround since it
@@ -1128,7 +1129,7 @@ def _run_clippy_on_dir(root, cmd, errors):
             else:
                 # An unexpected error so return it without retrying.
                 msg = output[error.start() :]
-                errors.append(HookFailure(msg))
+                error_list.append(errors.HookFailure(msg))
         return
 
 
@@ -1144,7 +1145,7 @@ def _check_cargo_clippy(project, commit, options=()):
         opts = parser.parse_args(options)
     except CargoClippyArgumentParserError as e:
         return [
-            HookFailure(
+            errors.HookFailure(
                 "invalid check_cargo_clippy option is given."
                 f" Please check PRESUBMIT.cfg is correct: {e}"
             )
@@ -1156,7 +1157,7 @@ def _check_cargo_clippy(project, commit, options=()):
         # No rust or clippy config files modified, skip this check.
         return None
 
-    errors = []
+    error_list = []
     for clippy in opts.project:
         root = os.path.normpath(os.path.join(project.dir, clippy.root))
 
@@ -1172,9 +1173,9 @@ def _check_cargo_clippy(project, commit, options=()):
         cmd = (
             [os.path.join(project.dir, clippy.script)] if clippy.script else []
         )
-        _run_clippy_on_dir(root, cmd, errors)
+        _run_clippy_on_dir(root, cmd, error_list)
 
-    return errors
+    return error_list
 
 
 # Stores cargo projects in which `cargo clean` ran.
@@ -1204,7 +1205,7 @@ def _check_change_has_test_field(project, commit):
             tag,
             SEE_ALSO,
         )
-        return HookFailure(msg)
+        return errors.HookFailure(msg)
     return None
 
 
@@ -1216,7 +1217,7 @@ def _check_change_has_valid_cq_depend(_project, commit):
     try:
         patch.GetPaladinDeps(desc)
     except ValueError as ex:
-        return HookFailure(msg, [example, str(ex)])
+        return errors.HookFailure(msg, [example, str(ex)])
     # Check that Cq-Depend is in the same paragraph as Change-Id.
     msg = "Cq-Depend is not in the same paragraph as Change-Id."
     paragraphs = desc.split("\n\n")
@@ -1224,16 +1225,16 @@ def _check_change_has_valid_cq_depend(_project, commit):
         if re.search(r"^Cq-Depend:", paragraph, re.M) and not re.search(
             "^Change-Id:", paragraph, re.M
         ):
-            return HookFailure(msg)
+            return errors.HookFailure(msg)
 
     # Check that Cq-Depend is not multi-line.
     msg = "Cq-Depend cannot span across multiple lines."
     if re.search(r"^Cq-Depend:.*,\s*\n", desc, re.M):
-        return HookFailure(msg)
+        return errors.HookFailure(msg)
 
     # We no longer support CQ-DEPEND= lines.
     if re.search(r"^CQ-DEPEND[=:]", desc, re.M):
-        return HookFailure(
+        return errors.HookFailure(
             "CQ-DEPEND= is no longer supported.  Please see:\n"
             "https://chromium.googlesource.com/chromiumos/docs/+/HEAD/"
             "contributing.md#CQ-DEPEND"
@@ -1250,7 +1251,7 @@ def _check_change_is_contribution(_project, commit):
             "Changelist is not a contribution, this cannot be accepted.\n"
             'Please remove the "%s" text from the commit message.'
         ) % NO_CONTRIB
-        return HookFailure(msg)
+        return errors.HookFailure(msg)
     return None
 
 
@@ -1264,7 +1265,7 @@ def _check_change_has_bug_field(project, commit):
             "The chromium-os bug tracker is now deprecated. Please use\n"
             "the chromium tracker in your BUG= line now."
         )
-        return HookFailure(msg)
+        return errors.HookFailure(msg)
 
     # Android internal and external projects use "Bug: " to track bugs in
     # buganizer.
@@ -1277,7 +1278,7 @@ def _check_change_has_bug_field(project, commit):
                 "Bug: 9999 (for buganizer)\n"
                 "Bug: None\n%s" % (SEE_ALSO,)
             )
-            return HookFailure(msg)
+            return errors.HookFailure(msg)
     else:
         BUG_BARE_NUMBER_RE = r"\nBUG=(\d+)"
         bare_bug = re.search(BUG_BARE_NUMBER_RE, _get_commit_desc(commit))
@@ -1293,7 +1294,7 @@ def _check_change_has_bug_field(project, commit):
                     SEE_ALSO,
                 )
             )
-            return HookFailure(msg)
+            return errors.HookFailure(msg)
 
         BUG_RE = r"\nBUG=([Nn]one|(chromium|b|oss-fuzz):\d+)"
         if not re.search(BUG_RE, _get_commit_desc(commit)):
@@ -1305,13 +1306,13 @@ def _check_change_has_bug_field(project, commit):
                 "BUG=oss-fuzz:9999 (for oss-fuzz)\n"
                 "BUG=None\n%s" % (SEE_ALSO,)
             )
-            return HookFailure(msg)
+            return errors.HookFailure(msg)
 
     TEST_BEFORE_BUG_RE = _get_test_field_re(project) + r".*" + BUG_RE
 
     if re.search(TEST_BEFORE_BUG_RE, _get_commit_desc(commit), re.DOTALL):
         msg = "The BUG field must come before the TEST field.\n%s" % (SEE_ALSO,)
-        return HookFailure(msg)
+        return errors.HookFailure(msg)
 
     return None
 
@@ -1390,7 +1391,7 @@ def _check_change_no_include_oem(project, commit):
                 "Changelist description contains the name of an"
                 ' %s: "%s".' % (name_type, '","'.join(matches))
             )
-            return HookFailure(error_msg)
+            return errors.HookFailure(error_msg)
 
     return None
 
@@ -1423,7 +1424,7 @@ def _check_change_no_include_board_phase(_project, commit):
             "Changelist description contains the name of a"
             f" board phase: {matches}."
         )
-        return HookFailure(error_msg)
+        return errors.HookFailure(error_msg)
 
     return None
 
@@ -1442,7 +1443,7 @@ def _check_for_uprev(project, commit, project_top=None):
         project_top: Top dir to process commits in
 
     Returns:
-        A HookFailure or None.
+        A errors.HookFailure or None.
     """
     # If this is the portage-stable overlay, then ignore the check.  It's rare
     # that we're doing anything other than importing files from upstream, so
@@ -1543,7 +1544,7 @@ def _check_for_uprev(project, commit, project_top=None):
             continue
 
         if ebuilds:
-            return HookFailure(
+            return errors.HookFailure(
                 "Changelist probably needs a revbump of an ebuild:\n"
                 "%s" % dir_path
             )
@@ -1562,7 +1563,7 @@ def _check_ebuild_eapi(project, commit):
         commit: The commit to look at
 
     Returns:
-        A HookFailure or None.
+        A errors.HookFailure or None.
     """
     # If this is the portage-stable overlay, then ignore the check.  It's rare
     # that we're doing anything other than importing files from upstream, and
@@ -1608,7 +1609,7 @@ def _check_ebuild_eapi(project, commit):
         # pylint: disable=C0301
         url = "https://dev.chromium.org/chromium-os/how-tos-and-troubleshooting/upgrade-ebuild-eapis"
         # pylint: enable=C0301
-        return HookFailure(
+        return errors.HookFailure(
             "These ebuilds are using old EAPIs.  If these are imported from\n"
             "Gentoo, then you may ignore and upload once with the --no-verify\n"
             "flag.  Otherwise, please update to 7 or newer.\n"
@@ -1634,7 +1635,7 @@ def _check_ebuild_keywords(_project, commit):
         commit: The commit to look at
 
     Returns:
-        A HookFailure or None.
+        A errors.HookFailure or None.
     """
     ALLOWLIST = set(("*", "-*", "~*"))
 
@@ -1660,7 +1661,7 @@ def _check_ebuild_keywords(_project, commit):
                 bad_ebuilds.append(ebuild)
 
     if bad_ebuilds:
-        return HookFailure(
+        return errors.HookFailure(
             "%s\n"
             "Please update KEYWORDS to use a glob:\n"
             "If the ebuild should be marked stable (i.e. non-9999 ebuilds):\n"
@@ -1684,7 +1685,7 @@ def _check_ebuild_licenses(_project, commit):
     # A list of licenses to ignore for now.
     LICENSES_IGNORE = ["||", "(", ")"]
 
-    errors = []
+    error_list = []
     for ebuild in touched_ebuilds:
         # e.g. path/to/overlay/category/package/package.ebuild ->
         #      path/to/overlay
@@ -1698,14 +1699,14 @@ def _check_ebuild_licenses(_project, commit):
             )
         except ValueError as e:
             if category not in {"acct-group", "acct-user"}:
-                errors.append(HookFailure(str(e), [ebuild]))
+                error_list.append(errors.HookFailure(str(e), [ebuild]))
             continue
 
         # Virtual packages must use "metapackage" license.
         if category == "virtual":
             if license_types != ["metapackage"]:
-                errors.append(
-                    HookFailure(
+                error_list.append(
+                    errors.HookFailure(
                         'Virtual package must use LICENSE="metapackage".',
                         [ebuild],
                     )
@@ -1713,8 +1714,8 @@ def _check_ebuild_licenses(_project, commit):
                 continue
         elif category in {"acct-group", "acct-user"}:
             if license_types:
-                errors.append(
-                    HookFailure(
+                error_list.append(
+                    errors.HookFailure(
                         "Account packages must not set LICENSE.",
                         [ebuild],
                     )
@@ -1732,10 +1733,10 @@ def _check_ebuild_licenses(_project, commit):
                     license_type, overlay_path=overlay_path
                 )
             except AssertionError as e:
-                errors.append(HookFailure(str(e), [ebuild]))
+                error_list.append(errors.HookFailure(str(e), [ebuild]))
                 continue
 
-    return errors
+    return error_list
 
 
 def _check_ebuild_owners(project, commit):
@@ -1786,7 +1787,7 @@ def _check_ebuild_owners(project, commit):
             packages_missing_owners.append(package_dir)
 
     if packages_missing_owners:
-        return HookFailure(
+        return errors.HookFailure(
             "All packages must have an OWNERS file filled out.",
             packages_missing_owners,
         )
@@ -1801,7 +1802,7 @@ def _check_ebuild_r0(_project, commit):
         (r"-r0\.ebuild$",),
     )
     if ebuilds:
-        return HookFailure(
+        return errors.HookFailure(
             "The -r0 in ebuilds is redundant and confusing. Simply remove it.\n"
             "For example: git mv foo-1.0-r0.ebuild foo-1.0.ebuild",
             ebuilds,
@@ -1889,7 +1890,7 @@ def _check_ebuild_virtual_pv(project, commit):
         # pylint: disable=C0301
         url = "https://chromium.googlesource.com/chromiumos/docs/+/HEAD/portage/ebuild_faq.md"
         # pylint: enable=C0301
-        return HookFailure(
+        return errors.HookFailure(
             "These virtuals have incorrect package versions (PVs). Please "
             "adjust:\n\t%s\n"
             "If this is an upstream Gentoo virtual, then you may ignore this\n"
@@ -1970,7 +1971,7 @@ def _check_ebuild_localname_exists(_project, commit):
                 bad_localnames.append((ebuild, path, pkg_path))
 
     if bad_localnames:
-        return HookFailure(
+        return errors.HookFailure(
             "The following ebuilds have the given CROS_WORKON_LOCALNAME values "
             "that do not exist at the expected location.\n"
             "chromeos-base packages should be relative to src/.\n\n"
@@ -1990,7 +1991,7 @@ def _check_portage_make_use_var(_project, commit):
         [r"(^|/)make.(conf|defaults)$"],
     )
 
-    errors = []
+    error_list = []
     for path in files:
         basename = os.path.basename(path)
 
@@ -2009,17 +2010,17 @@ def _check_portage_make_use_var(_project, commit):
                 basename == "make.conf"
                 or (basename == "make.defaults" and saw_use)
             ) and not preserves_use:
-                errors.append("%s:%d: missing ${USE}" % (path, i))
+                error_list.append("%s:%d: missing ${USE}" % (path, i))
             elif basename == "make.defaults" and not saw_use and preserves_use:
-                errors.append(
+                error_list.append(
                     "%s:%d: ${USE} referenced in initial declaration"
                     % (path, i)
                 )
 
             saw_use = True
 
-    if errors:
-        return HookFailure(
+    if error_list:
+        return errors.HookFailure(
             "One or more Portage make files appear to set USE incorrectly.\n"
             "\n"
             "All USE assignments in make.conf and all assignments after the\n"
@@ -2028,7 +2029,7 @@ def _check_portage_make_use_var(_project, commit):
             "\n"
             "The initial USE declaration in make.defaults should not contain\n"
             '"${USE}".\n',
-            errors,
+            error_list,
         )
 
     return None
@@ -2040,7 +2041,7 @@ def _check_change_has_proper_changeid(_project, commit):
     desc = _get_commit_desc(commit)
     m = re.search(CHANGE_ID_RE, desc)
     if not m:
-        return HookFailure(
+        return errors.HookFailure(
             "Last paragraph of description must include Change-Id."
         )
 
@@ -2067,7 +2068,7 @@ def _check_change_has_proper_changeid(_project, commit):
     tag_search = r"^(%s:|\(%s) " % (":|".join(allowed_tags), cherry_pick_marker)
 
     if [x for x in end if not re.search(tag_search, x)]:
-        return HookFailure(
+        return errors.HookFailure(
             'Only "%s:" tag(s) may follow the Change-Id.'
             % ':", "'.join(allowed_tags)
         )
@@ -2088,14 +2089,14 @@ def _check_commit_message_style(_project, commit):
     # The first line should be by itself.
     lines = desc.splitlines()
     if len(lines) > 1 and lines[1]:
-        return HookFailure(
+        return errors.HookFailure(
             "The second line of the commit message must be blank."
             "\n%s" % (SEE_ALSO,)
         )
 
     # The first line should be one sentence.
     if ". " in lines[0]:
-        return HookFailure(
+        return errors.HookFailure(
             "The first line cannot be more than one sentence.\n%s" % (SEE_ALSO,)
         )
 
@@ -2103,14 +2104,14 @@ def _check_commit_message_style(_project, commit):
     MAX_FIRST_LINE_LEN = 100
     first_line = lines[0]
     if len(first_line) > MAX_FIRST_LINE_LEN:
-        return HookFailure(
+        return errors.HookFailure(
             "The first line must be less than %i chars.\n%s"
             % (MAX_FIRST_LINE_LEN, SEE_ALSO)
         )
 
     # Don't allow random git keywords.
     if first_line.startswith("fixup!") or first_line.startswith("squash!"):
-        return HookFailure(
+        return errors.HookFailure(
             "Git fixup/squash commit detected: rebase your local branch, or "
             "cleanup the commit message"
         )
@@ -2183,33 +2184,33 @@ def _check_cros_license(_project, commit, options=()):
             if license_match.group("period"):
                 bad_period_files.append(f)
 
-    errors = []
+    error_list = []
     if bad_files:
         msg = "%s:\n%s\n%s" % (
             "License must match",
             license_re.pattern,
             "Found a bad header in these files:",
         )
-        errors.append(HookFailure(msg, bad_files))
+        error_list.append(errors.HookFailure(msg, bad_files))
     if bad_copyright_files:
         msg = "Do not use (c) in copyright headers:"
-        errors.append(HookFailure(msg, bad_copyright_files))
+        error_list.append(errors.HookFailure(msg, bad_copyright_files))
     if bad_year_files:
         msg = "Use current year (%s) in copyright headers in new files:" % (
             current_year
         )
-        errors.append(HookFailure(msg, bad_year_files))
+        error_list.append(errors.HookFailure(msg, bad_year_files))
     if bad_chromiumos_files:
         msg = "Use ChromiumOS instead of Chromium OS:"
-        errors.append(HookFailure(msg, bad_chromiumos_files))
+        error_list.append(errors.HookFailure(msg, bad_chromiumos_files))
     if bad_rights_reserved_files:
         msg = 'Do not include "All rights reserved.":'
-        errors.append(HookFailure(msg, bad_rights_reserved_files))
+        error_list.append(errors.HookFailure(msg, bad_rights_reserved_files))
     if bad_period_files:
         msg = 'Do not include period after "ChromiumOS Authors":'
-        errors.append(HookFailure(msg, bad_period_files))
+        error_list.append(errors.HookFailure(msg, bad_period_files))
 
-    return errors
+    return error_list
 
 
 def _check_aosp_license(_project, commit, options=()):
@@ -2262,7 +2263,7 @@ def _check_aosp_license(_project, commit, options=()):
             "License must match:\n%s\nFound a bad header in these files:"
             % license_re.pattern
         )
-        return HookFailure(msg, bad_files)
+        return errors.HookFailure(msg, bad_files)
     return None
 
 
@@ -2282,7 +2283,7 @@ def _check_layout_conf(_project, commit):
 
     # Disallow new repos with the repo_name file.
     if repo_names:
-        return HookFailure(
+        return errors.HookFailure(
             '%s: use "repo-name" in %s instead' % (repo_names, layout_path)
         )
 
@@ -2290,23 +2291,23 @@ def _check_layout_conf(_project, commit):
     all_errors = {}
     for layout_path in layout_paths:
         data = _get_file_content(layout_path, commit)
-        errors = linters.portage_layout_conf.Data(data, layout_path)
+        error_list = linters.portage_layout_conf.Data(data, layout_path)
         if formatters.portage_layout_conf.Data(data, layout_path) != data:
-            errors += [
+            error_list += [
                 f"File is not formatted; run `cros format --commit={commit}`"
             ]
-        all_errors[layout_path] = errors
+        all_errors[layout_path] = error_list
 
     # Summarize all the errors we saw (if any).
     lines = ""
-    for layout_path, errors in all_errors.items():
-        if errors:
-            lines += "\n\t- ".join(["\n* %s:" % layout_path] + errors)
+    for layout_path, error_list in all_errors.items():
+        if error_list:
+            lines += "\n\t- ".join(["\n* %s:" % layout_path] + error_list)
     if lines:
         lines = (
             "See the portage(5) man page for layout.conf details" + lines + "\n"
         )
-        return HookFailure(lines)
+        return errors.HookFailure(lines)
 
     return None
 
@@ -2319,7 +2320,7 @@ def _check_no_new_gyp(_project, commit):
     )
 
     if gypfiles:
-        return HookFailure(
+        return errors.HookFailure(
             "GYP is deprecated and not allowed in a new project:", gypfiles
         )
     return None
@@ -2337,20 +2338,20 @@ def _check_black(project, commit, options=()):
         _get_affected_files(commit, relative=True), included, excluded
     )
 
-    errors = []
+    error_list = []
     project_path = Path(project.dir)
     for file in files:
         contents = _get_file_content(file, commit)
         if contents != formatters.python.Data(
             contents, path=project_path / file
         ):
-            errors.append(file)
+            error_list.append(file)
 
-    if errors:
-        return HookFailure(
+    if error_list:
+        return errors.HookFailure(
             f"Files not formatted (run `cros format --commit={commit}` "
             "to fix):",
-            errors,
+            error_list,
         )
 
     return None
@@ -2373,7 +2374,7 @@ def _check_clang_format(_project, commit, options=()):
         check=False,
     )
     if cmd_result.returncode:
-        return HookFailure(
+        return errors.HookFailure(
             "clang-format.py errors/warnings\n\n" + cmd_result.stdout
         )
     return None
@@ -2418,7 +2419,7 @@ def _run_checkpatch(_project, commit, options=()):
         errors="replace",
     )
     if cmd_result.returncode:
-        return HookFailure(
+        return errors.HookFailure(
             "%s errors/warnings\n\n%s" % (cmdpath, cmd_result.stdout)
         )
     return None
@@ -2434,7 +2435,7 @@ def _run_kerneldoc(_project, commit, options=()):
         cmd = [TOOLS_DIR / "kernel-doc", "-none"] + files
         output = _run_command(cmd, stderr=subprocess.STDOUT)
         if output:
-            return HookFailure(
+            return errors.HookFailure(
                 "kernel-doc errors/warnings:", items=output.splitlines()
             )
     return None
@@ -2444,7 +2445,7 @@ def _kernel_configcheck(_project, commit):
     """Makes sure kernel config changes are not mixed with code changes"""
     files = _get_affected_files(commit)
     if len(_filter_files(files, [r"chromeos/config"])) not in [0, len(files)]:
-        return HookFailure(
+        return errors.HookFailure(
             "Changes to chromeos/config/ and regular files must "
             "be in separate commits:\n%s" % "\n".join(files)
         )
@@ -2495,7 +2496,7 @@ def _check_manifests(_project, commit):
                 break
 
     if ret:
-        return HookFailure("\n".join(ret))
+        return errors.HookFailure("\n".join(ret))
     return None
 
 
@@ -2517,7 +2518,7 @@ def _check_change_has_branch_field(_project, commit, options=()):
             "Changelist description needs BRANCH field (after first line)\n"
             "E.g. BRANCH=none or BRANCH=link,snow"
         )
-        return HookFailure(msg)
+        return errors.HookFailure(msg)
 
     if branch_match and opts.optional:
         branch = branch_match.group(1)
@@ -2526,7 +2527,7 @@ def _check_change_has_branch_field(_project, commit, options=()):
                 "BRANCH is optional in this repository.  Specifying "
                 f"BRANCH={branch} is not useful.  Remove this line."
             )
-            return HookFailure(msg)
+            return errors.HookFailure(msg)
 
     return None
 
@@ -2539,7 +2540,7 @@ def _check_change_has_no_branch_field(_project, commit):
 
     if re.search(BRANCH_RE, _get_commit_desc(commit)):
         msg = "This checkout does not use BRANCH= fields.  Delete them."
-        return HookFailure(msg)
+        return errors.HookFailure(msg)
     return None
 
 
@@ -2554,7 +2555,7 @@ def _check_change_has_signoff_field(_project, commit):
             "Changelist description needs Signed-off-by: field\n"
             "E.g. Signed-off-by: My Name <me@chromium.org>"
         )
-        return HookFailure(msg)
+        return errors.HookFailure(msg)
     return None
 
 
@@ -2566,7 +2567,7 @@ def _check_change_has_no_signoff_field(_project, commit):
 
     if re.search(SIGNOFF_RE, _get_commit_desc(commit)):
         msg = "This checkout does not use Signed-off-by: tags.  Delete them."
-        return HookFailure(msg)
+        return errors.HookFailure(msg)
     return None
 
 
@@ -2625,7 +2626,7 @@ def _run_project_hook_script(script, name, project, commit):
         stdout = cmd_result.stdout
         if stdout:
             stdout = re.sub("(?m)^", "  ", stdout)
-        return HookFailure(
+        return errors.HookFailure(
             'Hook script "%s" failed with code %d%s'
             % (script, cmd_result.returncode, ":\n" + stdout if stdout else "")
         )
@@ -2659,7 +2660,7 @@ def _check_project_prefix(_project, commit):
         prefix = os.path.dirname(prefix)
 
     if not _get_commit_desc(commit).startswith(project_name + ": "):
-        return HookFailure(
+        return errors.HookFailure(
             "The commit title for changes affecting only %s"
             ' should start with "%s: "' % (project_name, project_name)
         )
@@ -2683,18 +2684,18 @@ def _check_filepath_chartype(_project, commit):
         _get_affected_files(commit, relative=True), [r".*\.(cc|h)$"]
     )
 
-    errors = []
+    error_list = []
     for afile in files:
         for line_num, line in _get_file_diff(afile, commit):
             m = re.search(FILEPATH_REGEXP, line)
             if m:
-                errors.append(
+                error_list.append(
                     "%s, line %s has %s" % (afile, line_num, m.group(0))
                 )
 
-    if errors:
+    if error_list:
         msg = "Please assume FilePath::CharType is char (crbug.com/870621):"
-        return HookFailure(msg, errors)
+        return errors.HookFailure(msg, error_list)
     return None
 
 
@@ -2769,7 +2770,7 @@ def _check_exec_files(_project, commit):
                 break
 
     if bad_files:
-        return HookFailure(
+        return errors.HookFailure(
             "These files should not be executable.  " "Please `chmod -x` them.",
             bad_files,
         )
@@ -2794,7 +2795,7 @@ def _check_git_cl_presubmit(_project, commit):
         stderr=subprocess.STDOUT,
     )
     if result.returncode:
-        return HookFailure(f"git-cl presubmit failed: {result.stdout}")
+        return errors.HookFailure(f"git-cl presubmit failed: {result.stdout}")
     return None
 
 
@@ -3123,9 +3124,9 @@ def _run_project_hooks(
     if cla_check:
         try:
             check_cla()
-        except VerifyException as e:
-            PrintErrorForProject(
-                project_name, HookFailure(f"unable to check cla: {e}")
+        except errors.VerifyException as e:
+            errors.PrintErrorForProject(
+                project_name, errors.HookFailure(f"unable to check cla: {e}")
             )
             os.chdir(pwd)
             return True
@@ -3144,9 +3145,9 @@ def _run_project_hooks(
     else:
         branch_items = remote_branch.split("/", 1)
         if len(branch_items) != 2:
-            PrintErrorForProject(
+            errors.PrintErrorForProject(
                 project_name,
-                HookFailure(
+                errors.HookFailure(
                     "Cannot get remote and branch name (%s)" % remote_branch
                 ),
             )
@@ -3162,8 +3163,10 @@ def _run_project_hooks(
     if not commit_list:
         try:
             commit_list = _get_commits(options[OPTION_IGNORE_MERGED_COMMITS])
-        except VerifyException as e:
-            PrintErrorForProject(project.name, HookFailure(str(e)))
+        except errors.VerifyException as e:
+            errors.PrintErrorForProject(
+                project.name, errors.HookFailure(str(e))
+            )
             os.chdir(pwd)
             return True
 
@@ -3252,7 +3255,9 @@ def _run_project_hooks(
                         print(f"\r{CSI_ERASE_LINE_AFTER}", end="")
                     if not isinstance(hook_error, list):
                         hook_error = [hook_error]
-                    PrintErrorsForCommit(color, hook, project.name, hook_error)
+                    errors.PrintErrorsForCommit(
+                        color, hook, project.name, hook_error
+                    )
                     error_found = True
 
             # Clear status line after running all hooks for this commit.
@@ -3269,11 +3274,11 @@ def check_cla() -> None:
     branch = _run_command(["git", "symbolic-ref", "HEAD"]).strip()
     branch = branch.replace("refs/heads/", "")
     if not branch:
-        raise VerifyException("Need to be on a branch")
+        raise errors.VerifyException("Need to be on a branch")
 
     remote = _run_command(["git", "config", f"branch.{branch}.remote"]).strip()
     if not remote:
-        raise VerifyException(
+        raise errors.VerifyException(
             "Need to be on a tracking branch; " f"fix branch.{branch}.remote"
         )
 
