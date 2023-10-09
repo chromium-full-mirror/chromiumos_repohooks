@@ -122,7 +122,6 @@ may be controlled by the config file here, but we run many more checks.
     hardware board development phases (e.g. PVT).
 *   `check_rustfmt`: Run Rust code through `rustfmt`.
 *   `checkpatch_check`: Run commits through Linux's `checkpatch.pl` tool.
-*   `clang_format_check`: Run source code through `clang-format`.
 *   `contribution_check`: Check source files for invalid "not a contribution".
 *   `cros_license_check`: Require source files have a Chromium (BSD) license.
 *   `exec_files_check`: Check common file types do not have +x permission bits.

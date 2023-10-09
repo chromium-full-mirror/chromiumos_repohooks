@@ -2357,29 +2357,6 @@ def _check_black(project, commit, options=()):
     return None
 
 
-def _check_clang_format(_project, commit, options=()):
-    """Runs clang-format on the given project"""
-    options = list(options)
-    if commit == PRE_SUBMIT:
-        options.append("--commit=HEAD")
-    else:
-        options.extend(["--commit", commit])
-    cmd = [TOOLS_DIR / "clang-format.py"] + options
-    cmd_result = cros_build_lib.dbg_run(
-        cmd,
-        stdout=True,
-        encoding="utf-8",
-        errors="replace",
-        stderr=subprocess.STDOUT,
-        check=False,
-    )
-    if cmd_result.returncode:
-        return errors.HookFailure(
-            "clang-format.py errors/warnings\n\n" + cmd_result.stdout
-        )
-    return None
-
-
 def _run_checkpatch(_project, commit, options=()):
     """Runs checkpatch.pl on the given project"""
     # Bypass checkpatch for upstream or almost upstream commits, since we do not
@@ -2854,7 +2831,6 @@ _HOOK_FLAGS = {
     "check_change_no_include_board_phase": _check_change_no_include_board_phase,
     "check_rustfmt": _check_rustfmt,
     "checkpatch_check": _run_checkpatch,
-    "clang_format_check": _check_clang_format,
     "contribution_check": _check_change_is_contribution,
     "cros_license_check": _check_cros_license,
     "exec_files_check": _check_exec_files,
