@@ -2123,7 +2123,7 @@ def _check_cros_license(_project, commit, options=()):
     """Verifies the Chromium OS license/copyright header.
 
     Should be following the spec:
-    http://dev.chromium.org/developers/coding-style#TOC-File-headers
+    https://chromium.googlesource.com/chromium/src/+/HEAD/styleguide/c++/c++.md#file-headers
     """
     # For older years, be a bit more flexible as our policy says leave them be.
     # Change references.
