@@ -1917,7 +1917,7 @@ class CommitMessageTestCase(PreUploadTestCase):
         """Assert _check_change_has_bug_field accepts |msg|."""
         self.msg_mock.return_value = msg
         ret = self.CheckMessage(project, commit)
-        self.assertIsNone(ret)
+        self.assertIsNone(ret, f"Error: {ret}")
 
     def assertMessageRejected(
         self, msg, project=ProjectNamed("project"), commit="1234"
@@ -1947,6 +1947,15 @@ class CheckCommitMessageBug(CommitMessageTestCase):
         self.assertMessageAccepted("\nBug: 1234\n", self.AOSP_PROJECT)
         self.assertMessageAccepted("\nBug:1234\n", self.AOSP_PROJECT)
 
+    def testNormalFixed(self):
+        """Accept a commit message w/a valid FIXED."""
+        self.assertMessageAccepted("\nFIXED=chromium:1234\n", self.CROS_PROJECT)
+        self.assertMessageAccepted("\nFIXED=b:1234\n", self.CROS_PROJECT)
+        self.assertMessageAccepted("\nFIXED=oss-fuzz:1234\n", self.CROS_PROJECT)
+
+        self.assertMessageAccepted("\nFixed: 1234\n", self.AOSP_PROJECT)
+        self.assertMessageAccepted("\nFixed:1234\n", self.AOSP_PROJECT)
+
     def testNone(self):
         """Accept BUG=None."""
         self.assertMessageAccepted("\nBUG=None\n", self.CROS_PROJECT)
@@ -1956,6 +1965,16 @@ class CheckCommitMessageBug(CommitMessageTestCase):
 
         for project in (self.AOSP_PROJECT, self.CROS_PROJECT):
             self.assertMessageRejected("\nBUG=NONE\n", project)
+
+    def testFixedNone(self):
+        """Reject FIXED=None."""
+        self.assertMessageRejected("\nFIXED=None\n", self.CROS_PROJECT)
+        self.assertMessageRejected("\nFIXED=none\n", self.CROS_PROJECT)
+        self.assertMessageRejected("\nFixed: None\n", self.AOSP_PROJECT)
+        self.assertMessageRejected("\nFixed:none\n", self.AOSP_PROJECT)
+
+        for project in (self.AOSP_PROJECT, self.CROS_PROJECT):
+            self.assertMessageRejected("\nFIXED=NONE\n", project)
 
     def testBlank(self):
         """Reject blank values."""

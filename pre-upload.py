@@ -1214,33 +1214,34 @@ def _check_change_has_bug_field(project, commit):
     """Check for a correctly formatted 'BUG=' field in the commit message."""
     SEE_ALSO = "Please review the documentation:\n%s" % (DOC_COMMIT_MSG_URL,)
 
-    OLD_BUG_RE = r"\nBUG=.*chromium-os"
+    OLD_BUG_RE = r"\n(BUG|FIXED)=.*chromium-os"
     if re.search(OLD_BUG_RE, _get_commit_desc(commit)):
         msg = (
             "The chromium-os bug tracker is now deprecated. Please use\n"
-            "the chromium tracker in your BUG= line now."
+            "the chromium tracker in your BUG= or FIXED= line now."
         )
         return errors.HookFailure(msg)
 
     # Android internal and external projects use "Bug: " to track bugs in
     # buganizer.
     if project.remote in TAG_COLON_REMOTES:
-        BUG_RE = r"\nBug: ?([Nn]one|\d+)"
+        BUG_RE = r"(\nBug: ?([Nn]one|\d+)|\nFixed: ?\d+)"
         if not re.search(BUG_RE, _get_commit_desc(commit)):
             msg = (
                 "Changelist description needs Bug field (after first line):\n"
                 "Examples:\n"
                 "Bug: 9999 (for buganizer)\n"
+                "Fixed: 9999\n"
                 "Bug: None\n%s" % (SEE_ALSO,)
             )
             return errors.HookFailure(msg)
     else:
-        BUG_BARE_NUMBER_RE = r"\nBUG=(\d+)"
+        BUG_BARE_NUMBER_RE = r"\n(BUG|FIXED)=(\d+)"
         bare_bug = re.search(BUG_BARE_NUMBER_RE, _get_commit_desc(commit))
         if bare_bug:
             msg = (
-                "BUG field in changelist description missing chromium: or b: "
-                "prefix.\nExamples:\n"
+                "BUG/FIXED field in changelist description missing chromium: "
+                "or b: prefix.\nExamples:\n"
                 "BUG=chromium:%s (for public tracker)\n"
                 "BUG=b:%s (for buganizer)\n%s"
                 % (
@@ -1251,13 +1252,18 @@ def _check_change_has_bug_field(project, commit):
             )
             return errors.HookFailure(msg)
 
-        BUG_RE = r"\nBUG=([Nn]one|(chromium|b|oss-fuzz):\d+)"
+        BUG_RE = (
+            r"(\nBUG=([Nn]one|(chromium|b|oss-fuzz):\d+)|"
+            r"\nFIXED=((chromium|b|oss-fuzz):\d+))"
+        )
         if not re.search(BUG_RE, _get_commit_desc(commit)):
             msg = (
-                "Changelist description needs BUG field (after first line):\n"
+                "Changelist description needs BUG or FIXED field "
+                "(after first line):\n"
                 "Examples:\n"
                 "BUG=chromium:9999 (for public tracker)\n"
                 "BUG=b:9999 (for buganizer)\n"
+                "FIXED=b:9999\n"
                 "BUG=oss-fuzz:9999 (for oss-fuzz)\n"
                 "BUG=None\n%s" % (SEE_ALSO,)
             )
@@ -1266,7 +1272,9 @@ def _check_change_has_bug_field(project, commit):
     TEST_BEFORE_BUG_RE = _get_test_field_re(project) + r".*" + BUG_RE
 
     if re.search(TEST_BEFORE_BUG_RE, _get_commit_desc(commit), re.DOTALL):
-        msg = "The BUG field must come before the TEST field.\n%s" % (SEE_ALSO,)
+        msg = "The BUG or FIXED field must come before the TEST field.\n%s" % (
+            SEE_ALSO,
+        )
         return errors.HookFailure(msg)
 
     return None
