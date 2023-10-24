@@ -2269,6 +2269,8 @@ class CheckCommitMessageStyle(CommitMessageTestCase):
         self.assertMessageAccepted("one sentence.\n")
         self.assertMessageAccepted("some.module: do it!\n")
         self.assertMessageAccepted("one line\n\nmore stuff here.")
+        self.assertMessageAccepted("command ... --with-ellipsis")
+        self.assertMessageAccepted("one function().")
 
     def testNoBlankSecondLine(self):
         """Reject messages that have stuff on the second line."""
@@ -2277,6 +2279,7 @@ class CheckCommitMessageStyle(CommitMessageTestCase):
     def testFirstLineMultipleSentences(self):
         """Reject messages that have more than one sentence in the summary."""
         self.assertMessageRejected("one sentence. two sentence!\n")
+        self.assertMessageRejected("one function(). two sentence!\n")
 
     def testFirstLineTooLone(self):
         """Reject first lines that are too long."""

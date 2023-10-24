@@ -2095,7 +2095,7 @@ def _check_commit_message_style(_project, commit):
         )
 
     # The first line should be one sentence.
-    if ". " in lines[0]:
+    if re.search(r"[^\.]\. ", lines[0]):
         return errors.HookFailure(
             "The first line cannot be more than one sentence.\n%s" % (SEE_ALSO,)
         )
