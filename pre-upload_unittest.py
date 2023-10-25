@@ -2794,69 +2794,6 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
         )
 
 
-class CheckBlack(PreUploadTestCase, cros_test_lib.TempDirTestCase):
-    """Tests for _check_black."""
-
-    FILE_CONTENTS = {
-        "ok.py": 'print("hello world")\n',
-        "needs_reformatted.py": "print('hello world')\n",
-        "third_party/not_our_code.py": "print('hello world')\n",
-        "not_python.cc": "int main() {\n  return 0;\n}\n",
-    }
-
-    def _get_file_content(self, name, _commit):
-        return self.FILE_CONTENTS[name]
-
-    def setUp(self):
-        self.PatchObject(
-            pre_upload,
-            "_get_file_content",
-            new=self._get_file_content,
-        )
-
-    def testNoFilesAffected(self):
-        """Don't complain when only unrelated files are changed."""
-        self.PatchObject(
-            pre_upload,
-            "_get_affected_files",
-            return_value=["third_party/not_our_code.py", "not_python.cc"],
-        )
-        result = pre_upload._check_black(ProjectNamed("PROJECT"), "COMMIT")
-        self.assertIsNone(result)
-
-    def testOkCodeAffected(self):
-        """Don't complain when only formatted code is affected."""
-        self.PatchObject(
-            pre_upload, "_get_affected_files", return_value=["ok.py"]
-        )
-        result = pre_upload._check_black(ProjectNamed("PROJECT"), "COMMIT")
-        self.assertIsNone(result)
-
-    def testBadCodeAffected(self):
-        """When non-formatted code is affected, the hook should complain."""
-        self.PatchObject(
-            pre_upload,
-            "_get_affected_files",
-            return_value=["needs_reformatted.py", "not_python.cc"],
-        )
-        result = pre_upload._check_black(ProjectNamed("PROJECT"), "COMMIT")
-        self.assertIsNotNone(result)
-        self.assertEqual(["needs_reformatted.py"], result.items)
-
-    def testLocalConfig(self):
-        """When a pyproject.toml exists in the project, it should be used."""
-        self.PatchObject(
-            pre_upload, "_get_affected_files", return_value=["ok.py"]
-        )
-        project = pre_upload.Project("PROJECT", self.tempdir, None)
-        (self.tempdir / "pyproject.toml").write_text(
-            "[tool.black]\n" "line-length = 6\n"
-        )
-        result = pre_upload._check_black(project, "COMMIT")
-        self.assertIsNotNone(result)
-        self.assertEqual(["ok.py"], result.items)
-
-
 class CheckRustfmtTest(PreUploadTestCase):
     """Tests for _check_rustfmt."""
 

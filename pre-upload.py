@@ -2329,34 +2329,6 @@ def _check_no_new_gyp(_project, commit):
 # Project-specific hooks
 
 
-def _check_black(project, commit, options=()):
-    """Validate that all Python code is formatted with black."""
-    included, excluded = _parse_common_inclusion_options(options)
-    included += [re.compile(r"\.pyi?$")]
-    excluded += [re.compile(r"third_party/")]
-    files = _filter_files(
-        _get_affected_files(commit, relative=True), included, excluded
-    )
-
-    error_list = []
-    project_path = Path(project.dir)
-    for file in files:
-        contents = _get_file_content(file, commit)
-        if contents != formatters.python.Data(
-            contents, path=project_path / file
-        ):
-            error_list.append(file)
-
-    if error_list:
-        return errors.HookFailure(
-            f"Files not formatted (run `cros format --commit={commit}` "
-            "to fix):",
-            error_list,
-        )
-
-    return None
-
-
 def _run_checkpatch(_project, commit, options=()):
     """Runs checkpatch.pl on the given project"""
     # Bypass checkpatch for upstream or almost upstream commits, since we do not
@@ -2823,7 +2795,6 @@ _COMMON_HOOKS = [
 # that the flag controls (value).
 _HOOK_FLAGS = {
     "aosp_license_check": _check_aosp_license,
-    "black_check": _check_black,
     "blank_line_check": _check_no_extra_blank_lines,
     "branch_check": _check_change_has_branch_field,
     "bug_field_check": _check_change_has_bug_field,

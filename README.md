@@ -113,7 +113,6 @@ Note: Not all hooks that we run may be disabled.  We only document the ones that
 may be controlled by the config file here, but we run many more checks.
 
 *   `aosp_license_check`: Require source files have an Android (Apache) license.
-*   `black_check`: Require Python files be formated by Black.
 *   `blank_line_check`: Check for trailing blank lines.
 *   `branch_check`: Require all commit messages have a `BRANCH=` line.
 *   `bug_field_check`: Require all commit messages have a `BUG=` line.
