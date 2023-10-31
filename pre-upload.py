@@ -977,30 +977,6 @@ def _check_tabbed_indents(_project, commit, options=()):
     )
 
 
-def _check_gofmt(project, commit, options=()):
-    """Checks that Go files are formatted with gofmt."""
-    included, excluded = _parse_common_inclusion_options(options)
-    error_list = []
-    files = _filter_files(
-        _get_affected_files(commit, relative=True),
-        included + [r"\.go$"],
-        excluded,
-    )
-
-    project_path = Path(project.dir)
-    for file in files:
-        contents = _get_file_content(file, commit)
-        if contents != formatters.go.Data(contents, path=project_path / file):
-            error_list.append(file)
-    if error_list:
-        return errors.HookFailure(
-            "Files not formatted with gofmt (run `cros format "
-            f"--commit={commit}` to fix):",
-            error_list,
-        )
-    return None
-
-
 def _check_rustfmt(project, commit):
     """Checks that Rust files are formatted with rustfmt."""
     error_list = []
@@ -2777,7 +2753,6 @@ _COMMON_HOOKS = [
     _check_exec_files,
     _check_for_uprev,
     _check_git_cl_presubmit,
-    _check_gofmt,
     _check_keywords,
     _check_layout_conf,
     _check_no_extra_blank_lines,
@@ -2807,7 +2782,6 @@ _HOOK_FLAGS = {
     "exec_files_check": _check_exec_files,
     "filepath_chartype_check": _check_filepath_chartype,
     "git_cl_presubmit": _check_git_cl_presubmit,
-    "gofmt_check": _check_gofmt,
     "handle_eintr_close_check": _check_no_handle_eintr_close,
     "kernel_splitconfig_check": _kernel_configcheck,
     "kerneldoc_check": _run_kerneldoc,

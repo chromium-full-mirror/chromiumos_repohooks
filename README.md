@@ -126,7 +126,6 @@ may be controlled by the config file here, but we run many more checks.
 *   `exec_files_check`: Check common file types do not have +x permission bits.
 *   `filepath_chartype_check`: Check source files for FilePath::CharType use.
 *   `git_cl_presubmit`: Run git-cl PRESUBMIT.py logic if available.
-*   `gofmt_check`: Run Go code through `gofmt`.
 *   `handle_eintr_close_check`: Check C++ code does not use unsafe
     `HANDLE_EINTR(close(...))` idioms.
 *   `kernel_splitconfig_check`: Require CrOS kernel config changes are separate
