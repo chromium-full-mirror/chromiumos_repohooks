@@ -977,27 +977,6 @@ def _check_tabbed_indents(_project, commit, options=()):
     )
 
 
-def _check_rustfmt(project, commit):
-    """Checks that Rust files are formatted with rustfmt."""
-    error_list = []
-    files = _filter_files(
-        _get_affected_files(commit, relative=True), [r"\.rs$"]
-    )
-
-    project_path = Path(project.dir)
-    for file in files:
-        contents = _get_file_content(file, commit)
-        if contents != formatters.rust.Data(contents, path=project_path / file):
-            error_list.append(file)
-    if error_list:
-        return errors.HookFailure(
-            "Files not formatted with rustfmt "
-            f"(run `cros format --commit={commit}` or `cargo fmt` to fix):",
-            error_list,
-        )
-    return None
-
-
 class CargoClippyArgumentParserError(Exception):
     """An exception indicating an invalid check_cargo_clippy option."""
 
@@ -2762,7 +2741,6 @@ _COMMON_HOOKS = [
     _check_no_stray_whitespace,
     _check_no_tabs,
     _check_portage_make_use_var,
-    _check_rustfmt,
     _check_tabbed_indents,
 ]
 
@@ -2775,7 +2753,6 @@ _HOOK_FLAGS = {
     "bug_field_check": _check_change_has_bug_field,
     "cargo_clippy_check": _check_cargo_clippy,
     "check_change_no_include_board_phase": _check_change_no_include_board_phase,
-    "check_rustfmt": _check_rustfmt,
     "checkpatch_check": _run_checkpatch,
     "contribution_check": _check_change_is_contribution,
     "cros_license_check": _check_cros_license,

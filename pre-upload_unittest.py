@@ -12,7 +12,6 @@ from unittest import mock
 
 import errors
 
-from chromite.format import formatters
 from chromite.lib import constants
 from chromite.lib import cros_test_lib
 from chromite.lib import git
@@ -2792,50 +2791,6 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
             cla_check=mock.ANY,
             jobs=1,
         )
-
-
-class CheckRustfmtTest(PreUploadTestCase):
-    """Tests for _check_rustfmt."""
-
-    def setUp(self):
-        self.content_mock = self.PatchObject(pre_upload, "_get_file_content")
-
-    def testBadRustFile(self):
-        self.PatchObject(
-            pre_upload, "_get_affected_files", return_value=["a.rs"]
-        )
-        # Bad because it's missing trailing newline.
-        content = "fn main() {}"
-        self.content_mock.return_value = content
-        self.PatchObject(formatters.rust, "Data", return_value=content + "\n")
-        failure = pre_upload._check_rustfmt(ProjectNamed("PROJECT"), "COMMIT")
-        self.assertIsNotNone(failure)
-        self.assertEqual(
-            "Files not formatted with rustfmt "
-            "(run `cros format --commit=COMMIT` or `cargo fmt` to fix):",
-            failure.msg,
-        )
-        self.assertEqual(["a.rs"], failure.items)
-
-    def testGoodRustFile(self):
-        self.PatchObject(
-            pre_upload, "_get_affected_files", return_value=["a.rs"]
-        )
-        content = "fn main() {}\n"
-        self.content_mock.return_value = content
-        self.PatchObject(formatters.rust, "Data", return_value=content)
-        failure = pre_upload._check_rustfmt(ProjectNamed("PROJECT"), "COMMIT")
-        self.assertIsNone(failure)
-
-    def testFilterNonRustFiles(self):
-        self.PatchObject(
-            pre_upload,
-            "_get_affected_files",
-            return_value=["a.cc", "a.rsa", "a.irs", "rs.cc"],
-        )
-        self.content_mock.return_value = "fn main() {\n}"
-        failure = pre_upload._check_rustfmt(ProjectNamed("PROJECT"), "COMMIT")
-        self.assertIsNone(failure)
 
 
 class GetCargoClippyParserTest(cros_test_lib.TestCase):
