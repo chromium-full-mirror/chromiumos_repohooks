@@ -200,33 +200,31 @@ A good hook or hook script should execute quickly and reliably, and rarely give
 false-positive warnings.  Here are some things to keep in mind while you're
 writing your hooks:
 
-1.  **Don't assume you're running inside of the SDK.**  Hook scripts may be
-    executed either inside or outside the SDK.  Additionally, we do not require
-    that users have an SDK just to upload code, so don't try to enter the SDK
-    either, as it may not even exist.
-2.  **Don't assume you're running outside of the SDK.**  For the time being, we
-    support running inside the SDK.
-3.  **Don't take too long to execute.**  Hooks that regularly take too long are
+1.  **Don't assume you're running inside of the SDK.**  Hook scripts are
+    executed outside the SDK.  Additionally, we do not require that users have
+    an SDK just to upload code, so don't try to enter the SDK either, as it may
+    not even exist.
+2.  **Don't take too long to execute.**  Hooks that regularly take too long are
     generally skipped by users.  As a general guideline, all hooks together
     shouldn't take more than a few seconds per commit.
-4.  **Don't run unit tests.**  Unit tests generally take too long to run as a
+3.  **Don't run unit tests.**  Unit tests generally take too long to run as a
     pre-upload hook, and chances are you're going to need the SDK to do this
     anyway (so that's a double no!).
-5.  **Don't modify files.**  Users expect you'll leave their Git repository
+4.  **Don't modify files.**  Users expect you'll leave their Git repository
     clean.
-6.  **Don't assume host tools beyond what's specified in the [developer
+5.  **Don't assume host tools beyond what's specified in the [developer
     guide].**  If you need additional tools to run your checks, consider using
     [cipd] or [vpython] to distribute your dependencies.
-7.  **Don't prompt for user input.**  Your hooks shouldn't ask the users any
+6.  **Don't prompt for user input.**  Your hooks shouldn't ask the users any
     questions, as your hooks may be run as a part of an automated script where
     user input is not expected.
-8.  **Don't assume that the current `HEAD` is the commit you are to analyze.**
+7.  **Don't assume that the current `HEAD` is the commit you are to analyze.**
     You should be using `${PRESUBMIT_COMMIT}` and interfacing via the `git`
     command to get the file contents.
-9.  **Don't assume you're analyzing a commit.** `${PRESUBMIT_COMMIT}` may be set
+8.  **Don't assume you're analyzing a commit.** `${PRESUBMIT_COMMIT}` may be set
     to the special string `pre-submit` indicating you should be analyzing
     uncommitted changes.  Handle this case.
-10. **Don't report issues with files the user didn't touch.**  Use
+9.  **Don't report issues with files the user didn't touch.**  Use
     `${PRESUBMIT_FILES}` to determine which files you are to check.
 
 # Reporting issues
