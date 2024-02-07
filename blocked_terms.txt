@@ -7,8 +7,8 @@
 black.?hat
 # Black List
 black.?list
-# Build Cop
-build.?cop
+# Build Cop, but not build copy
+\bbuild.?cop\b
 # Crazy
 crazy
 # Cripple
