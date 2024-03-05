@@ -1063,13 +1063,19 @@ def _run_clippy_on_dir(root, cmd, error_list):
         )
     except cros_build_lib.RunCommandError:
         _run_command(
-            ["cargo", "generate-lockfile", manifest_flag], enter_chroot=True
+            ["cargo", "generate-lockfile", manifest_flag],
+            enter_chroot=True,
+            chroot_args=["--no-update"],
         )
 
     tries = 0
     while tries < 2:
         output = _run_command(
-            cmd, cwd=root, enter_chroot=True, stderr=subprocess.STDOUT
+            cmd,
+            cwd=root,
+            enter_chroot=True,
+            chroot_args=["--no-update"],
+            stderr=subprocess.STDOUT,
         )
         error = re.search(r"^error(\[E[0-9]+\])?:", output, flags=re.MULTILINE)
         tries += 1
@@ -1078,7 +1084,9 @@ def _run_clippy_on_dir(root, cmd, error_list):
             # only act on it for the first try.
             if tries < 2 and error.group(1) == "[E0460]":
                 _run_command(
-                    ["cargo", "clean", manifest_flag], enter_chroot=True
+                    ["cargo", "clean", manifest_flag],
+                    enter_chroot=True,
+                    chroot_args=["--no-update"],
                 )
                 continue
             else:
