@@ -85,8 +85,8 @@ CSI_ERASE_LINE_AFTER = "\x1b[K"
 
 # Link to commit message documentation for users.
 DOC_COMMIT_MSG_URL = (
-    "https://chromium.googlesource.com/chromiumos/docs/+/HEAD"
-    "/contributing.md#commit-messages"
+    "https://www.chromium.org/chromium-os/developer-library/guides"
+    "/development/contributing/#commit-messages"
 )
 
 
@@ -1199,8 +1199,8 @@ def _check_change_has_valid_cq_depend(_project, commit):
     if re.search(r"^CQ-DEPEND[=:]", desc, re.M):
         return errors.HookFailure(
             "CQ-DEPEND= is no longer supported.  Please see:\n"
-            "https://chromium.googlesource.com/chromiumos/docs/+/HEAD/"
-            "contributing.md#CQ-DEPEND"
+            "https://www.chromium.org/chromium-os/developer-library/guides"
+            "/development/contributing/#cl-dependencies"
         )
 
     return None
@@ -1859,7 +1859,7 @@ def _check_ebuild_virtual_pv(project, commit):
 
     if bad_ebuilds:
         # pylint: disable=C0301
-        url = "https://chromium.googlesource.com/chromiumos/docs/+/HEAD/portage/ebuild_faq.md"
+        url = "https://www.chromium.org/chromium-os/developer-library/guides/portage/ebuild-faq/"
         # pylint: enable=C0301
         return errors.HookFailure(
             "These virtuals have incorrect package versions (PVs). Please "
