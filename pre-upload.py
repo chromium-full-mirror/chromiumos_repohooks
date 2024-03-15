@@ -1400,7 +1400,7 @@ def _check_change_no_include_board_phase(_project, commit):
     return None
 
 
-def _check_for_uprev(project, commit, project_top=None):
+def _check_for_uprev(_project, commit, project_top=None):
     """Check that we're not missing a revbump of an ebuild in the given commit.
 
     If the given commit touches files in a directory that has ebuilds somewhere
@@ -1409,19 +1409,13 @@ def _check_for_uprev(project, commit, project_top=None):
     and warn if there wasn't a version or revision bump.
 
     Args:
-        project: The Project to look at
+        _project: The Project to look at
         commit: The commit to look at
         project_top: Top dir to process commits in
 
     Returns:
         A errors.HookFailure or None.
     """
-    # If this is the portage-stable overlay, then ignore the check.  It's rare
-    # that we're doing anything other than importing files from upstream, so
-    # forcing a rev bump makes no sense.
-    allowlist = ("chromiumos/overlays/portage-stable",)
-    if project.name in allowlist:
-        return None
 
     def FinalName(obj):
         # If the file is being deleted, then the dst_file is not set.

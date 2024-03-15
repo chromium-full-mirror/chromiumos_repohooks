@@ -2557,13 +2557,6 @@ class CheckForUprev(PreUploadTestCase, cros_test_lib.TempDirTestCase):
         )
         self.assertTrue(isinstance(ret, errors.HookFailure))
 
-    def testAllowlistOverlay(self):
-        """Skip checks on allowed overlays."""
-        self.assertAccepted(
-            [DiffEntry(src_file="cat/pkg/pkg-0.ebuild")],
-            project="chromiumos/overlays/portage-stable",
-        )
-
     def testAllowlistFiles(self):
         """Skip checks on allowed files."""
         files = ["ChangeLog", "Manifest", "metadata.xml"]
