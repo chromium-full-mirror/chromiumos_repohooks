@@ -2085,7 +2085,7 @@ def _check_commit_message_style(_project, commit):
 
 
 def _check_cros_license(_project, commit, options=()):
-    """Verifies the Chromium OS license/copyright header.
+    """Verifies the ChromiumOS license/copyright header.
 
     Should be following the spec:
     https://chromium.googlesource.com/chromium/src/+/HEAD/styleguide/c++/c++.md#file-headers

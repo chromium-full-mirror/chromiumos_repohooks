@@ -1,4 +1,4 @@
-# Chromium OS Preupload Hooks
+# ChromiumOS Preupload Hooks
 
 [TOC]
 
