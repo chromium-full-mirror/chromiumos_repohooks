@@ -117,8 +117,7 @@ COMMON_INCLUDED_PATHS = CPP_PATHS + [
     r".*\.rb$",
     r".*\.pl$",
     r".*\.pm$",
-    # No extension at all, note that ALL CAPS files are excluded by
-    # COMMON_EXCLUDED_LIST below.
+    # No extension at all
     r"(^|.*[\\\/])[^.]+$",
     # Other
     r".*\.gn",
