@@ -4,6 +4,7 @@
 
 """Common errors thrown when repo presubmit checks fail."""
 
+import abc
 import re
 import sys
 
@@ -12,15 +13,36 @@ class VerifyException(Exception):
     """Basic checks failed."""
 
 
-class HookFailure(object):
-    """Contains an error message and a list of error details."""
+class HookResult(abc.ABC):
+    """Abstract base class for results from hook execution."""
 
     def __init__(self, msg, items=None):
         self.msg = msg
         self.items = items
 
-    def __str__(self):
+    def __str__(self) -> str:
         return _FormatHookFailure(self)
+
+    @property
+    @abc.abstractmethod
+    def is_warning(self) -> bool:
+        """Returns True if the result is a non-fatal warning,"""
+
+
+class HookFailure(HookResult):
+    """A fatal error from a hook."""
+
+    @property
+    def is_warning(self) -> bool:
+        return False
+
+
+class HookWarning(HookResult):
+    """A non-fatal warning from a hook."""
+
+    @property
+    def is_warning(self) -> bool:
+        return True
 
 
 _INDENT = " " * 4
@@ -61,21 +83,24 @@ def PrintErrorForProject(project, error):
     print("", file=sys.stderr)
 
 
-def PrintErrorsForCommit(color, hook, project, error_list):
+def PrintErrorsForCommit(color, hook, project, result_list):
     """Prints the hook error to stderr with project and commit context
 
     Args:
         color: terminal.Color object for colorizing output.
         hook: Hook function that generated these errors.
         project: project name
-        error_list: a list of HookFailure instances
+        result_list: a list of HookResult instances
     """
-    print(
-        "[%s] %s: %s"
-        % (color.Color(color.RED, "FAILED"), project, hook.__name__)
+    contains_error = any(not r.is_warning for r in result_list)
+    prefix = (
+        color.Color(color.RED, "FAILED")
+        if contains_error
+        else color.Color(color.YELLOW, "WARNING")
     )
+    print(f"[{prefix}] {project}: {hook.__name__}")
 
-    for error in error_list:
+    for error in result_list:
         _PrintWithIndent(error.msg.strip(), 1)
         if error.items:
             for item in error.items:

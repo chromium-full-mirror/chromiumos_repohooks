@@ -14,6 +14,7 @@ import concurrent.futures
 import configparser
 import contextlib
 import datetime
+import enum
 import fnmatch
 import functools
 import itertools
@@ -26,7 +27,7 @@ import stat
 import subprocess
 import sys
 import threading
-from typing import Tuple
+from typing import Optional, Sequence, Tuple
 
 import errors
 
@@ -589,28 +590,78 @@ def _get_commit_desc(commit):
     return _run_command(["git", "log", "--format=%B", commit + "^!"])
 
 
-def _get_cl_size_string(color: terminal.Color, commit: str) -> str:
-    """Return a colored string describing the CL size.
+class ChangeSize(enum.IntEnum):
+    """Change size definitions.
 
-    Possible strings are "XS", "S", "M", "L", and "XL", aligning with the size
-    definitions used by Gerrit here:
+    Definitions align with the Gerrit definitions here:
     https://gerrit.googlesource.com/gerrit/+/5ed0f9b6eef11bb2a7900c2a278d75baa2279c8f/polygerrit-ui/app/elements/change-list/gr-change-list-item/gr-change-list-item.ts#48.
-    Strings are colored to encourage smaller CLs.
     """
+
+    XS = 10
+    S = 50
+    M = 250
+    L = 1000
+
+
+def _get_lines_changed(
+    commit: str,
+    include_deletes: bool = True,
+    include_list: Optional[Sequence[str]] = None,
+    exclude_list: Sequence[str] = (),
+) -> int:
+    """Return the number of lines changed in a commit.
+
+    Args:
+        commit: The commit to count lines for.
+        include_deletes: If true, count the lines in deleted files.
+        include_list: List of regex that when matched with a file path will
+            cause it to be included in the count unless the file is also matched
+            with a regex in the exclude_list. If not set, all files are
+            included.
+        exclude_list: List of regex that when matched with a file will prevent
+            it from being included in the count, even if it is also matched with
+            a regex in the include_list. include_list must be set if
+            exclude_list is.
+
+    Returns:
+        The number of lines changed in the commit.
+    """
+    if exclude_list:
+        assert include_list, "include_list must be provided if exclude_list is"
+
     files = _get_affected_files(
         commit,
+        include_deletes=include_deletes,
         include_symlinks=False,
     )
 
-    lines_changed = sum(len(_get_file_diff(x, commit)) for x in files)
+    if include_list:
+        files = _filter_files(
+            files,
+            include_list,
+            exclude_list,
+        )
 
-    if lines_changed < 10:
+    return sum(len(_get_file_diff(x, commit)) for x in files)
+
+
+def _get_cl_size_string(color: terminal.Color, commit: str) -> str:
+    """Return a colored string describing the CL size.
+
+    Possible strings are "XS", "S", "M", "L", and "XL", see the CHANGE_SIZE
+    constants above for the size thresholds.
+
+    Strings are colored to encourage smaller CLs.
+    """
+    lines_changed = _get_lines_changed(commit)
+
+    if lines_changed < ChangeSize.XS:
         return color.Color(color.GREEN, "XS")
-    elif lines_changed < 50:
+    elif lines_changed < ChangeSize.S:
         return color.Color(color.GREEN, "S")
-    elif lines_changed < 250:
+    elif lines_changed < ChangeSize.M:
         return color.Color(color.GREEN, "M")
-    elif lines_changed < 1000:
+    elif lines_changed < ChangeSize.L:
         return color.Color(color.YELLOW, "L")
     else:
         return color.Color(color.RED, "XL")
@@ -2740,6 +2791,36 @@ def _check_git_cl_presubmit(_project, commit):
     return None
 
 
+def _check_cl_size(
+    _project: Project, commit: str, options: Sequence[str] = ()
+) -> None:
+    """Print a warning on large CLs."""
+    included, excluded = _parse_common_inclusion_options(options)
+
+    # Exclude deletes and use the common file path filters to reduce noise on
+    # CLs deleting large amounts of code, large generated file diffs, etc. Note
+    # that the _get_cl_size_string function doesn't use these filters, so that
+    # the size displayed on upload matches the size displayed in Gerrit as
+    # closely as possible.
+    lines_changed = _get_lines_changed(
+        commit,
+        include_deletes=False,
+        include_list=included + COMMON_INCLUDED_PATHS,
+        exclude_list=excluded + COMMON_EXCLUDED_PATHS,
+    )
+
+    if lines_changed >= ChangeSize.M:
+        msg = (
+            "Large CLs are often more error-prone and take longer to review, "
+            "consider splitting this change up. See "
+            "https://google.github.io/eng-practices/review/developer/"
+            "small-cls.html."
+        )
+        return errors.HookWarning(msg)
+
+    return None
+
+
 # Base
 
 # A list of hooks which are not project specific and check patch description
@@ -2769,6 +2850,7 @@ _COMMON_HOOKS = [
     _check_exec_files,
     _check_for_uprev,
     _check_git_cl_presubmit,
+    _check_cl_size,
     _check_keywords,
     _check_layout_conf,
     _check_no_extra_blank_lines,
@@ -3194,7 +3276,9 @@ def _run_project_hooks(
                     errors.PrintErrorsForCommit(
                         color, hook, project.name, hook_error
                     )
-                    error_found = True
+                    error_found = any(
+                        isinstance(e, errors.HookFailure) for e in hook_error
+                    )
 
             # Clear status line after running all hooks for this commit.
             if isatty:

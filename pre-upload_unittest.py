@@ -2322,6 +2322,44 @@ class CheckCommitMessageStyle(CommitMessageTestCase):
             self.assertMessageAccepted(msg)
 
 
+class CheckClSizeTest(PreUploadTestCase):
+    """Tests for _check_cl_size."""
+
+    MOCK_FILE_CONTENT = {
+        "large.cc": [(i, "a") for i in range(300)],
+        "small.cc": [(i, "a") for i in range(200)],
+        "generated.cfg": [(i, "a") for i in range(300)],
+    }
+
+    @classmethod
+    def _get_file_diff(cls, path, _commit):
+        return cls.MOCK_FILE_CONTENT[path]
+
+    def _run_check(self, files):
+        self.PatchObject(pre_upload, "_get_affected_files", return_value=files)
+        self.PatchObject(pre_upload, "_get_file_diff", new=self._get_file_diff)
+        warning = pre_upload._check_cl_size(ProjectNamed("PROJECT"), "COMMIT")
+        return warning
+
+    def test_small_cl(self):
+        warning = self._run_check(["small.cc"])
+        self.assertIsNone(warning)
+
+    def test_large_cl(self):
+        warning = self._run_check(["small.cc", "large.cc"])
+        self.assertTrue(warning)
+        self.assertIsInstance(warning, errors.HookWarning)
+        self.assertTrue(
+            warning.msg.startswith(
+                "Large CLs are often more error-prone and take longer to review"
+            )
+        )
+
+    def test_large_generated_cl(self):
+        warning = self._run_check(["small.cc", "generated.cfg"])
+        self.assertIsNone(warning)
+
+
 def DiffEntry(
     src_file=None, dst_file=None, src_mode=None, dst_mode="100644", status="M"
 ):
