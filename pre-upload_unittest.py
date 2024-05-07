@@ -1826,6 +1826,7 @@ class CheckLayoutConfTestCase(PreUploadTestCase):
         """Return a valid layout.conf with |filters| lines removed."""
         all_lines = [
             "cache-format = md5-dict",
+            "eapis-banned = 0 1 2 3 4 5 6",
             "masters = portage-stable chromiumos eclass-overlay",  # nocheck
             "profile-formats = portage-2 profile-default-eapi",
             "profile_eapi_when_unspecified = 5-progress",
