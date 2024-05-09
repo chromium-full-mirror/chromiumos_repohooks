@@ -589,6 +589,35 @@ def _get_commit_desc(commit):
     return _run_command(["git", "log", "--format=%B", commit + "^!"])
 
 
+def _get_cl_size_string(color: terminal.Color, commit: str) -> str:
+    """Return a colored string describing the CL size.
+
+    Possible strings are "XS", "S", "M", "L", and "XL", aligning with the size
+    definitions used by Gerrit here:
+    https://gerrit.googlesource.com/gerrit/+/5ed0f9b6eef11bb2a7900c2a278d75baa2279c8f/polygerrit-ui/app/elements/change-list/gr-change-list-item/gr-change-list-item.ts#48.
+    Strings are colored to encourage smaller CLs.
+    """
+    files = _get_affected_files(
+        commit,
+        include_symlinks=False,
+    )
+
+    lines_changed = 0
+    for file in files:
+        lines_changed += len(_get_file_diff(file, commit))
+
+    if lines_changed < 10:
+        return color.Color(color.GREEN, "XS")
+    elif lines_changed < 50:
+        return color.Color(color.GREEN, "S")
+    elif lines_changed < 250:
+        return color.Color(color.GREEN, "M")
+    elif lines_changed < 1000:
+        return color.Color(color.YELLOW, "L")
+    else:
+        return color.Color(color.RED, "XL")
+
+
 def _check_lines_in_diff(commit, files, check_callable, error_description):
     """Checks given file for errors via the given check.
 
@@ -3103,12 +3132,13 @@ def _run_project_hooks(
             # commit. Use that as the description.
             desc = commit if commit == PRE_SUBMIT else _get_commit_desc(commit)
             print(
-                "[%s %i/%i %s] %s"
+                "[%s %i/%i %s %s] %s"
                 % (
                     color.Color(color.CYAN, "COMMIT"),
                     i + 1,
                     commit_count,
                     commit[0:12],
+                    _get_cl_size_string(color, commit),
                     desc.splitlines()[0],
                 )
             )
@@ -3265,9 +3295,16 @@ def main(project_list, worktree_list=None, **_kwargs):
         print(msg, file=sys.stderr)
         sys.exit(1)
     else:
-        msg = "[%s] repohooks passed in %s" % (
-            color.Color(color.GREEN, "PASSED"),
-            end_time - start_time,
+        msg = (
+            "[%s] repohooks passed in %s.\n\n"
+            "%s: Small CLs are usually less error-prone and reviewed faster, "
+            "see https://google.github.io/eng-practices/review/developer/"
+            "small-cls.html.\n"
+            % (
+                color.Color(color.GREEN, "PASSED"),
+                end_time - start_time,
+                color.Color(color.MAGENTA, "Tip"),
+            )
         )
         print(msg)
 
