@@ -602,9 +602,7 @@ def _get_cl_size_string(color: terminal.Color, commit: str) -> str:
         include_symlinks=False,
     )
 
-    lines_changed = 0
-    for file in files:
-        lines_changed += len(_get_file_diff(file, commit))
+    lines_changed = sum(len(_get_file_diff(x, commit)) for x in files)
 
     if lines_changed < 10:
         return color.Color(color.GREEN, "XS")
@@ -3132,7 +3130,7 @@ def _run_project_hooks(
             # commit. Use that as the description.
             desc = commit if commit == PRE_SUBMIT else _get_commit_desc(commit)
             print(
-                "[%s %i/%i %s %s] %s"
+                "[%s %i/%i %s %-2s] %s"
                 % (
                     color.Color(color.CYAN, "COMMIT"),
                     i + 1,
@@ -3295,16 +3293,9 @@ def main(project_list, worktree_list=None, **_kwargs):
         print(msg, file=sys.stderr)
         sys.exit(1)
     else:
-        msg = (
-            "[%s] repohooks passed in %s.\n\n"
-            "%s: Small CLs are usually less error-prone and reviewed faster, "
-            "see https://google.github.io/eng-practices/review/developer/"
-            "small-cls.html.\n"
-            % (
-                color.Color(color.GREEN, "PASSED"),
-                end_time - start_time,
-                color.Color(color.MAGENTA, "Tip"),
-            )
+        msg = "[%s] repohooks passed in %s." % (
+            color.Color(color.GREEN, "PASSED"),
+            end_time - start_time,
         )
         print(msg)
 
