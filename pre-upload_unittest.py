@@ -12,6 +12,7 @@ from unittest import mock
 
 import errors
 
+from chromite.lib import build_query
 from chromite.lib import constants
 from chromite.lib import cros_test_lib
 from chromite.lib import git
@@ -2520,6 +2521,154 @@ class HelpersTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
         self.assertEqual(
             pre_upload._get_affected_files("HEAD", relative=True), []
         )
+
+
+class CrosWorkonRevbumpEclassTest(PreUploadTestCase):
+    """Tests for _check_cros_workon_revbump_eclass."""
+
+    def setUp(self):
+        self.file_mock = self.PatchObject(pre_upload, "_get_affected_files")
+        self.bq_mock = self.PatchObject(build_query, "Overlay")
+        self.project = ProjectNamed("PROJECT")
+
+    def _constructEbuilds(self, attrs):
+        """Construct .ebuild attribute for Overlay().
+
+        Construct a .ebuilds attribute that holds a list of Ebuild mock
+        objects with .package_info.cp and .eclasses attributes.
+        """
+        Attr = cros_test_lib.EasyAttr
+        ebuilds = []
+        for x in attrs:
+            ebuilds.append(Attr(package_info=Attr(cp=x[0]), eclasses=x[1]))
+        return Attr(ebuilds=ebuilds)
+
+    def testRevbumpAllPkgs(self):
+        """All packages revbumped along with eclass."""
+        self.file_mock.return_value = [
+            "eclass/base.eclass",
+            "category/pkg1/files/revision_bump",
+            "category/pkg2/pkg2.ebuild",
+        ]
+        self.bq_mock.return_value = self._constructEbuilds(
+            attrs=[
+                ("category/pkg1", ["base"]),
+                ("category/pkg2", ["base", "bar"]),
+                ("foo/bar", ["bar"]),
+            ]
+        )
+        result = pre_upload._check_cros_workon_revbump_eclass(
+            self.project,
+            "COMMIT",
+            options=("base.eclass",),
+        )
+        self.assertFalse(result)
+
+    def testRevbumpSomePkgs(self):
+        """Some packages didn't revbump along with eclass."""
+        self.file_mock.return_value = [
+            "eclass/base.eclass",
+            "category/pkg1/files/revision_bump",
+            "category/pkg2-with-suffix/files/revision_bump",
+        ]
+        self.bq_mock.return_value = self._constructEbuilds(
+            attrs=[
+                ("category/pkg1", ["base"]),
+                ("category/pkg2", ["base", "bar"]),
+                ("foo/bar", ["bar"]),
+            ]
+        )
+        result = pre_upload._check_cros_workon_revbump_eclass(
+            self.project,
+            "COMMIT",
+            options=("base.eclass",),
+        )
+        self.assertEqual(len(result), 1)
+        self.assertTrue("base.eclass" in result[0].msg)
+        self.assertEqual(result[0].items, ["category/pkg2"])
+
+    def testRevbumpNoPkgs(self):
+        """No packages revbumped along with eclass."""
+        self.file_mock.return_value = [
+            "eclass/base.eclass",
+        ]
+        self.bq_mock.return_value = self._constructEbuilds(
+            attrs=[
+                ("category/pkg1", ["base"]),
+                ("category/pkg2", ["base", "bar"]),
+                ("foo/bar", ["bar"]),
+            ]
+        )
+        result = pre_upload._check_cros_workon_revbump_eclass(
+            self.project,
+            "COMMIT",
+            options=("base.eclass",),
+        )
+        self.assertEqual(len(result), 1)
+        self.assertTrue("base.eclass" in result[0].msg)
+        self.assertEqual(result[0].items, ["category/pkg1", "category/pkg2"])
+
+    def testMultiEclass(self):
+        """Multiple eclasses were modified in one commit."""
+        self.file_mock.return_value = [
+            "eclass/one.eclass",
+            "eclass/two.eclass",
+            "eclass/three.eclass",
+        ]
+        self.bq_mock.return_value = self._constructEbuilds(
+            attrs=[
+                ("category/pkg1", ["one"]),
+                ("category/pkg2", ["two", "three"]),
+            ]
+        )
+        result = pre_upload._check_cros_workon_revbump_eclass(
+            self.project,
+            "COMMIT",
+            options=("one.eclass", "two.eclass"),
+        )
+        self.assertEqual(len(result), 2)
+        self.assertTrue("one.eclass" in result[0].msg)
+        self.assertEqual(result[0].items, ["category/pkg1"])
+        self.assertTrue("two.eclass" in result[1].msg)
+        self.assertEqual(result[1].items, ["category/pkg2"])
+
+    def testNoMatchedEclass(self):
+        """No matched eclass was modified."""
+        self.file_mock.return_value = [
+            "eclass/one.eclass",
+            "eclass/two.eclass",
+        ]
+        self.bq_mock.return_value = self._constructEbuilds(
+            attrs=[
+                ("category/pkg1", ["one"]),
+                ("category/pkg2", ["two", "three"]),
+            ]
+        )
+        result = pre_upload._check_cros_workon_revbump_eclass(
+            self.project,
+            "COMMIT",
+            options=("foo.eclass", "bar.eclass"),
+        )
+        self.assertFalse(result)
+
+    def testNoEclass(self):
+        """No eclass was provided in hook override options."""
+        self.file_mock.return_value = [
+            "eclass/one.eclass",
+            "eclass/two.eclass",
+        ]
+        self.bq_mock.return_value = self._constructEbuilds(
+            attrs=[
+                ("category/pkg1", ["one"]),
+                ("category/pkg2", ["two", "three"]),
+            ]
+        )
+        result = pre_upload._check_cros_workon_revbump_eclass(
+            self.project,
+            "COMMIT",
+            options=(),
+        )
+        self.assertFalse(result)
 
 
 class ExecFilesTest(PreUploadTestCase):

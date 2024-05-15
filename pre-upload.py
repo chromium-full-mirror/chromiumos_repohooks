@@ -53,6 +53,7 @@ elif __name__ == "__main__":
 # The sys.path monkey patching confuses the linter.
 # pylint: disable=wrong-import-position
 from chromite.format import formatters
+from chromite.lib import build_query
 from chromite.lib import commandline
 from chromite.lib import constants
 from chromite.lib import cros_build_lib
@@ -2692,6 +2693,49 @@ def _check_filepath_chartype(_project, commit):
     return None
 
 
+def _check_cros_workon_revbump_eclass(project, commit, options=()):
+    """Checks if packages inheriting the updated eclass also get rev-bumped."""
+
+    files = _get_affected_files(commit, relative=True)
+    eclass_paths = [re.escape(x) for x in options]
+    if not eclass_paths:
+        return None
+
+    eclasses = _filter_files(files, eclass_paths)
+    error_list = []
+
+    for eclass in eclasses:
+        eclass = Path(eclass)
+
+        # Find all the ebuilds that are under the same project overlay
+        # (e.g. src/third_party/chromiumos-overlay/) and inherit this eclass,
+        # and extract their category/package string.
+        pkgs = {
+            ebuild.package_info.cp
+            for ebuild in build_query.Overlay(project.dir).ebuilds
+            if eclass.stem in ebuild.eclasses
+        }
+
+        # Filter out the packages that didn't get updated in this commit.
+        pkgs_without_update = {
+            pkg
+            for pkg in pkgs
+            if not any(x.startswith(f"{pkg}/") for x in files)
+        }
+
+        if pkgs_without_update:
+            error_list.append(
+                errors.HookFailure(
+                    f"(b/201299127) '{eclass}' is modified.\n"
+                    f"Commit changes for following package(s), preferably\n"
+                    f"in 'files/revision_bump':\n",
+                    sorted(pkgs_without_update),
+                )
+            )
+
+    return error_list
+
+
 def _check_exec_files(_project, commit):
     """Make +x bits on files."""
     # List of files that should never be +x.
@@ -2876,6 +2920,7 @@ _HOOK_FLAGS = {
     "checkpatch_check": _run_checkpatch,
     "contribution_check": _check_change_is_contribution,
     "cros_license_check": _check_cros_license,
+    "cros_workon_revbump_eclass_check": _check_cros_workon_revbump_eclass,
     "exec_files_check": _check_exec_files,
     "filepath_chartype_check": _check_filepath_chartype,
     "git_cl_presubmit": _check_git_cl_presubmit,

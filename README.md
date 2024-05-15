@@ -122,6 +122,8 @@ may be controlled by the config file here, but we run many more checks.
 *   `checkpatch_check`: Run commits through Linux's `checkpatch.pl` tool.
 *   `contribution_check`: Check source files for invalid "not a contribution".
 *   `cros_license_check`: Require source files have a Chromium (BSD) license.
+*   `cros_workon_revbump_eclass_check`: Checks packages inheriting the updated
+    eclass also get revbumped.
 *   `exec_files_check`: Check common file types do not have +x permission bits.
 *   `filepath_chartype_check`: Check source files for FilePath::CharType use.
 *   `git_cl_presubmit`: Run git-cl PRESUBMIT.py logic if available.
