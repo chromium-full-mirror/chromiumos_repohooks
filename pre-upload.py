@@ -3233,7 +3233,7 @@ def _run_project_hooks(
                 for future in concurrent.futures.as_completed(futures)
             )
 
-            for h, (hook, hook_error, runtime) in enumerate(
+            for h, (hook, hook_result, runtime) in enumerate(
                 itertools.chain(
                     # First is a do-nothing hook allowing us to display some
                     # progress before the first future completes. It never gets
@@ -3267,18 +3267,16 @@ def _run_project_hooks(
                     print(f" {runtime}")
 
                 # Display error returned from hook, if any.
-                if hook_error:
+                if hook_result:
                     # Clear status line before showing errors.
                     if isatty:
                         print(f"\r{CSI_ERASE_LINE_AFTER}", end="")
-                    if not isinstance(hook_error, list):
-                        hook_error = [hook_error]
+                    if not isinstance(hook_result, list):
+                        hook_result = [hook_result]
                     errors.PrintErrorsForCommit(
-                        color, hook, project.name, hook_error
+                        color, hook, project.name, hook_result
                     )
-                    error_found = any(
-                        isinstance(e, errors.HookFailure) for e in hook_error
-                    )
+                    error_found = any(not r.is_warning for r in hook_result)
 
             # Clear status line after running all hooks for this commit.
             if isatty:
