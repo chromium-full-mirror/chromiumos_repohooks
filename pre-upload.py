@@ -655,14 +655,16 @@ def _get_cl_size_string(color: terminal.Color, commit: str) -> str:
     """
     lines_changed = _get_lines_changed(commit)
 
+    # Padding the strings won't work once they're wrapped in the color codes, so
+    # make sure they are all 2 characters.
     if lines_changed < ChangeSize.XS:
         return color.Color(color.GREEN, "XS")
     elif lines_changed < ChangeSize.S:
-        return color.Color(color.GREEN, "S")
+        return color.Color(color.GREEN, " S")
     elif lines_changed < ChangeSize.M:
-        return color.Color(color.GREEN, "M")
+        return color.Color(color.GREEN, " M")
     elif lines_changed < ChangeSize.L:
-        return color.Color(color.YELLOW, "L")
+        return color.Color(color.YELLOW, " L")
     else:
         return color.Color(color.RED, "XL")
 
@@ -3212,7 +3214,7 @@ def _run_project_hooks(
             # commit. Use that as the description.
             desc = commit if commit == PRE_SUBMIT else _get_commit_desc(commit)
             print(
-                "[%s %i/%i %s %-2s] %s"
+                "[%s %i/%i %s %s] %s"
                 % (
                     color.Color(color.CYAN, "COMMIT"),
                     i + 1,
