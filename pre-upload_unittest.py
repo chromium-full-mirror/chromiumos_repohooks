@@ -1870,6 +1870,13 @@ class CheckLayoutConfTestCase(PreUploadTestCase):
         )
         self.assertRejected(["metadata/layout.conf"])
 
+    def testRejectMissingEapisBanned(self):
+        """Reject a layout.conf missing thin-manifests."""
+        self.content_mock.return_value = self.GetLayoutConf(
+            filters=["eapis-banned"]
+        )
+        self.assertRejected(["metadata/layout.conf"])
+
     def testRejectMissingThinManifests(self):
         """Reject a layout.conf missing thin-manifests."""
         self.content_mock.return_value = self.GetLayoutConf(
