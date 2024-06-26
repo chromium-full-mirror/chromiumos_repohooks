@@ -2712,7 +2712,7 @@ def _check_cros_workon_revbump_eclass(project, commit, options=()):
         # and extract their category/package string.
         pkgs = {
             ebuild.package_info.cp
-            for ebuild in build_query.Overlay(project.dir).ebuilds
+            for ebuild in build_query.Overlay(Path(project.dir)).ebuilds
             if eclass.stem in ebuild.eclasses
         }
 
