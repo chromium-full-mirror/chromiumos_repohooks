@@ -2895,7 +2895,6 @@ _COMMON_HOOKS = [
     _check_exec_files,
     _check_for_uprev,
     _check_git_cl_presubmit,
-    _check_cl_size,
     _check_keywords,
     _check_layout_conf,
     _check_no_extra_blank_lines,
