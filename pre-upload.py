@@ -18,6 +18,7 @@ import enum
 import fnmatch
 import functools
 import itertools
+import json
 import os
 from pathlib import Path
 import re
@@ -2836,6 +2837,62 @@ def _check_git_cl_presubmit(_project, commit):
     return None
 
 
+def _check_json_key_prefix(project: Project, commit: str):
+    """Checks that modified .json files are valid battery configs for BCIC.
+
+    This hook performs two main checks on modified .json files:
+    1. Validates that the file content is parseable as valid JSON.
+    2. Ensures that no pair of top-level keys in the JSON data are prefixes of
+       each other.
+
+    Args:
+        project: The Project to look at
+        commit: The commit to look at
+
+    Returns:
+        None if all checks pass, otherwise a HookFailure object with details
+        of the errors.
+    """
+    if project.name != "chromiumos/project":
+        return None
+
+    files = _filter_files(
+        _get_affected_files(commit, relative=True), [r".*\.json$"]
+    )
+
+    json_error_list = []
+    prefix_error_dict = {}
+    for file in files:
+        try:
+            json_file = json.loads(_get_file_content(file, commit))
+            keys = list(json_file.keys())
+            file_prefix_errors = []
+            for i, key1 in enumerate(keys):
+                for key2 in keys[i + 1 :]:
+                    if key1.startswith(key2) or key2.startswith(key1):
+                        file_prefix_errors.append(sorted([key1, key2]))
+            if file_prefix_errors:
+                prefix_error_dict[file] = file_prefix_errors
+
+        except json.JSONDecodeError as e:
+            json_error_list.append(f"{file}: {e}")
+
+    if json_error_list:
+        return errors.HookFailure("Invalid JSON file(s):", json_error_list)
+
+    if prefix_error_dict:
+        prefix_error_list = []
+        for file, prefix_errors in prefix_error_dict.items():
+            for key1, key2 in prefix_errors:
+                prefix_error_list.append(
+                    f"{file}: Key '{key1}' is a prefix of Key '{key2}'"
+                )
+        return errors.HookFailure(
+            "JSON file(s) with prefix errors:", prefix_error_list
+        )
+    return None
+
+
 def _check_cl_size(
     _project: Project, commit: str, options: Sequence[str] = ()
 ) -> None:
@@ -2895,6 +2952,7 @@ _COMMON_HOOKS = [
     _check_exec_files,
     _check_for_uprev,
     _check_git_cl_presubmit,
+    _check_json_key_prefix,
     _check_keywords,
     _check_layout_conf,
     _check_no_extra_blank_lines,

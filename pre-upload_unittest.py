@@ -3424,3 +3424,69 @@ class ReadmeTests(cros_test_lib.TestCase):
                 "README.md:[Hook Overrides]"
             ),
         )
+
+
+class CheckJsonKeyPrefixTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
+    """Tests for _check_json_key_prefix."""
+
+    def setUp(self):
+        self.project = pre_upload.Project(
+            name="chromiumos/project", dir=self.tempdir, remote=None
+        )
+        # Ugly hack since self.tempdir is not in the chroot.
+        self.PatchObject(path_util, "ToChrootPath", side_effect=lambda x: x)
+        self.file_mock = self.PatchObject(pre_upload, "_get_affected_files")
+        self.content_mock = self.PatchObject(pre_upload, "_get_file_content")
+
+    def testJsonFormat(self):
+        """Verify that we can check the format of a json file."""
+        self.file_mock.return_value = [
+            f"{self.project.dir}/path/to/my/json_files/foo.json"
+        ]
+        self.content_mock.return_value = """
+{
+    "a": 1,
+    "b": 2,
+    "c": 3
+}
+        """
+        ret = pre_upload._check_json_key_prefix(self.project, "COMMIT")
+        self.assertIsNone(ret)
+
+    def testInvalidJsonFormat(self):
+        """Verify that we can check the format of a json file."""
+        self.file_mock.return_value = [
+            f"{self.project.dir}/path/to/my/json_files/foo.json"
+        ]
+        self.content_mock.return_value = """
+{
+    "a": 1,
+    "b": 2,
+    "c": 3,
+}
+        """
+        ret = pre_upload._check_json_key_prefix(self.project, "COMMIT")
+        self.assertTrue(ret)
+        self.assertEqual("Invalid JSON file(s):", ret.msg)
+
+    def testPrefixError(self):
+        """Verify that no pair of keys in the json file are prefixes."""
+        self.file_mock.return_value = [
+            f"{self.project.dir}/path/to/my/json_files/foo.json"
+        ]
+        self.content_mock.return_value = """
+{
+    "abc": 1,
+    "ab": 2,
+    "c": 3
+}
+        """
+        ret = pre_upload._check_json_key_prefix(self.project, "COMMIT")
+        self.assertTrue(ret)
+        self.assertEqual(
+            ret.items,
+            [
+                f"{self.project.dir}/path/to/my/json_files/foo.json: "
+                "Key 'ab' is a prefix of Key 'abc'"
+            ],
+        )
