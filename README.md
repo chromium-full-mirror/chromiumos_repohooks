@@ -124,6 +124,7 @@ may be controlled by the config file here, but we run many more checks.
 *   `cros_license_check`: Require source files have a Chromium (BSD) license.
 *   `cros_workon_revbump_eclass_check`: Checks packages inheriting the updated
     eclass also get revbumped.
+*   `egis_license_check`: Require source files have a Egis Copyright license.
 *   `exec_files_check`: Check common file types do not have +x permission bits.
 *   `filepath_chartype_check`: Check source files for FilePath::CharType use.
 *   `git_cl_presubmit`: Run git-cl PRESUBMIT.py logic if available.

@@ -2313,6 +2313,92 @@ def _check_aosp_license(_project, commit, options=()):
     return None
 
 
+def _check_egis_license(_project, commit, options=()):
+    """Verifies the Egis license/copyright header."""
+
+    LICENSE_HEADER = (
+        # Line 1 - /*
+        r"\/\*\n"
+        # Line 2
+        r" \* Copyright \(c\) (?P<year_range>\d{4}-\d{4}) "
+        r"Egis Technology Inc\.\s+<eservice@egistec\.com>\n"
+        # Line 3
+        r" \*\n"
+        # Line 4
+        r" \* All rights are reserved.\n"
+        # Line 5
+        r" \* Proprietary and confidential.\n"
+        # Line 6
+        r" \* Unauthorized copying of this file, "
+        r"via any medium is strictly prohibited.\n"
+        # Line 7
+        r" \* Any use is subject to an appropriate "
+        r"license granted by Egis Technology Inc.\n"
+        # Line 8 - */
+        r" \*\n"
+        # Line 9 - */
+        r" \*\/\n"
+    )
+
+    license_re = re.compile(LICENSE_HEADER, re.MULTILINE)
+
+    included, excluded = _parse_common_inclusion_options(options)
+
+    bad_files = []
+    bad_year_end_files = []
+    bad_year_range_files = []
+
+    files = _filter_files(
+        _get_affected_files(commit, relative=True),
+        included + COMMON_INCLUDED_PATHS,
+        excluded + COMMON_EXCLUDED_PATHS + LICENSE_EXCLUDED_PATHS,
+    )
+    existing_files = set(
+        _get_affected_files(commit, relative=True, include_adds=False)
+    )
+
+    current_year = datetime.datetime.now().year
+    for f in files:
+        contents = _get_file_content(f, commit)
+        if not contents:
+            # Ignore empty files.
+            continue
+
+        license_match = license_re.search(contents)
+        if not license_match:
+            bad_files.append(f)
+        else:
+            new_file = f not in existing_files
+            year_range = license_match.group("year_range")
+            start_year, end_year = [int(year) for year in year_range.split("-")]
+            year_range = end_year - start_year
+            if new_file and end_year != current_year:
+                bad_year_end_files.append(f)
+            if new_file and year_range != (current_year - 2015):
+                bad_year_range_files.append(f)
+
+    error_list = []
+    if bad_files:
+        msg = (
+            f"License must match:\n{license_re.pattern}\n"
+            "Found a bad header in these files:"
+        )
+        error_list.append(errors.HookFailure(msg, bad_files))
+    if bad_year_end_files:
+        msg = (
+            f"Use current year ({current_year}) as the end year "
+            "in the copyright end in new files:"
+        )
+        error_list.append(errors.HookFailure(msg, bad_year_end_files))
+    if bad_year_range_files:
+        msg = (
+            f"Use current year ({current_year}) as the end year and 2015 as "
+            "the start year in the copyright range in new files:"
+        )
+        error_list.append(errors.HookFailure(msg, bad_year_range_files))
+    return error_list
+
+
 def _check_layout_conf(_project, commit):
     """Verifies the metadata/layout.conf file."""
     repo_name = "profiles/repo_name"
@@ -2978,6 +3064,7 @@ _HOOK_FLAGS = {
     "contribution_check": _check_change_is_contribution,
     "cros_license_check": _check_cros_license,
     "cros_workon_revbump_eclass_check": _check_cros_workon_revbump_eclass,
+    "egis_license_check": _check_egis_license,
     "exec_files_check": _check_exec_files,
     "filepath_chartype_check": _check_filepath_chartype,
     "git_cl_presubmit": _check_git_cl_presubmit,

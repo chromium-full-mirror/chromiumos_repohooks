@@ -1800,6 +1800,50 @@ class CheckAOSPLicenseCopyrightHeader(PreUploadTestCase):
         self.assertIsNone(pre_upload._check_aosp_license("proj", "sha1"))
 
 
+class CheckEgisLicenseCopyrightHeader(cros_test_lib.MockTestCase):
+    """Tests for _check_egis_license."""
+
+    def setUp(self):
+        self.file_mock = self.PatchObject(pre_upload, "_get_affected_files")
+        self.content_mock = self.PatchObject(pre_upload, "_get_file_content")
+
+    def testHeaders(self):
+        """Correct Egis Header."""
+        HEADERS = (
+            """/*
+ * Copyright (c) 2015-2024 Egis Technology Inc.  <eservice@egistec.com>
+ *
+ * All rights are reserved.
+ * Proprietary and confidential.
+ * Unauthorized copying of this file, via any medium is strictly prohibited.
+ * Any use is subject to an appropriate license granted by Egis Technology Inc.
+ *
+ */
+""",
+        )
+        self.file_mock.return_value = ["file"]
+        for header in HEADERS:
+            self.content_mock.return_value = header
+            self.assertFalse(pre_upload._check_egis_license("proj", "sha1"))
+
+    def testRejectNoLinesAround(self):
+        """Reject headers missing the empty lines before/after the license."""
+        HEADERS = (
+            """/*
+ * Copyright (c) 2015-2024 Egis Technology Inc.  <eservice@egistec.com>
+ * All rights are reserved.
+ * Proprietary and confidential.
+ * Unauthorized copying of this file, via any medium is strictly prohibited.
+ * Any use is subject to an appropriate license granted by Egis Technology Inc.
+ */
+""",
+        )
+        self.file_mock.return_value = ["file"]
+        for header in HEADERS:
+            self.content_mock.return_value = header
+            self.assertTrue(pre_upload._check_egis_license("proj", "sha1"))
+
+
 class CheckLayoutConfTestCase(PreUploadTestCase):
     """Tests for _check_layout_conf."""
 
