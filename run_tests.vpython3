@@ -7,7 +7,7 @@
 # For info on this file, see:
 # https://chromium.googlesource.com/infra/infra/+/HEAD/doc/users/vpython.md#available-wheels
 
-python_version: "3.8"
+python_version: "3.11"
 
 # pytest deps.
 wheel: <
