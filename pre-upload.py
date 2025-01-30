@@ -2895,7 +2895,7 @@ def _check_exec_files(_project, commit):
 
     if bad_files:
         return errors.HookFailure(
-            "These files should not be executable.  " "Please `chmod -x` them.",
+            "These files should not be executable.  Please `chmod -x` them.",
             bad_files,
         )
     return None
@@ -3680,7 +3680,7 @@ def direct_main(argv):
 
         if opts.pre_submit:
             raise BadInvocation(
-                "rerun-since and pre-submit can not be " "used together"
+                "rerun-since and pre-submit can not be used together"
             )
     if opts.pre_submit:
         if opts.commits:

@@ -1484,7 +1484,7 @@ class CheckEbuildVirtualPv(PreUploadTestCase):
     BOARD_OVERLAY = ProjectNamed("chromiumos/overlays/board-overlays")
     PRIVATE_OVERLAY = ProjectNamed("chromeos/overlays/overlay-link-private")
     PRIVATE_VARIANT_OVERLAY = ProjectNamed(
-        "chromeos/overlays/" "overlay-variant-daisy-spring-private"
+        "chromeos/overlays/overlay-variant-daisy-spring-private"
     )
 
     def setUp(self):
@@ -2298,10 +2298,10 @@ class CheckCommitMessageNoOEM(CommitMessageTestCase):
             "Acked-by: partner@hewlett-packard.corp-partner.google.com\n"
         )
         self.assertMessageRejected(
-            "Asus project\n" "Reviewed-by: partner@asus.corp-partner.google.com"
+            "Asus project\nReviewed-by: partner@asus.corp-partner.google.com"
         )
         self.assertMessageRejected(
-            "my project\n" "Bad-tag: partner@asus.corp-partner.google.com"
+            "my project\nBad-tag: partner@asus.corp-partner.google.com"
         )
 
 
