@@ -2934,7 +2934,6 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
             commit_list=[],
             presubmit=mock.ANY,
             config_file=mock.ANY,
-            cla_check=True,
             jobs=mock.ANY,
         )
 
@@ -2949,7 +2948,6 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
             commit_list=[],
             presubmit=mock.ANY,
             config_file=mock.ANY,
-            cla_check=mock.ANY,
             jobs=mock.ANY,
         )
 
@@ -2966,7 +2964,6 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
             commit_list=[],
             presubmit=mock.ANY,
             config_file=mock.ANY,
-            cla_check=mock.ANY,
             jobs=mock.ANY,
         )
 
@@ -2980,7 +2977,6 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
             commit_list=[],
             presubmit=mock.ANY,
             config_file=mock.ANY,
-            cla_check=mock.ANY,
             jobs=mock.ANY,
         )
 
@@ -3011,21 +3007,6 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
             commit_list=commits,
             presubmit=mock.ANY,
             config_file=mock.ANY,
-            cla_check=mock.ANY,
-            jobs=mock.ANY,
-        )
-
-    def testNoClaCheck(self):
-        """--cla_check flag should be passed through."""
-        ret = pre_upload.direct_main(["--no-cla-check"])
-        self.assertEqual(ret, 0)
-        self.hooks_mock.assert_called_once_with(
-            mock.ANY,
-            proj_dir=mock.ANY,
-            commit_list=[],
-            presubmit=mock.ANY,
-            config_file=mock.ANY,
-            cla_check=False,
             jobs=mock.ANY,
         )
 
@@ -3039,7 +3020,6 @@ class DirectMainTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
             commit_list=[],
             presubmit=mock.ANY,
             config_file=mock.ANY,
-            cla_check=mock.ANY,
             jobs=1,
         )
 

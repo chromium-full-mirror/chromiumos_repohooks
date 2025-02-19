@@ -58,9 +58,7 @@ from chromite.lib import build_query
 from chromite.lib import commandline
 from chromite.lib import constants
 from chromite.lib import cros_build_lib
-from chromite.lib import gerrit
 from chromite.lib import git
-from chromite.lib import gob_util
 from chromite.lib import osutils
 from chromite.lib import patch
 from chromite.lib import path_util
@@ -3278,7 +3276,6 @@ def _run_project_hooks(
     commit_list=None,
     presubmit=False,
     config_file=None,
-    cla_check=True,
     jobs=None,
 ):
     """For each project run its project specific hook from the hooks dictionary.
@@ -3294,7 +3291,6 @@ def _run_project_hooks(
             script.
         config_file: A string, the presubmit config file. If not specified,
             defaults to PRESUBMIT.cfg in the project directory.
-        cla_check: A Boolean, True if CLA check is to be run.
         jobs: Maximum number of tasks to run in parallel, or choose
             automatically if None.
 
@@ -3325,18 +3321,6 @@ def _run_project_hooks(
     pwd = os.getcwd()
     # hooks assume they are run from the root of the project
     os.chdir(proj_dir)
-
-    # Check the CLA here as we might be uploading multiple projects with each to
-    # a different remote which have independent CLA settings.
-    if cla_check:
-        try:
-            check_cla()
-        except errors.VerifyException as e:
-            errors.PrintErrorForProject(
-                project_name, errors.HookFailure(f"unable to check cla: {e}")
-            )
-            os.chdir(pwd)
-            return True
 
     color = terminal.Color()
 
@@ -3476,56 +3460,6 @@ def _run_project_hooks(
     return error_found
 
 
-def check_cla() -> None:
-    """See if the user has signed the Google CLA yet."""
-    # Find the current remote.
-    branch = _run_command(["git", "symbolic-ref", "HEAD"]).strip()
-    branch = branch.replace("refs/heads/", "")
-    if not branch:
-        raise errors.VerifyException("Need to be on a branch")
-
-    remote = _run_command(["git", "config", f"branch.{branch}.remote"]).strip()
-    if not remote:
-        raise errors.VerifyException(
-            "Need to be on a tracking branch; " f"fix branch.{branch}.remote"
-        )
-
-    # Only enforce CLA on some hosts.
-    if remote not in ("cros", "cros-internal"):
-        return
-
-    # See if the CLA check has been cached for this remote.
-    config = f"repo.hooks.pre-upload.signcla.{remote}"
-    result = _run_command(["git", "config", config], cwd=REPOHOOKS_DIR)
-    if result:
-        # We have a cached result.  We only cache positive hits, so return.
-        return
-
-    # Check with the server to see if it's been signed in the meantime.
-    gob = {
-        "cros": "chromium",
-        "cros-internal": "chrome-internal",
-    }[remote]
-    helper = gerrit.GetGerritHelper(gob=gob, print_cmd=False)
-    data = gob_util.FetchUrlJson(helper.host, "accounts/self/groups")
-    for group in data:
-        if group.get("name") == "google/google-union:signcla":
-            # They're in the magic group, so cache the result.
-            _run_command(["git", "config", config, "true"], cwd=REPOHOOKS_DIR)
-            return
-
-    # They haven't signed yet, so issue a warning.
-    print(
-        "WARNING: You have not yet signed the Google CLA.  "
-        "This will become a requirement for uploads soon.",
-        file=sys.stderr,
-    )
-    print(
-        f"Visit https://{helper.host}/settings/#Agreements to sign.",
-        file=sys.stderr,
-    )
-
-
 # Main
 
 
@@ -3637,14 +3571,6 @@ def direct_main(argv):
     )
     parser.add_argument("commits", nargs="*", help="Check specific commits")
     parser.add_argument(
-        "--no-cla-check",
-        dest="cla_check",
-        action="store_false",
-        help="Skip the CLA check.  Useful for running in the "
-        "context of a rebase as the CLA check requires being "
-        "on a branch.",
-    )
-    parser.add_argument(
         "-j",
         "--jobs",
         type=int,
@@ -3723,7 +3649,6 @@ def direct_main(argv):
         commit_list=opts.commits,
         presubmit=opts.pre_submit,
         config_file=opts.presubmit_config,
-        cla_check=opts.cla_check,
         jobs=opts.jobs,
     )
     if found_error:
