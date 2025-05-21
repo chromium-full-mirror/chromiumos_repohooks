@@ -157,6 +157,7 @@ COMMON_EXCLUDED_PATHS = [
     r".*/licenses/.*",
     # Exclude generated protobuf bindings.
     r".*_pb2\.py$",
+    r".*_pb2_grpc\.py$",
     r".*\.pb\.go$",
 ]
 
