@@ -33,6 +33,9 @@ from typing import Optional, Sequence, Tuple
 import errors
 
 
+_CFM_PREFIX = "[CfM-R150]"
+
+
 # Path to the repohooks dir itself.
 REPOHOOKS_DIR = Path(__file__).resolve().parent
 
@@ -2739,10 +2742,13 @@ def _check_project_prefix(_project, commit):
 
         prefix = os.path.dirname(prefix)
 
-    if not _get_commit_desc(commit).startswith(project_name + ": "):
+    expected_prefix = f"{_CFM_PREFIX} {project_name}: "
+
+    if not _get_commit_desc(commit).startswith(expected_prefix):
         return errors.HookFailure(
             "The commit title for changes affecting only %s"
-            ' should start with "%s: "' % (project_name, project_name)
+            ' should start with "%s"'
+            % (project_name, expected_prefix)
         )
     return None
 
