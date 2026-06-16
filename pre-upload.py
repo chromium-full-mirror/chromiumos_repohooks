@@ -3059,6 +3059,7 @@ _HOOK_FLAGS = {
     "bug_field_check": _check_change_has_bug_field,
     "cargo_clippy_check": _check_cargo_clippy,
     "check_change_no_include_board_phase": _check_change_no_include_board_phase,
+    "check_commit_message_style": _check_commit_message_style,
     "checkpatch_check": _run_checkpatch,
     "contribution_check": _check_change_is_contribution,
     "cros_license_check": _check_cros_license,

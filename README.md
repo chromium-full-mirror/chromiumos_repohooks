@@ -119,6 +119,8 @@ may be controlled by the config file here, but we run many more checks.
 *   `cargo_clippy_check`: Run Rust code through `cargo clippy`.
 *   `check_change_no_include_board_phase`: Reject commit messages that refer to
     hardware board development phases (e.g. PVT).
+*   `check_commit_message_style`: Check commit message style (blank second line,
+    subject line under 100 chars, single sentence, no `fixup!` or `squash!`).
 *   `checkpatch_check`: Run commits through Linux's `checkpatch.pl` tool.
 *   `contribution_check`: Check source files for invalid "not a contribution".
 *   `cros_license_check`: Require source files have a Chromium (BSD) license.
