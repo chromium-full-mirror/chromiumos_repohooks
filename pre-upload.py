@@ -2398,6 +2398,58 @@ def _check_egis_license(_project, commit, options=()):
     return error_list
 
 
+def _check_custom_license(project, commit, options=()):
+    """Verifies a custom license/copyright header from a project template."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--template", type=Path)
+    opts, remaining = parser.parse_known_args(options)
+    if not opts.template:
+        return errors.HookFailure(
+            "custom_license_check requires --template=<file> in "
+            f"{_CONFIG_FILE}."
+        )
+
+    included, excluded = _parse_common_inclusion_options(remaining)
+
+    template_path = Path(project.dir) / opts.template
+    try:
+        template = template_path.read_text(encoding="utf-8")
+    except OSError as e:
+        return errors.HookFailure(
+            f"Unable to read license template {opts.template}: {e.strerror}"
+        )
+
+    pattern = re.escape(template).replace("%YEAR%", r"\d{4}(?:-\d{4})?")
+    license_re = re.compile(f"^{pattern}", re.MULTILINE)
+
+    files = _filter_files(
+        _get_affected_files(commit, relative=True),
+        included + COMMON_INCLUDED_PATHS,
+        excluded
+        + COMMON_EXCLUDED_PATHS
+        + LICENSE_EXCLUDED_PATHS
+        + [f"^{re.escape(opts.template.as_posix())}$"],
+    )
+
+    bad_files = []
+    for f in files:
+        contents = _get_file_content(f, commit)
+        if not contents:
+            # Ignore empty files.
+            continue
+
+        if not license_re.search(contents):
+            bad_files.append(f)
+
+    if bad_files:
+        msg = (
+            f"License must match:\n{template}\n"
+            "Found a bad header in these files:"
+        )
+        return errors.HookFailure(msg, bad_files)
+    return None
+
+
 def _check_layout_conf(_project, commit):
     """Verifies the metadata/layout.conf file."""
     repo_name = "profiles/repo_name"
@@ -3064,6 +3116,7 @@ _HOOK_FLAGS = {
     "contribution_check": _check_change_is_contribution,
     "cros_license_check": _check_cros_license,
     "cros_workon_revbump_eclass_check": _check_cros_workon_revbump_eclass,
+    "custom_license_check": _check_custom_license,
     "egis_license_check": _check_egis_license,
     "exec_files_check": _check_exec_files,
     "filepath_chartype_check": _check_filepath_chartype,

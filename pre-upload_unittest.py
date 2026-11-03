@@ -1844,6 +1844,115 @@ class CheckEgisLicenseCopyrightHeader(cros_test_lib.MockTestCase):
             self.assertTrue(pre_upload._check_egis_license("proj", "sha1"))
 
 
+class CheckCustomLicenseCopyrightHeader(
+    PreUploadTestCase, cros_test_lib.TempDirTestCase
+):
+    """Tests for _check_custom_license."""
+
+    VALID_HEADER_TEMPLATE = """/*
+ * Copyright (c) %s Example Corp.
+ *
+ * All rights are reserved.
+ * Proprietary and confidential.
+ * Unauthorized copying of this file, via any medium is strictly prohibited.
+ * Any use is subject to an appropriate license granted by Example Corp.
+ *
+ */
+"""
+    OPTIONS = ("--template=LICENSE_TEMPLATE",)
+
+    def setUp(self):
+        self.project = pre_upload.Project(
+            name="proj", dir=str(self.tempdir), remote=None
+        )
+        self.template_file = self.tempdir / "LICENSE_TEMPLATE"
+        self.template_file.write_text(
+            self.VALID_HEADER_TEMPLATE % "%YEAR%", encoding="utf-8"
+        )
+        self.file_mock = self.PatchObject(pre_upload, "_get_affected_files")
+        self.content_mock = self.PatchObject(pre_upload, "_get_file_content")
+
+    def testValidYearAndRangeHeaders(self):
+        """Accept single years and year ranges matching %YEAR%."""
+        self.file_mock.return_value = ["file.c"]
+        for years in ("2020", "2026", "2014-2020", "2014-2026"):
+            self.content_mock.return_value = self.VALID_HEADER_TEMPLATE % years
+            self.assertIsNone(
+                pre_upload._check_custom_license(
+                    self.project, "sha1", self.OPTIONS
+                )
+            )
+
+    def testRejectBadYearFormats(self):
+        """Reject malformed copyright years that do not match YYYY(-YYYY)."""
+        self.file_mock.return_value = ["file.c"]
+        for bad_years in ("24", "2014-", "2014-26", "abcd"):
+            self.content_mock.return_value = (
+                self.VALID_HEADER_TEMPLATE % bad_years
+            )
+            failure = pre_upload._check_custom_license(
+                self.project, "sha1", self.OPTIONS
+            )
+            self.assertIsNotNone(failure)
+            self.assertEqual(["file.c"], failure.items)
+            self.assertIn("Found a bad header in these files:", failure.msg)
+
+    def testTemplateWithoutYearPlaceholder(self):
+        """Accept static templates with no %YEAR% placeholder."""
+        static_header = "/* Licensed under Example Corp. Terms v1.0. */\n"
+        self.template_file.write_text(static_header, encoding="utf-8")
+        self.file_mock.return_value = ["file.c"]
+        self.content_mock.return_value = f"{static_header}\nint main(void);\n"
+        self.assertIsNone(
+            pre_upload._check_custom_license(self.project, "sha1", self.OPTIONS)
+        )
+
+    def testRejectNoLinesAround(self):
+        """Reject headers missing the empty lines before/after the license."""
+        self.file_mock.return_value = ["file.c"]
+        self.content_mock.return_value = """/*
+ * Copyright (c) 2014-2026 Example Corp.
+ * All rights are reserved.
+ * Proprietary and confidential.
+ * Unauthorized copying of this file, via any medium is strictly prohibited.
+ * Any use is subject to an appropriate license granted by Example Corp.
+ */
+"""
+        failure = pre_upload._check_custom_license(
+            self.project, "sha1", self.OPTIONS
+        )
+        self.assertIsNotNone(failure)
+        self.assertEqual(["file.c"], failure.items)
+        self.assertIn("Found a bad header in these files:", failure.msg)
+
+    def testIgnoreEmptyExcludedAndTemplateFiles(self):
+        """Ignore empty files, excluded license paths, and the template file."""
+        self.file_mock.return_value = [
+            "empty.c",
+            "OWNERS",
+            "LICENSE_TEMPLATE",
+        ]
+        self.content_mock.side_effect = lambda f, _: (
+            "" if f == "empty.c" else "no license header\n"
+        )
+        self.assertIsNone(
+            pre_upload._check_custom_license(self.project, "sha1", self.OPTIONS)
+        )
+
+    def testMissingTemplateOptionOrFile(self):
+        """Fail when --template is missing, empty, or does not exist."""
+        failure = pre_upload._check_custom_license(self.project, "sha1", ())
+        self.assertIsNotNone(failure)
+        self.assertIn("requires --template=<file>", failure.msg)
+
+        for bad_opt in ("--template=missing.txt", "--template="):
+            failure = pre_upload._check_custom_license(
+                self.project, "sha1", (bad_opt,)
+            )
+            self.assertIsNotNone(failure)
+            self.assertIn("Unable to read license template", failure.msg)
+
+
 class CheckLayoutConfTestCase(PreUploadTestCase):
     """Tests for _check_layout_conf."""
 
