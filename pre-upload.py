@@ -3030,6 +3030,62 @@ def _check_json_key_prefix(project: Project, commit: str):
     return None
 
 
+def _check_build_kernel_image(
+    _project: Project, commit: str, options: Sequence[str] = ()
+) -> Optional[errors.HookFailure]:
+    """Validates overlay scripts/build_kernel_image.sh files.
+
+    Sources the script with no positional parameters under `bash -e -u` and
+    verifies that `modify_kernel_command_line` is defined and succeeds with no
+    unexpected output.
+    """
+    included, excluded = _parse_common_inclusion_options(options)
+    files = _filter_files(
+        _get_affected_files(commit, relative=True),
+        included + [r"(^|/)scripts/build_kernel_image\.sh$"],
+        excluded + COMMON_EXCLUDED_PATHS,
+    )
+    if not files:
+        return None
+
+    error_list = []
+    with osutils.TempDir() as tempdir:
+        temp_path = Path(tempdir)
+        script_path = temp_path / "build_kernel_image.sh"
+        cmdline_path = temp_path / "config.txt"
+        osutils.AllocateFile(cmdline_path, 0)
+        for file in files:
+            content = _get_file_content(file, commit)
+            if not content:
+                continue
+            script_path.write_text(content, encoding="utf-8")
+            res = cros_build_lib.run(
+                [
+                    "bash",
+                    "-euc",
+                    's="$1"; c="$2"; shift 2; . "${s}"; '
+                    'modify_kernel_command_line "${c}"',
+                    "_",
+                    script_path,
+                    cmdline_path,
+                ],
+                print_cmd=False,
+                input=subprocess.DEVNULL,
+                stdout=True,
+                stderr=subprocess.STDOUT,
+                encoding="utf-8",
+                check=False,
+            )
+            if res.returncode or res.stdout.strip():
+                error_list.append(f"{file}: {res.stdout.strip()}")
+
+    if error_list:
+        return errors.HookFailure(
+            "Invalid build_kernel_image.sh file(s):", error_list
+        )
+    return None
+
+
 def _check_cl_size(
     _project: Project, commit: str, options: Sequence[str] = ()
 ) -> None:
@@ -3077,6 +3133,7 @@ _PATCH_DESCRIPTION_HOOKS = [
 
 # A list of hooks that are not project-specific
 _COMMON_HOOKS = [
+    _check_build_kernel_image,
     _check_cargo_clippy,
     _check_cros_license,
     _check_ebuild_eapi,
@@ -3109,6 +3166,7 @@ _HOOK_FLAGS = {
     "blank_line_check": _check_no_extra_blank_lines,
     "branch_check": _check_change_has_branch_field,
     "bug_field_check": _check_change_has_bug_field,
+    "build_kernel_image_check": _check_build_kernel_image,
     "cargo_clippy_check": _check_cargo_clippy,
     "check_change_no_include_board_phase": _check_change_no_include_board_phase,
     "check_commit_message_style": _check_commit_message_style,

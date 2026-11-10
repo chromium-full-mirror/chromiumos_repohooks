@@ -3623,3 +3623,56 @@ class CheckJsonKeyPrefixTest(PreUploadTestCase, cros_test_lib.TempDirTestCase):
                 "Key 'ab' is a prefix of Key 'abc'"
             ],
         )
+
+
+class CheckBuildKernelImageTest(
+    PreUploadTestCase, cros_test_lib.TempDirTestCase
+):
+    """Tests for _check_build_kernel_image."""
+
+    def setUp(self):
+        self.project = pre_upload.Project(
+            name="chromeos/overlays/overlay-noctis-private",
+            dir=self.tempdir,
+            remote=None,
+        )
+        self.file_mock = self.PatchObject(
+            pre_upload,
+            "_get_affected_files",
+            return_value=["scripts/build_kernel_image.sh"],
+        )
+        self.content_mock = self.PatchObject(pre_upload, "_get_file_content")
+
+    def testValidScript(self):
+        """Verify a valid build_kernel_image.sh script passes."""
+        self.content_mock.return_value = (
+            "#!/bin/bash\n"
+            "modify_kernel_command_line() {\n"
+            '  echo "tpm_tis.force=0" >> "$1"\n'
+            '  echo "ramoops.ecc=1" >> "$1"\n'
+            "}\n"
+        )
+        ret = pre_upload._check_build_kernel_image(self.project, "COMMIT")
+        self.assertIsNone(ret)
+
+    def testTopLevelWriteToArg1(self):
+        """Verify top-level writes to $1 outside modify_kernel_command_line."""
+        self.content_mock.return_value = (
+            "#!/bin/bash\n"
+            "modify_kernel_command_line() {\n"
+            '  echo "tpm_tis.force=0" >> "$1"\n'
+            "}\n"
+            'echo "chromiumos.allow_overlayfs" >> "$1"\n'
+        )
+        ret = pre_upload._check_build_kernel_image(self.project, "COMMIT")
+        self.assertIsNotNone(ret)
+        self.assertIn("$1: unbound variable", ret.items[0])
+
+    def testMissingFunction(self):
+        """Verify missing modify_kernel_command_line() is caught."""
+        self.content_mock.return_value = "#!/bin/bash\n"
+        ret = pre_upload._check_build_kernel_image(self.project, "COMMIT")
+        self.assertIsNotNone(ret)
+        self.assertIn(
+            "modify_kernel_command_line: command not found", ret.items[0]
+        )

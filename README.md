@@ -116,6 +116,8 @@ may be controlled by the config file here, but we run many more checks.
 *   `blank_line_check`: Check for trailing blank lines.
 *   `branch_check`: Require all commit messages have a `BRANCH=` line.
 *   `bug_field_check`: Require all commit messages have a `BUG=` line.
+*   `build_kernel_image_check`: Validate overlay `scripts/build_kernel_image.sh`
+    files.
 *   `cargo_clippy_check`: Run Rust code through `cargo clippy`.
 *   `check_change_no_include_board_phase`: Reject commit messages that refer to
     hardware board development phases (e.g. PVT).
