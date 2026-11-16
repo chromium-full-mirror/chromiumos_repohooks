@@ -130,7 +130,6 @@ may be controlled by the config file here, but we run many more checks.
     eclass also get revbumped.
 *   `custom_license_check`: Require source files have a custom license header
     matching `--template=<file>` (supporting an optional `%YEAR%` placeholder).
-*   `egis_license_check`: Require source files have a Egis Copyright license.
 *   `exec_files_check`: Check common file types do not have +x permission bits.
 *   `filepath_chartype_check`: Check source files for FilePath::CharType use.
 *   `git_cl_presubmit`: Run git-cl PRESUBMIT.py logic if available.
